@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Sếp Roi</title>
+    <meta name="theme-color" content="#1a1626" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="css/fonts.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body>
+    <!-- Background "desktop" shown behind the mini bar -->
+    <div id="desktop">
+      <div class="desk-hint">
+        <div class="desk-title">Chế độ Taskbar</div>
+        <p>Văn phòng đang chạy nền ở đáy màn hình.<br />Ai lười là thanh bar nháy đỏ, cứ bấm vào mà quất.</p>
+        <button id="btn-pip" class="px-btn" hidden>Ghim nổi lên mọi cửa sổ</button>
+      </div>
+    </div>
+
+    <!-- Game stage: holds the canvas + overlay; moves into the PiP window in mini-pop mode -->
+    <div id="stage">
+      <canvas id="game"></canvas>
+      <div id="fx"></div>
+      <div id="hud"></div>
+    </div>
+
+    <div id="panel" hidden></div>
+    <div id="modal" hidden></div>
+  </body>
+</html>

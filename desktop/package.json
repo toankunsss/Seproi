@@ -1,0 +1,59 @@
+{
+  "name": "sep-roi-desktop",
+  "productName": "Sep Roi",
+  "version": "1.0.0",
+  "description": "Sếp Roi — taskbar idle game",
+  "author": "Sep Roi",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "shot": "electron . --shot",
+    "icon": "node build/make-icon.cjs",
+    "dist": "electron-builder --win",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^44.5.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "vn.seproi.game",
+    "productName": "Sep Roi",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.cjs", "preload.cjs", "package.json"],
+    "extraResources": [
+      { "from": "..", "to": "game", "filter": ["index.html", "icon.svg", "css/**", "js/**", "fonts/**"] }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        { "target": "portable", "arch": ["x64"] },
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.games",
+      "minimumSystemVersion": "10.15",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
+      ],
+      "artifactName": "SepRoi-${version}-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "Sếp Roi ${version}",
+      "artifactName": "SepRoi-${version}-mac-${arch}.${ext}"
+    },
+    "portable": { "artifactName": "SepRoi-${version}-portable.exe" },
+    "nsis": {
+      "artifactName": "SepRoi-${version}-setup.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Sếp Roi"
+    }
+  }
+}
