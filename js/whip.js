@@ -1,10 +1,14 @@
-// The boss's whip: a verlet rope hanging from the handle that lashes out to the
-// click point, plus sparks, shockwaves, lightning and screen shake.
-import { WHIPS } from './config.js';
+// The boss's punishment tools, drawn at the cursor:
+//   whip  — a verlet rope hanging from the handle that lashes out to the click point
+//   baton — a stick swung down onto the target
+//   taser — an instant arc that can chain to nearby slackers
+// plus sparks, shockwaves, lightning and screen shake.
+import { WHIPS, BATONS, TASERS } from './config.js';
 import { rect, px, line } from './pixel.js';
 
 const N = 16;
 const SEG = 3.6;
+const BATON_LEN = 18;
 const rand = (a, b) => a + Math.random() * (b - a);
 
 export function createWhip() {
@@ -12,14 +16,38 @@ export function createWhip() {
   const w = {
     handle: { x: -100, y: -100 },
     visible: false,
-    strike: null,
+    strike: null,   // whip lash in flight
+    swing: null,    // baton swing in flight
+    arc: null,      // taser arc on screen
+    batonAngle: -2.2, batonHold: 0,
     particles: [],
     rings: [],
     bolts: [],
     lashes: [],
     shake: 0,
     swingT: 0, // assistant arm pose timer
-    get busy() { return !!this.strike; },
+    get busy() { return !!(this.strike || this.swing || (this.arc && this.arc.t < 0.12)); },
+  };
+
+  /**
+   * Use `tool` on `targets` ([{x,y}], first = the click; extra ones = taser chain).
+   * onHit fires at the moment of impact.
+   */
+  w.use = (tool, targets, level, onHit) => {
+    const [t0] = targets;
+    if (tool === 'baton') {
+      const px0 = t0.x + 11, py0 = t0.y + 14; // hand position below-right of the target
+      const hitA = Math.atan2(t0.y - py0, t0.x - px0);
+      w.swing = { t: 0, dur: 0.12, level, onHit, px: px0, py: py0, x: t0.x, y: t0.y, from: hitA + 1.3, to: hitA }; // raised over the top, chops down
+    } else if (tool === 'taser') {
+      const h = w.handle;
+      w.arc = { t: 0, dur: 0.3, level, pts: [{ x: h.x - 4, y: h.y - 6 }, ...targets] };
+      w.shake = 2 + level;
+      for (const p of targets) zapFx(p.x, p.y, level);
+      onHit && onHit();
+    } else {
+      w.lash(t0.x, t0.y, level, onHit);
+    }
   };
 
   w.place = (x, y, snap = false) => {
@@ -85,6 +113,27 @@ export function createWhip() {
       }
     }
 
+    // Baton: rotate from the wind-up angle down onto the target, then hold briefly.
+    if (w.swing) {
+      const s = w.swing;
+      s.t += dt;
+      const p = Math.min(1, s.t / s.dur);
+      w.batonAngle = lerp(s.from, s.to, p * p);
+      if (p >= 1) {
+        w.swing = null;
+        w.batonHold = 0.18;
+        w.batonPivot = { x: s.px, y: s.py };
+        bonkFx(s.x, s.y, s.level);
+        s.onHit && s.onHit();
+      }
+    } else if (w.batonHold > 0) {
+      w.batonHold -= dt;
+    } else {
+      w.batonAngle = lerp(w.batonAngle, -2.2, Math.min(1, dt * 12));
+      w.batonPivot = null;
+    }
+    if (w.arc) { w.arc.t += dt; if (w.arc.t >= w.arc.dur) w.arc = null; }
+
     for (const p of w.particles) {
       p.life -= dt;
       p.vy += p.g * dt;
@@ -125,6 +174,28 @@ export function createWhip() {
     if (fx === 'fire') for (let i = 0; i < 14; i++) {
       w.particles.push({ x: x + rand(-6, 6), y: y + rand(-3, 3), vx: rand(-10, 10), vy: rand(-50, -20), g: -40, life: rand(0.4, 0.9), max: 0.9, color: pal[Math.floor(Math.random() * 3)], size: 2 });
     }
+  }
+
+  function burst(x, y, n, pal, speed, gravity = 260) {
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, Math.PI * 2), sp = rand(speed * 0.35, speed);
+      w.particles.push({
+        x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 30, g: gravity,
+        life: rand(0.25, 0.6), max: 0.6, color: pal[Math.floor(Math.random() * pal.length)], size: Math.random() < 0.35 ? 2 : 1,
+      });
+    }
+  }
+
+  function bonkFx(x, y, level) {
+    w.shake = 5 + level * 1.5;
+    w.rings.push({ x, y, t: 0, dur: 0.25, r: 12 + level * 3, color: '#fff6b0' });
+    burst(x, y, 14 + level * 6, ['#ffffff', '#ffe38a', '#ffd34d', BATONS[level].color], 120 + level * 20);
+  }
+
+  function zapFx(x, y, level) {
+    w.rings.push({ x, y, t: 0, dur: 0.2, r: 8 + level * 3, color: '#8fe8ff' });
+    burst(x, y, 10 + level * 5, ['#ffffff', '#8fe8ff', '#3ab8ff', '#d0f8ff'], 110 + level * 20, 120);
+    for (let i = 0; i < 3 + level; i++) w.bolts.push(makeBolt(x, y, rand(0, Math.PI * 2), 10 + Math.random() * 8));
   }
 
   function makeBolt(x, y, ang, len) {
@@ -178,6 +249,62 @@ export function createWhip() {
       }
     }
   };
+
+  /** Draw whatever tool the boss is holding (game state `g`). */
+  w.drawTool = (ctx, g) => {
+    if (g.tool === 'baton' && g.batonLevel >= 0) return drawBaton(ctx, g.batonLevel);
+    if (g.tool === 'taser' && g.taserLevel >= 0) return drawTaser(ctx, g.taserLevel);
+    return w.drawWhip(ctx, g.whipLevel);
+  };
+
+  function drawBaton(ctx, level) {
+    if (!w.visible && !w.swing && w.batonHold <= 0) return;
+    const B = BATONS[level];
+    const pv = w.swing ? { x: w.swing.px, y: w.swing.py } : w.batonPivot || w.handle;
+    const a = w.batonAngle;
+    const ex = pv.x + Math.cos(a) * BATON_LEN, ey = pv.y + Math.sin(a) * BATON_LEN;
+    const gx = pv.x + Math.cos(a) * 6, gy = pv.y + Math.sin(a) * 6;
+    line(ctx, pv.x, pv.y, ex, ey, '#1a1018', 5);              // outline
+    line(ctx, gx, gy, ex, ey, B.color, 3);                     // shaft
+    line(ctx, pv.x, pv.y, gx, gy, B.grip, 3);                  // grip tape
+    line(ctx, gx + 1, gy - 1, ex + 1, ey - 1, '#ffffff', 1);   // highlight
+    if (w.swing) {
+      // motion smear behind the stick
+      const b = a + 0.5;
+      line(ctx, pv.x + Math.cos(b) * 10, pv.y + Math.sin(b) * 10, pv.x + Math.cos(b) * BATON_LEN, pv.y + Math.sin(b) * BATON_LEN, 'rgba(255,255,255,0.35)', 2);
+    }
+  }
+
+  function drawTaser(ctx, level) {
+    if (!w.visible && !w.arc) return;
+    const h = w.handle;
+    const x = Math.round(h.x), y = Math.round(h.y);
+    const body = level >= 2 ? '#2a2a3a' : '#1d1d28';
+    // grip + body + prongs, pointing up-left at the cursor
+    line(ctx, x, y, x + 4, y + 7, '#111', 4);
+    rect(ctx, x - 6, y - 7, 9, 6, body);
+    rect(ctx, x - 6, y - 7, 9, 1, '#4a4a5e');
+    rect(ctx, x - 5, y - 4, 7, 1, '#ffd34d');
+    px(ctx, x - 7, y - 7, '#c0c0cc'); px(ctx, x - 7, y - 4, '#c0c0cc');
+    if (Math.random() < 0.25 || w.arc) line(ctx, x - 8, y - 7, x - 8, y - 4, Math.random() < 0.5 ? '#ffffff' : '#8fe8ff');
+    if (w.arc) {
+      const a = w.arc;
+      const col = Math.floor(a.t * 40) % 2 ? '#ffffff' : '#8fe8ff';
+      for (let i = 1; i < a.pts.length; i++) jagged(ctx, a.pts[i - 1], a.pts[i], col, i === 1 ? 2 : 1);
+    }
+  }
+
+  function jagged(ctx, p, q, color, t) {
+    const n = 6;
+    let lx = p.x, ly = p.y;
+    for (let i = 1; i <= n; i++) {
+      const u = i / n;
+      const j = i === n ? 0 : 4;
+      const nx = p.x + (q.x - p.x) * u + rand(-j, j), ny = p.y + (q.y - p.y) * u + rand(-j, j);
+      line(ctx, lx, ly, nx, ny, color, t);
+      lx = nx; ly = ny;
+    }
+  }
 
   w.drawWhip = (ctx, level) => {
     if (!w.visible && !w.strike) return;

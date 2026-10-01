@@ -97,60 +97,105 @@ function clockArt(t) {
 }
 
 const roomCache = new Map();
-/** Static background: floor, walls and wall décor. Cached. */
-export function roomLayer(level = 0) {
-  if (roomCache.has(level)) return roomCache.get(level);
-  const { w: W, h: H, ox, oy } = ROOM_SIZE;
+
+/** Pixel size of the office world for a given width in tiles (rooms × 12, plus a ghost room). */
+export function worldSize(tilesW) {
+  return { w: ROOM_SIZE.ox + tilesW * 16 + 8, h: ROOM_SIZE.oy + (tilesW + ROOM.d) * 8 + 4 };
+}
+
+/**
+ * Static background for the whole office: `rooms` bought rooms side by side along the
+ * back wall, plus (if `ghost`) a dimmed outline of the next room for sale. Cached.
+ */
+export function roomLayer(level = 0, rooms = 1, themes = [], ghost = false) {
+  const key = `${level}|${rooms}|${ghost}`;
+  if (roomCache.has(key)) return roomCache.get(key);
+  const RW = ROOM.w, D = ROOM.d;
+  const tiles = RW * (rooms + (ghost ? 1 : 0));
+  const { w: W, h: H } = worldSize(tiles);
+  const { ox, oy } = ROOM_SIZE;
   const [c, x] = canvas(W, H);
   const P = (gx, gy, gz = 0) => { const p = iso(gx, gy, gz); return { x: p.x + ox, y: p.y + oy }; };
   const wh = ROOM.wallH;
+  const wallBand = (g0, g1, z0, z1, col) => poly(x, [P(g0, 0, z1), P(g1, 0, z1), P(g1, 0, z0), P(g0, 0, z0)], col);
 
-  // Walls
-  poly(x, [P(0, 0, wh), P(0, ROOM.d, wh), P(0, ROOM.d, 0), P(0, 0, 0)], '#6a5f93');   // left wall
-  poly(x, [P(0, 0, wh), P(ROOM.w, 0, wh), P(ROOM.w, 0, 0), P(0, 0, 0)], '#574d7d');   // right wall
-  // wainscot
-  poly(x, [P(0, 0, 16), P(0, ROOM.d, 16), P(0, ROOM.d, 0), P(0, 0, 0)], '#57497a');
-  poly(x, [P(0, 0, 16), P(ROOM.w, 0, 16), P(ROOM.w, 0, 0), P(0, 0, 0)], '#463b67');
-  poly(x, [P(0, 0, 17), P(0, ROOM.d, 17), P(0, ROOM.d, 16), P(0, 0, 16)], '#8a7db8');
-  poly(x, [P(0, 0, 17), P(ROOM.w, 0, 17), P(ROOM.w, 0, 16), P(0, 0, 16)], '#766aa3');
-  // wall caps
-  poly(x, [P(0, 0, wh + 3), P(0, ROOM.d, wh + 3), P(0, ROOM.d, wh), P(0, 0, wh)], '#2a2340');
-  poly(x, [P(0, 0, wh + 3), P(ROOM.w, 0, wh + 3), P(ROOM.w, 0, wh), P(0, 0, wh)], '#221c35');
+  // Left wall (first room only)
+  poly(x, [P(0, 0, wh), P(0, D, wh), P(0, D, 0), P(0, 0, 0)], '#6a5f93');
+  poly(x, [P(0, 0, 16), P(0, D, 16), P(0, D, 0), P(0, 0, 0)], '#57497a');
+  poly(x, [P(0, 0, 17), P(0, D, 17), P(0, D, 16), P(0, 0, 16)], '#8a7db8');
+  poly(x, [P(0, 0, wh + 3), P(0, D, wh + 3), P(0, D, wh), P(0, 0, wh)], '#2a2340');
 
-  // Floor: two-tone carpet tiles with a walkway
-  for (let gy = 0; gy < ROOM.d; gy++) for (let gx = 0; gx < ROOM.w; gx++) {
-    const p = P(gx, gy);
-    const aisle = gy === 4 || gy === 5;
-    const open = level >= 2 || (level >= 1 ? gx >= 1 && gx <= 10 : gx >= 3 && gx <= 8);
-    const base = !open ? ((gx + gy) % 2 ? '#29263a' : '#302c44')
-      : aisle ? ((gx + gy) % 2 ? '#8a7a66' : '#96866f')
-      : ((gx + gy) % 2 ? '#3f3a5c' : '#46406a');
-    diamond(x, p.x, p.y, base);
-  }
-  // Gold edge marks the currently usable floor; it moves outward on expansion.
-  const left = level >= 2 ? 0 : level >= 1 ? 1 : 3;
-  const right = level >= 2 ? 12 : level >= 1 ? 11 : 9;
-  line(x, P(left, 0).x, P(left, 0).y, P(left, ROOM.d).x, P(left, ROOM.d).y, '#c99b3d');
-  line(x, P(right, 0).x, P(right, 0).y, P(right, ROOM.d).x, P(right, ROOM.d).y, '#c99b3d');
-  // Floor edge / baseboard shadow
-  line(x, P(0, 0).x, P(0, 0).y, P(0, ROOM.d).x, P(0, ROOM.d).y, '#241f38');
-  line(x, P(0, 0).x, P(0, 0).y, P(ROOM.w, 0).x, P(ROOM.w, 0).y, '#241f38');
-
-  // Wall décor
   const win = windowArt();
-  for (const gx of [2.4, 5.9, 9.4]) { const p = P(gx, 0, 50); skewBlit(x, win, p.x, p.y, 1); }
+  for (let k = 0; k < rooms; k++) {
+    const t = themes[k] || {};
+    const wall = t.wall || '#574d7d';
+    const g0 = k * RW, g1 = g0 + RW;
+    // Back wall segment in this room's colour
+    wallBand(g0, g1, 0, wh, wall);
+    wallBand(g0, g1, 0, 16, shade(wall, -0.2));
+    wallBand(g0, g1, 16, 17, shade(wall, 0.25));
+    wallBand(g0, g1, wh, wh + 3, '#221c35');
+    for (const gx of [2.4, 5.9, 9.4]) { const p = P(g0 + gx, 0, 50); skewBlit(x, win, p.x, p.y, 1); }
+    // Floor: two-tone carpet with a walkway; the first room is dark where not yet bought.
+    const carpet = t.carpet || ['#3f3a5c', '#46406a'], aisleC = t.aisle || ['#8a7a66', '#96866f'];
+    for (let gy = 0; gy < D; gy++) for (let gx = 0; gx < RW; gx++) {
+      const p = P(g0 + gx, gy);
+      const aisle = gy === 4 || gy === 5;
+      const open = k > 0 || level >= 2 || (level >= 1 ? gx >= 1 && gx <= 10 : gx >= 3 && gx <= 8);
+      const odd = (gx + gy) % 2;
+      const base = !open ? (odd ? '#29263a' : '#302c44') : aisle ? aisleC[odd] : carpet[odd];
+      diamond(x, p.x, p.y, base);
+    }
+    // Pillar + threshold between rooms
+    if (k > 0) {
+      const a = P(g0, 0, wh + 3), b = P(g0, 0, 0);
+      rect(x, a.x - 3, a.y, 6, b.y - a.y, '#2a2340');
+      rect(x, a.x - 2, a.y, 1, b.y - a.y, '#4a4068');
+      line(x, P(g0, 0).x, P(g0, 0).y, P(g0, D).x, P(g0, D).y, '#c99b3d');
+    }
+  }
+
+  // Gold edge marks the usable floor of the first room while it is still growing.
+  if (rooms === 1 && level < 2) {
+    const left = level >= 1 ? 1 : 3, right = level >= 1 ? 11 : 9;
+    line(x, P(left, 0).x, P(left, 0).y, P(left, D).x, P(left, D).y, '#c99b3d');
+    line(x, P(right, 0).x, P(right, 0).y, P(right, D).x, P(right, D).y, '#c99b3d');
+  }
+
+  // The room for sale: bare dim floor, dashed outline and a big "+".
+  if (ghost) {
+    const g0 = rooms * RW;
+    for (let gy = 0; gy < D; gy++) for (let gx = 0; gx < RW; gx++) {
+      const p = P(g0 + gx, gy);
+      diamond(x, p.x, p.y, (gx + gy) % 2 ? '#1f1c2c' : '#24202f');
+    }
+    const corners = [P(g0, 0), P(g0 + RW, 0), P(g0 + RW, D), P(g0, D)];
+    for (let i = 0; i < 4; i++) {
+      const p = corners[i], q = corners[(i + 1) % 4];
+      const n = Math.ceil(Math.hypot(q.x - p.x, q.y - p.y) / 4);
+      for (let j = 0; j < n; j += 2) {
+        const u0 = j / n, u1 = Math.min(1, (j + 1) / n);
+        line(x, p.x + (q.x - p.x) * u0, p.y + (q.y - p.y) * u0, p.x + (q.x - p.x) * u1, p.y + (q.y - p.y) * u1, '#8a7db8');
+      }
+    }
+    const m = P(g0 + RW / 2, D / 2);
+    rect(x, m.x - 12, m.y - 3, 24, 6, '#8a7db8');
+    rect(x, m.x - 3, m.y - 12, 6, 24, '#8a7db8');
+  }
+
+  // Floor edge / baseboard shadow
+  line(x, P(0, 0).x, P(0, 0).y, P(0, D).x, P(0, D).y, '#241f38');
+  line(x, P(0, 0).x, P(0, 0).y, P(RW * rooms, 0).x, P(RW * rooms, 0).y, '#241f38');
+
+  // Wall décor on the first room's left wall
   const wb = whiteboardArt();
   { const p = P(0, 5.8, 46); skewBlit(x, wb, p.x, p.y, -1); }
   const po = posterArt();
   { const p = P(0, 8.2, 46); skewBlit(x, po, p.x, p.y, -1); }
   { const p = P(0, 2.6, 44); skewBlit(x, clockArt(), p.x, p.y, -1); }
 
-  // Plants
-  plant(x, P(11.2, 8.2));
-  plant(x, P(0.8, 8.3));
-
-  const layer = { canvas: c, P };
-  roomCache.set(level, layer);
+  const layer = { canvas: c, P, tiles, W, H };
+  roomCache.set(key, layer);
   return layer;
 }
 
@@ -164,11 +209,42 @@ function plant(x, p) {
   }
 }
 
-/** Purchased furniture. Kept dynamic so small animations (lamp/fish) stay alive. */
-export function drawOfficeDecor(ctx, P, owned = [], t = 0) {
-  const has = (id) => owned.includes(id);
-  if (has('rug')) {
-    const p = P(6, 4.25);
+/**
+ * One piece of furniture `item` = { kind, gx, gy } at its floor anchor. Drawn every frame
+ * (depth-sorted with the desks) so it can be dragged and so lamps/fish can animate.
+ */
+export function drawDecorItem(ctx, P, item, t = 0) {
+  const k = item.kind;
+  const p = P(item.gx, item.gy);
+  if (k === 'plant') return plant(ctx, p);
+  if (k === 'cooler') {
+    isoBox(ctx, p.x, p.y, -0.25, -0.25, 0.5, 0.5, 15, '#e8e8f0', '#c4c4d4', '#a4a4b8');
+    rect(ctx, p.x - 3, p.y - 31, 7, 11, '#6fc3ff');
+    rect(ctx, p.x - 2, p.y - 32, 5, 1, '#9fd8ff');
+    rect(ctx, p.x - 2, p.y - 29, 1, 7, '#c8ecff');
+    px(ctx, p.x - 3, p.y - 12, '#e0404a'); px(ctx, p.x + 1, p.y - 12, '#3a8ee6');
+    if (Math.floor(t * 0.7) % 4 === 0) px(ctx, p.x - 1, p.y - 25 + Math.floor((t * 6) % 4), '#ffffff'); // bubble
+    return;
+  }
+  if (k === 'printer') {
+    isoBox(ctx, p.x, p.y, -0.45, -0.3, 0.9, 0.6, 9, '#d8d8e0', '#a8a8b8', '#8c8ca0');
+    isoBox(ctx, p.x, p.y, -0.3, -0.2, 0.6, 0.3, 3, '#4a4a58', '#3a3a46', '#2c2c36', 9);
+    const out = Math.floor(t * 0.8) % 3;
+    if (out) poly(ctx, [{ x: p.x - 3, y: p.y - 9 }, { x: p.x + 5, y: p.y - 5 }, { x: p.x + 2, y: p.y - 3 + out }, { x: p.x - 6, y: p.y - 7 + out }], '#ffffff');
+    else rect(ctx, p.x + 8, p.y - 18, 3, 3, Math.floor(t * 6) % 2 ? '#ff4a4a' : '#7a2020'); // paper jam light
+    return;
+  }
+  if (k === 'vending') {
+    isoBox(ctx, p.x, p.y, -0.45, -0.3, 0.9, 0.6, 34, '#e0404a', '#b02a36', '#8a1e2a');
+    // glass front on the left (+gy) face
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+      const col = ['#ffd34d', '#46b37a', '#3a8ee6', '#f0f0f0'][(r + c) % 4];
+      rect(ctx, p.x - 12 + c * 5, p.y - 30 + r * 6 + Math.floor(c * 2.5), 3, 4, col);
+    }
+    rect(ctx, p.x - 13, p.y - 7, 14, 3, '#2a1018');
+    return;
+  }
+  if (k === 'rug') {
     poly(ctx, [
       { x: p.x, y: p.y - 11 }, { x: p.x + 42, y: p.y + 10 },
       { x: p.x, y: p.y + 31 }, { x: p.x - 42, y: p.y + 10 },
@@ -182,15 +258,13 @@ export function drawOfficeDecor(ctx, P, owned = [], t = 0) {
       { x: p.x, y: p.y + 23 }, { x: p.x - 27, y: p.y + 10 },
     ], '#8e2337');
   }
-  if (has('sofa')) {
-    const p = P(1.25, 5.2);
+  if (k === 'sofa') {
     isoBox(ctx, p.x, p.y, 0, 0, 2.2, 1.05, 10, '#9a6bd8', '#674694', '#523777');
     isoBox(ctx, p.x, p.y, 0, 0, 2.2, 0.25, 22, '#ad7be9', '#704b9d', '#5b3e82');
     rect(ctx, p.x - 21, p.y - 13, 5, 17, '#5b3e82');
     rect(ctx, p.x + 16, p.y + 5, 5, 17, '#523777');
   }
-  if (has('shelf')) {
-    const p = P(0.4, 1.1);
+  if (k === 'shelf') {
     rect(ctx, p.x - 5, p.y - 41, 28, 39, '#4a2e20');
     rect(ctx, p.x - 2, p.y - 38, 22, 32, '#7a4c2e');
     for (let y = 0; y < 3; y++) {
@@ -198,15 +272,13 @@ export function drawOfficeDecor(ctx, P, owned = [], t = 0) {
       rect(ctx, p.x + 6, p.y - 35 + y * 10, 3, 6, '#efe5c7');
     }
   }
-  if (has('lamp')) {
-    const p = P(10.8, 1.1);
+  if (k === 'lamp') {
     rect(ctx, p.x - 1, p.y - 30, 2, 29, '#665844');
     rect(ctx, p.x - 6, p.y - 32, 12, 3, '#574225');
     const glow = Math.floor(t * 2) % 2 ? '#ffe685' : '#ffd45a';
     poly(ctx, [{ x: p.x - 7, y: p.y - 38 }, { x: p.x + 7, y: p.y - 38 }, { x: p.x + 5, y: p.y - 30 }, { x: p.x - 5, y: p.y - 30 }], glow);
   }
-  if (has('aquarium')) {
-    const p = P(10.65, 7.45);
+  if (k === 'aquarium') {
     isoBox(ctx, p.x, p.y, -0.7, -0.35, 1.4, 0.7, 9, '#765136', '#523624', '#3f2a20');
     rect(ctx, p.x - 14, p.y - 30, 28, 20, '#2c667d');
     rect(ctx, p.x - 12, p.y - 28, 24, 16, '#45bad0');
@@ -215,8 +287,8 @@ export function drawOfficeDecor(ctx, P, owned = [], t = 0) {
     px(ctx, p.x + 2 + swim, p.y - 23, '#222');
     rect(ctx, p.x - 10 - swim / 2, p.y - 17, 4, 2, '#ef6f64');
   }
-  if (has('trophy')) {
-    const p = P(0, 7.1, 38);
+  if (k === 'trophy') {
+    p.y -= 38; // hangs on the wall above its floor anchor
     rect(ctx, p.x - 5, p.y - 4, 12, 3, '#6d4324');
     rect(ctx, p.x - 1, p.y - 13, 4, 9, '#d99022');
     rect(ctx, p.x - 6, p.y - 22, 14, 10, '#ffd34d');
@@ -341,6 +413,31 @@ export function renderScreen(e, t) {
       px(x, cx, cy, '#000'); px(x, cx + 1, cy + 1, '#000');
       break;
     }
+    case 'mkt': {
+      // social dashboard: likes ticking up, a growing bar chart
+      rect(x, 0, 0, 16, 10, '#fff4f8');
+      rect(x, 0, 0, 16, 2, '#ff3d7f');
+      px(x, 1, 0, '#ffffff'); px(x, 2, 1, '#ffffff');
+      const f = Math.floor(t * 2 * speed);
+      for (let i = 0; i < 5; i++) {
+        const h = 2 + Math.floor(hash(i + Math.floor(f / 4)) * 3) + Math.min(3, Math.floor(((f + i) % 12) / 4));
+        rect(x, 1 + i * 3, 10 - h, 2, h, i % 2 ? '#2de2e6' : '#ff3d7f');
+      }
+      if (f % 3 === 0) { px(x, 13, 3, '#ff3d7f'); px(x, 14, 3, '#ff3d7f'); px(x, 13, 4, '#ff3d7f'); px(x, 14, 4, '#ff3d7f'); }
+      break;
+    }
+    case 'sale': {
+      // CRM: a call list getting ticked off
+      rect(x, 0, 0, 16, 10, '#f2f6ff');
+      rect(x, 0, 0, 16, 2, '#2f5fd0');
+      const f = Math.floor(t * 1.5 * speed) % 5;
+      for (let r = 0; r < 4; r++) {
+        rect(x, 1, 3 + r * 2, 9, 1, '#9aa7c4');
+        rect(x, 12, 3 + r * 2, 2, 1, r < f ? '#26a65a' : '#d0d6e4');
+      }
+      if (Math.floor(t * 4) % 2) { rect(x, 14, 0, 2, 2, '#ffd34d'); }
+      break;
+    }
     case 'game': {
       rect(x, 0, 0, 16, 10, '#5c94fc');
       rect(x, 0, 8, 16, 2, '#c84c0c');
@@ -394,10 +491,12 @@ export function renderScreen(e, t) {
 export function drawEmployee(ctx, x, y, e, t) {
   const L = e.look;
   const white = e.flash > 0 && Math.floor(t * 30) % 2 === 0;
+  // Tased: flicker between electric blue and white "x-ray".
+  const zapped = e.zap > 0 && Math.floor(t * 24) % 2 === 0;
   const angry = e.state === 'angry' || e.state === 'strike';
-  const shirt = white ? '#ffffff' : L.shirt, shirtD = white ? '#ffe0e0' : shade(L.shirt, -0.3);
-  const hair = white ? '#ffffff' : L.hair;
-  const skin = white ? '#ffffff' : angry ? '#f08070' : L.skin;
+  const shirt = zapped ? '#3ab8ff' : white ? '#ffffff' : L.shirt, shirtD = zapped ? '#1a6aa8' : white ? '#ffe0e0' : shade(L.shirt, -0.3);
+  const hair = zapped ? '#ffffff' : white ? '#ffffff' : L.hair;
+  const skin = zapped ? '#d0f8ff' : white ? '#ffffff' : angry ? '#f08070' : L.skin;
   let dx = 0, dy = 0, hx = 0, hy = 0, handA = 0, handB = 0, armsUp = false;
   const phase = t + e.id * 0.37;
 
@@ -414,7 +513,11 @@ export function drawEmployee(ctx, x, y, e, t) {
       if (e.slack === 'sleep') { hx = 3; hy = 5; }
       if (e.slack === 'crypto') { hy = Math.floor(phase * 1.5) % 2; if (Math.floor(phase * 0.7) % 3 === 0) dy = -1; }
       break;
-    case 'hurt': dy = e.t < 0.3 ? -4 : -1; armsUp = true; break;
+    case 'hurt':
+      if (e.zap > 0) { dx = Math.floor(phase * 40) % 2 ? 1 : -1; dy = -1; armsUp = true; }   // jitter
+      else if (e.bonk > 0) { hy = e.t < 0.2 ? 2 : 1; dy = 1; }                             // squashed
+      else { dy = e.t < 0.3 ? -4 : -1; armsUp = true; }
+      break;
     case 'angry': dx = Math.floor(phase * 30) % 2 ? 1 : -1; break;
     case 'strike': armsUp = true; break;
   }
@@ -551,8 +654,11 @@ export function drawSteam(ctx, x, y, t) {
 }
 
 // --- Coffee machine & assistant ------------------------------------------------
-export function drawCoffeeMachine(ctx, P, level, ready, t) {
-  const p = P(0.15, 0.35);
+// Click/drag bounds of the coffee counter around its anchor (back corner), screen px.
+export const COFFEE_BOX = [-26, -30, 17, 21];
+
+export function drawCoffeeMachine(ctx, P, level, ready, t, pos = { gx: 0.15, gy: 0.35 }) {
+  const p = P(pos.gx, pos.gy);
   isoBox(ctx, p.x, p.y, 0, 0, 1.0, 1.6, 12, '#d8d4e6', '#a9a4bf', '#8c87a4');
   const cols = ['#4a4a55', '#8a2b2b', '#2b4a8a', '#c9a13a'];
   isoBox(ctx, p.x, p.y, 0.15, 0.3, 0.7, 0.7, 16, shade(cols[level], 0.15), cols[level], shade(cols[level], -0.3), 12);
@@ -592,14 +698,67 @@ export function drawAssistant(ctx, P, level, t, swingT) {
 export const MINI_SLOT = 38;
 export const MINI_H = 46;
 
-export function drawMiniStation(ctx, x, e, t) {
+/** One seat on the taskbar strip. `slot` shrinks below MINI_SLOT when the company is big. */
+export function drawMiniStation(ctx, x, e, t, slot = MINI_SLOT) {
   // desk strip
-  rect(ctx, x, MINI_H - 12, MINI_SLOT, 12, '#7c522f');
-  rect(ctx, x, MINI_H - 12, MINI_SLOT, 2, '#c08a58');
-  // monitor (flat)
+  rect(ctx, x, MINI_H - 12, slot, 12, '#7c522f');
+  rect(ctx, x, MINI_H - 12, slot, 2, '#c08a58');
+  // monitor (flat), slid left as the seat gets narrower
+  const mx = x + Math.max(6, slot - 21);
   const scr = renderScreen(e, t);
-  rect(ctx, x + 17, MINI_H - 30, 18, 13, '#3a3848');
-  ctx.drawImage(scr, x + 18, MINI_H - 29);
-  rect(ctx, x + 25, MINI_H - 17, 3, 5, '#2c2a36');
-  return drawEmployee(ctx, x + 11, MINI_H - 2, e, t);
+  rect(ctx, mx, MINI_H - 30, 18, 13, '#3a3848');
+  ctx.drawImage(scr, mx + 1, MINI_H - 29);
+  rect(ctx, mx + 8, MINI_H - 17, 3, 5, '#2c2a36');
+  return drawEmployee(ctx, x + Math.min(11, Math.round(slot * 0.3)), MINI_H - 2, e, t);
+}
+
+// --- CV portrait ----------------------------------------------------------------------------
+
+const portraitCache = new Map();
+/** Front-facing 16x16 head-and-shoulders portrait for a CV card, as a data URL. */
+export function portraitURL(look) {
+  const key = JSON.stringify(look);
+  if (portraitCache.has(key)) return portraitCache.get(key);
+  const [c, x] = canvas(16, 16);
+  const { skin, hair, shirt, style } = look;
+  rect(x, 0, 0, 16, 16, '#2a2340');
+  // shoulders
+  rect(x, 2, 12, 12, 4, shirt);
+  rect(x, 6, 12, 4, 1, shade(skin, -0.1));
+  rect(x, 7, 13, 2, 3, '#f4f4f4');
+  // hair behind (long)
+  if (style === 'long') rect(x, 3, 4, 10, 9, hair);
+  // face
+  rect(x, 4, 4, 8, 8, skin);
+  rect(x, 4, 11, 8, 1, shade(skin, -0.15));
+  px(x, 6, 7, '#1a1210'); px(x, 9, 7, '#1a1210');          // eyes
+  rect(x, 7, 10, 2, 1, shade(skin, -0.35));                 // mouth
+  px(x, 5, 9, shade(skin, -0.08)); px(x, 10, 9, shade(skin, -0.08));
+  // hair on top
+  if (style === 'bald') { rect(x, 4, 4, 8, 1, shade(skin, 0.2)); rect(x, 3, 6, 1, 3, hair); rect(x, 12, 6, 1, 3, hair); }
+  else {
+    rect(x, 4, 3, 8, 3, hair);
+    rect(x, 3, 4, 1, 4, hair); rect(x, 12, 4, 1, 4, hair);
+    if (style === 'spiky') for (let i = 4; i < 12; i += 2) px(x, i, 2, hair);
+    if (style === 'bun') rect(x, 6, 0, 4, 3, hair);
+    rect(x, 5, 3, 3, 1, shade(hair, 0.3));
+  }
+  const url = c.toDataURL();
+  portraitCache.set(key, url);
+  return url;
+}
+
+const decorPreviewCache = new Map();
+/** Shop thumbnail of a furniture kind, rendered with the same code as in the office. */
+export function decorPreviewURL(def) {
+  if (decorPreviewCache.has(def.id)) return decorPreviewCache.get(def.id);
+  const [x0, y0, x1, y1] = def.box;
+  const w = x1 - x0 + 4, h = y1 - y0 + 4;
+  const [c, ctx] = canvas(w, h);
+  const ox = 2 - x0, oy = 2 - y0;
+  const P = (gx, gy, gz = 0) => { const p = iso(gx, gy, gz); return { x: p.x + ox, y: p.y + oy }; };
+  drawDecorItem(ctx, P, { kind: def.id, gx: 0, gy: 0 }, 0.2);
+  const url = c.toDataURL();
+  decorPreviewCache.set(def.id, url);
+  return url;
 }

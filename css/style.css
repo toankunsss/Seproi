@@ -241,3 +241,80 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .shell.mode-mini .bar { flex-wrap: nowrap; }
 .shell.mode-mini .stat, .shell.mode-mini .px-btn { box-shadow: 0 0 0 3px var(--edge); }
 .shell.mode-mini .assist { background: rgba(15, 12, 24, 0.75); padding: 1px 8px; box-shadow: 0 0 0 3px var(--edge); }
+
+/* --- Punishment tools, payroll, recruitment (CVs) ------------------------------------------- */
+.tools { display: flex; gap: 4px; pointer-events: auto; }
+.px-btn.tool { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px 6px; font-size: 18px; background: rgba(42, 35, 64, 0.92); }
+.px-btn.tool.active { background: #6a3fb8; color: #fff; box-shadow: 0 -3px 0 0 var(--gold), 0 3px 0 0 var(--gold), -3px 0 0 0 var(--gold), 3px 0 0 0 var(--gold); }
+.px-btn.tool:disabled { opacity: 0.4; }
+.tool .ico { width: 18px; height: 18px; display: inline-block; flex: none; }
+.payday { color: var(--muted); background: rgba(15, 12, 24, 0.75); padding: 3px 10px; box-shadow: 0 0 0 3px var(--edge); }
+.payday.soon { color: var(--orange); }
+.payday.soon.short { color: var(--red); animation: pulse-red 1s infinite; }
+@keyframes pulse-red { 50% { background: rgba(120, 20, 30, 0.85); } }
+.stat b.debt { color: var(--red); }
+.px-btn.hire-btn { background: #2f6a3f; }
+.pop.btw.vn { font-family: var(--font); font-size: clamp(34px, 5.5vw, 56px); letter-spacing: 1px; }
+.pop.big { font-size: 36px; }
+.hint { color: var(--muted); text-align: left; margin: 6px 0 10px; line-height: 1.1; }
+.hint b { color: var(--gold); font-weight: normal; }
+.card tr.warn td { color: var(--orange); }
+.row-actions { white-space: nowrap; }
+.board { width: min(860px, 100%); }
+.board td small { display: block; color: var(--muted); font-size: 16px; }
+.decor-preview { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.decor-preview::after { display: none; }
+.decor-preview img { max-width: 46px; max-height: 38px; image-rendering: pixelated; transform: scale(1.4); }
+
+.recruit { width: min(980px, 100%); text-align: left; }
+.recruit .panel-head small { color: var(--muted); }
+.recruit .bad { color: var(--red); }
+.job-form { display: grid; grid-template-columns: 1.3fr 1fr 1fr auto; gap: 10px; align-items: end; padding: 10px 0; border-top: 2px dashed #4a3f70; border-bottom: 2px dashed #4a3f70; }
+.job-form label { display: grid; gap: 4px; color: var(--gold); font-size: 19px; }
+.job-form input, .job-form select {
+  box-sizing: border-box; width: 100%; border: 2px solid #4a3f70; background: #171321; color: var(--ink);
+  padding: 7px 9px; font: 20px var(--font); outline: none;
+}
+.job-form input:focus, .job-form select:focus { border-color: var(--gold); }
+.job-form .big { font-size: 20px; padding: 9px 12px; background: #2f6a3f; }
+.recruit .form-error { min-height: 22px; color: #ff6b6b; text-align: center; margin: 4px 0; }
+.cv-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.cv-list .empty { color: var(--muted); grid-column: 1 / -1; text-align: center; padding: 20px 0; }
+.cv { background: #f4efe2; color: #2a2438; padding: 10px 12px; box-shadow: 0 0 0 3px var(--edge), 6px 6px 0 2px rgba(0,0,0,.35); display: flex; flex-direction: column; gap: 6px; font-size: 18px; line-height: 1.05; }
+.cv header { display: flex; gap: 10px; align-items: center; border-bottom: 2px solid #d8cfb8; padding-bottom: 6px; }
+.cv .portrait { width: 48px; height: 48px; image-rendering: pixelated; box-shadow: 0 0 0 2px #2a2438; flex: none; }
+.cv-name { font-size: 22px; color: #1a1626; }
+.cv-name .match { font-size: 15px; background: #2f6a3f; color: #fff; padding: 0 4px; vertical-align: 2px; }
+.cv-role { color: #6a3fb8; }
+.cv-meta { color: #6a6478; font-size: 16px; }
+.cv dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; }
+.cv dt { color: #8a8298; }
+.cv dd { margin: 0; }
+.cv .stars { color: #d68e22; }
+.cv .stars small { color: #6a6478; }
+.traits { display: flex; flex-wrap: wrap; gap: 4px; }
+.trait { font-size: 15px; padding: 1px 5px; color: #fff; }
+.trait.good { background: #2f8a4a; }
+.trait.bad { background: #c0404a; }
+.cv blockquote { margin: 0; font-style: italic; color: #4a4258; }
+.cv-pay { display: flex; justify-content: space-between; gap: 6px; border-top: 2px solid #d8cfb8; padding-top: 6px; color: #4a4258; font-size: 17px; }
+.cv-pay b { color: #1a1626; font-weight: normal; font-size: 20px; }
+.cv-actions { display: flex; justify-content: space-between; gap: 6px; margin-top: auto; }
+.cv-actions .px-btn { flex: 1; margin: 3px; }
+.cv-actions .accept { background: #2f6a3f; }
+
+.mode-mini [data-a="recruit"], .mode-mini .payday { display: none; }
+.mode-mini .tool span { display: none; }
+.mode-mini .px-btn.tool { padding: 4px 6px; }
+@media (max-width: 640px) {
+  .job-form { grid-template-columns: 1fr 1fr; }
+  .job-form label:first-child, .job-form .big { grid-column: 1 / -1; }
+  .tool span { display: none; }
+}
+
+/* --- Room navigator (office spans several rooms) ----------------------------------------------- */
+.rooms-nav { display: flex; align-items: center; gap: 4px; pointer-events: auto; background: rgba(15, 12, 24, 0.75); padding: 0 4px; box-shadow: 0 0 0 3px var(--edge); }
+.rooms-nav[hidden] { display: none; }
+.rooms-nav span { min-width: 150px; text-align: center; color: var(--gold); }
+.rooms-nav .px-btn.icon { width: 30px; font-size: 16px; padding: 4px 0 5px; }
+.mode-office #game { cursor: none; }

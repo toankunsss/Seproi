@@ -1,13 +1,65 @@
 // Simulation: employee behaviour, economy, day cycle, coffee & assistant.
 // Pure-ish: mutates the game object and reports what happened through `emit`.
-import { ROLES, SLACKS, SLACK_KINDS, WHIPS, COFFEE, ASSISTANT, TUNING as T } from './config.js';
+import { ROLES, GRADES, SLACKS, SLACK_KINDS, WHIPS, BATONS, TASERS, COFFEE, ASSISTANT, PAYDAY, TUNING as T } from './config.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
+
+export const TOOL_TRACKS = { whip: WHIPS, baton: BATONS, taser: TASERS };
+export const TOOL_LABELS = { whip: 'Roi', baton: 'Gậy', taser: 'Chích điện' };
+export const toolLevel = (g, tool) => g[tool + 'Level'] ?? -1;
+
+/** Stats of the punishment tool in hand: { tool, level, name, bonus, boost, radius, stress, chain }. */
+export function toolStats(g, tool = g.tool) {
+  const level = toolLevel(g, tool);
+  const s = TOOL_TRACKS[tool]?.[level];
+  if (!s) return { tool: 'whip', level: g.whipLevel, stress: T.stressCatch, chain: 0, ...WHIPS[g.whipLevel] };
+  return { tool, level, stress: T.stressCatch, chain: 0, ...s };
+}
 
 export function incomeOf(g, e) {
   if (e.state !== 'work' && e.state !== 'hurt') return 0;
   const boost = e.boost > 0 ? T.boostMult : 1;
-  return ROLES[e.role].income * boost * (1 + T.dayMult * (g.day - 1));
+  return ROLES[e.role].income * GRADES[e.grade].prod * e.mods.prod * boost * (1 + T.dayMult * (g.day - 1));
+}
+
+// --- Calendar & payroll ------------------------------------------------------------------
+
+/** Calendar date of game day `day` (day 1 = calendarStart). */
+export function dateOf(g, day = g.day) {
+  const [y, m, d] = g.calendarStart.split('-').map(Number);
+  return new Date(y, m - 1, d + day - 1);
+}
+export const fmtDate = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+/** The next game day that falls on PAYDAY (today counts if it is one and hasn't been paid yet). */
+export function nextPayday(g) {
+  for (let k = g.lastPayDay === g.day ? 1 : 0; k < 40; k++) if (dateOf(g, g.day + k).getDate() === PAYDAY) return g.day + k;
+  return g.day + 30;
+}
+
+/** What each employee is owed today: monthly salary prorated by days worked since the last payday. */
+export function payrollDue(g, upTo = g.day) {
+  return g.staff.map((e) => {
+    const days = Math.max(0, upTo - Math.max(e.joinDay, g.lastPayDay));
+    return { e, days, pay: Math.round(e.salary * Math.min(1, days / 30)) };
+  });
+}
+
+/**
+ * Run payroll if today is payday. Returns { total, lines, short } or null.
+ * The company fund can go negative; unpaid staff get stressed.
+ */
+export function runPayroll(g) {
+  if (dateOf(g).getDate() !== PAYDAY || g.lastPayDay === g.day) return null;
+  const lines = payrollDue(g).filter((l) => l.pay > 0);
+  g.lastPayDay = g.day;
+  if (!lines.length) return null;
+  const total = lines.reduce((s, l) => s + l.pay, 0);
+  const short = g.money < total;
+  g.money -= total;
+  if (short) for (const e of g.staff) e.stress = Math.min(99, e.stress + 30);
+  g.lastPayroll = { day: g.day, total, short };
+  return { total, lines, short };
 }
 
 export const isSlacking = (e) => e.state === 'slack';
@@ -23,6 +75,8 @@ export function update(g, dt, emit) {
   for (const e of g.staff) {
     e.t += dt;
     e.flash = Math.max(0, e.flash - dt);
+    e.zap = Math.max(0, e.zap - dt);
+    e.bonk = Math.max(0, e.bonk - dt);
     e.boost = Math.max(0, e.boost - dt);
     e.stress = Math.max(0, e.stress - T.stressDecay * dt);
     if (coffee) e.energy = Math.min(100, e.energy + coffee.regen * dt);
@@ -32,10 +86,10 @@ export function update(g, dt, emit) {
         e.energy = Math.max(0, e.energy - T.energyDrain * dt * (e.boost > 0 ? 0.5 : 1));
         if (e.boost <= 0) {
           const tired = 1 - e.energy / 100;
-          const p = (T.slackBase + T.slackTired * tired * tired) * dt;
+          const p = (T.slackBase + T.slackTired * tired * tired) * e.mods.slack * dt;
           if (Math.random() < p) {
             e.state = 'slack'; e.t = 0; e.dur = rand(T.slackMin, T.slackMax);
-            e.slack = SLACK_KINDS[Math.floor(Math.random() * SLACK_KINDS.length)];
+            e.slack = e.mods.fav && Math.random() < 0.6 ? e.mods.fav : SLACK_KINDS[Math.floor(Math.random() * SLACK_KINDS.length)];
             emit('slack', e);
           }
         }
@@ -104,10 +158,13 @@ function toWork(e) { e.state = 'work'; e.t = 0; e.slack = null; }
  * Apply a whip hit. Returns { kind: 'catch' | 'wrong' | 'strike', reward } so the
  * caller can drive effects. `auto` = hit by the assistant (half reward, no combo).
  */
-export function whipEmployee(g, e, { auto = false } = {}) {
-  const w = WHIPS[g.whipLevel];
+export function whipEmployee(g, e, { auto = false, chained = false } = {}) {
+  // The assistant always uses a plain whip at the boss's whip level.
+  const w = auto ? { tool: 'whip', stress: T.stressCatch, ...WHIPS[g.whipLevel] } : toolStats(g);
   g.records.totalWhips++;
   e.flash = 0.25;
+  if (w.tool === 'taser') e.zap = 0.5;
+  if (w.tool === 'baton') e.bonk = 0.9;
 
   if (e.state === 'strike') return { kind: 'strike', reward: 0 };
 
@@ -116,11 +173,11 @@ export function whipEmployee(g, e, { auto = false } = {}) {
     e.state = 'hurt'; e.t = 0; e.slack = null;
     e.energy = Math.min(100, e.energy + 45);
     e.boost = w.boost;
-    e.stress += T.stressCatch;
+    e.stress += w.stress * e.mods.stress;
     e.whips++;
     let reward;
-    if (auto) {
-      reward = Math.round(w.bonus * 0.5);
+    if (auto || chained) {
+      reward = Math.round(w.bonus * (auto ? 0.5 : 0.75));
     } else {
       g.combo = g.comboT > 0 ? g.combo + 1 : 1;
       g.comboT = T.comboWindow;
@@ -137,12 +194,12 @@ export function whipEmployee(g, e, { auto = false } = {}) {
 
   // Innocent (working, already hurt, or angry): unfair!
   e.state = 'angry'; e.t = 0;
-  e.stress += T.stressWrong;
+  e.stress += T.stressWrong * e.mods.stress * (w.tool === 'whip' ? 1 : 1.25);
   e.wrong++;
   e.whips++;
   g.combo = 0; g.comboT = 0;
   g.kpi = Math.max(0, g.kpi - 0.05);
-  const penalty = Math.min(g.money, T.wrongPenalty * (1 + g.whipLevel));
+  const penalty = Math.max(0, Math.min(g.money, T.wrongPenalty * (1 + Math.max(0, w.level)) * (w.tool === 'baton' ? 1.5 : 1)));
   g.money -= penalty;
   g.today.wrong++;
   return { kind: 'wrong', reward: -Math.round(penalty) };

@@ -1,8 +1,11 @@
 // Boot, game loop and glue between simulation, view, whip and UI.
-import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, OFFICE_LEVELS, DECOR_ITEMS, hireCost, TUNING } from './config.js';
-import { load, save, wipe, makeEmployee, freshDay } from './state.js';
-import { update as simUpdate, whipEmployee, useCoffee } from './sim.js';
-import { createView } from './view.js';
+import { WHIPS, COFFEE, ASSISTANT, OFFICE_LEVELS, DECOR_ITEMS, CV_BATCH, MAX_STAFF, ROOMS, ROOM_W, capacityOf, floorOf, nextRoom } from './config.js';
+import { load, save, wipe, makeEmployee, cvToStaff, freshDay } from './state.js';
+import {
+  update as simUpdate, whipEmployee, useCoffee, toolStats, toolLevel, TOOL_TRACKS, runPayroll, dateOf, fmtDate,
+} from './sim.js';
+import { makeCVs } from './cv.js';
+import { createView, deskPos, coffeePos, slotsFor } from './view.js';
 import { createWhip } from './whip.js';
 import { createUI, fmt } from './ui.js';
 import { pipSupported, openPip } from './pip.js';
@@ -46,41 +49,89 @@ const act = {
       ok = pay(cost) && (g.assistantLevel++, g.assistantCd = ASSISTANT[g.assistantLevel].interval, true);
     }
     if (kind === 'office' && OFFICE_LEVELS[g.officeLevel + 1]) {
-      const next = OFFICE_LEVELS[g.officeLevel + 1];
-      if ((g.lifetimeEarnings || 0) >= next.unlockRevenue) {
-        cost = next.cost;
-        ok = pay(cost) && (g.officeLevel++, true);
+      cost = OFFICE_LEVELS[g.officeLevel + 1].cost;
+      ok = pay(cost) && (g.officeLevel++, true);
+    }
+    if (kind === 'room' && nextRoom(g)) {
+      cost = nextRoom(g).cost;
+      ok = pay(cost) && (g.rooms = (g.rooms || 1) + 1, true);
+      if (ok) {
+        view.focusRoom(g.rooms - 1);
+        const r = stage.getBoundingClientRect();
+        ui.popup(r.left + r.width / 2, r.top + 120, `MỞ ${nextRoomName(g.rooms - 1).toUpperCase()}!`, 'money big');
       }
+    }
+    if ((kind === 'baton' || kind === 'taser') && TOOL_TRACKS[kind][toolLevel(g, kind) + 1]) {
+      cost = TOOL_TRACKS[kind][toolLevel(g, kind) + 1].cost;
+      ok = pay(cost) && (g[kind + 'Level']++, g.tool = kind, true); // a new tool goes straight into your hand
     }
     ok ? audio.buy() : audio.deny();
     save(g);
   },
+  focusRoom(k) {
+    const n = g.rooms || 1;
+    view.focusRoom(Math.max(0, Math.min(n - 1 + (nextRoom(g) ? 1 : 0), Number(k))));
+  },
+  tool(kind) {
+    if (toolLevel(g, kind) < 0) { audio.deny(); return; }
+    g.tool = kind;
+    whip.visible = false;
+  },
   purchaseDecor(id) {
-    const item = DECOR_ITEMS.find((x) => x.id === id);
-    if (!item || g.decor.includes(id) || g.officeLevel < item.level) return false;
-    if (!pay(item.cost)) { audio.deny(); return false; }
-    g.decor.push(id);
+    const def = DECOR_ITEMS.find((x) => x.id === id);
+    if (!def || g.officeLevel < def.level) return false;
+    if (!def.multi && g.decor.some((d) => d.kind === id)) return false;
+    if (!pay(def.cost)) { audio.deny(); return false; }
+    // Several plants: drop each new one a little further along so they don't stack.
+    const same = g.decor.filter((d) => d.kind === id).length;
+    const gx = def.mount === 'wall' ? 0 : clamp(def.pos[0] - same * 0.9, 0.3, 11.7);
+    g.decor.push({ uid: g.decorUid++, kind: id, gx, gy: def.pos[1] });
     audio.buy();
     save(g);
     return true;
   },
-  acceptHire(profile) {
-    const index = g.staff.length;
-    if (!STAFF_POOL[index]) return { ok: false, message: 'Văn phòng đã kín chỗ.' };
-    if (index >= OFFICE_LEVELS[g.officeLevel].capacity) {
-      return { ok: false, message: 'Hãy mở rộng văn phòng để có thêm bàn làm việc.' };
+  /** Post a job ad: the next batch of CVs follows the request (empty fields = any). */
+  postJob(req) {
+    g.jobReq = { name: String(req.name || '').slice(0, 24), role: req.role || '', grade: req.grade || '' };
+    g.cvs = makeCVs(g.jobReq, CV_BATCH, g.cvUid);
+    g.cvUid += CV_BATCH;
+    save(g);
+  },
+  acceptCV(uid) {
+    const cv = g.cvs.find((c) => c.uid === Number(uid));
+    if (!cv) return { ok: false, message: 'Hồ sơ không còn.' };
+    const cap = capacityOf(g);
+    if (g.staff.length >= cap) {
+      return { ok: false, message: g.staff.length >= MAX_STAFF ? 'Công ty đã kín chỗ.' : 'Hết bàn trống — hãy mở rộng văn phòng hoặc mở phòng mới.' };
     }
-    const required = ['nickname', 'age', 'experience', 'motivation'];
-    if (required.some((key) => !String(profile[key] || '').trim())) {
-      return { ok: false, message: 'Hãy hoàn tất đầy đủ thông tin phỏng vấn.' };
-    }
-    const cost = hireCost(index);
-    if (!pay(cost)) return { ok: false, message: 'Quỹ công ty chưa đủ để tuyển ứng viên này.' };
-    g.staff.push(makeEmployee(index, { ...profile, interviewedAt: Date.now() }));
+    if (!pay(cv.fee)) { audio.deny(); return { ok: false, message: 'Quỹ chưa đủ phí tuyển dụng.' }; }
+    const e = makeEmployee(g.nextId++, cvToStaff(cv), g.day);
+    const spot = freeDeskSpot();
+    g.layout.desks[e.id] = { gx: spot[0], gy: spot[1] };
+    g.staff.push(e);
+    g.cvs = g.cvs.filter((c) => c !== cv);
     layout();
     audio.buy();
     save(g);
-    return { ok: true };
+    return { ok: true, employee: e };
+  },
+  rejectCV(uid) {
+    g.cvs = g.cvs.filter((c) => c.uid !== Number(uid));
+    save(g);
+  },
+  fire(id) {
+    const e = g.staff.find((x) => x.id === Number(id));
+    if (!e || g.staff.length <= 1) return false;
+    if (!confirm(`Sa thải ${e.nickname || e.name}? Lương các ngày đã làm sẽ được trả ngay.`)) return false;
+    // Pin everyone's desk where it is, so removing one doesn't shuffle the rest.
+    g.staff.forEach((x, i) => { const [gx, gy] = deskPos(g, x, i); g.layout.desks[x.id] = { gx, gy }; });
+    const days = Math.max(0, g.day - Math.max(e.joinDay, g.lastPayDay));
+    g.money -= Math.round(e.salary * Math.min(1, days / 30));
+    g.staff = g.staff.filter((x) => x !== e);
+    delete g.layout.desks[e.id];
+    layout();
+    save(g);
+    return true;
   },
   setNickname(id, nickname) {
     const employee = g.staff.find((e) => e.id === Number(id));
@@ -100,8 +151,23 @@ const act = {
   },
 };
 const pay = (cost) => { if (g.money < cost) return false; g.money -= cost; return true; };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const nextRoomName = (k) => ROOMS[k]?.name || 'Phòng mới';
+
+/** First default desk slot that's inside the current office and not taken by a desk. */
+function freeDeskSpot() {
+  const [lo, hi] = floorOf(g);
+  const taken = g.staff.map((e, i) => deskPos(g, e, i));
+  const free = (p) => taken.every((q) => Math.abs(q[0] - p[0]) > 1.7 || Math.abs(q[1] - p[1]) > 1.4);
+  const inside = (p) => p[0] >= lo + 0.9 && p[0] <= hi - 0.9;
+  const slots = slotsFor(g.rooms || 1);
+  for (const sl of slots) if (inside(sl) && free(sl)) return sl;
+  for (let gy = 1; gy <= 7.5; gy += 0.5) for (let gx = lo + 1; gx <= hi - 1; gx += 0.5) if (free([gx, gy])) return [gx, gy];
+  return slots[g.staff.length % slots.length];
+}
 
 const ui = createUI(root, g, act);
+act.currentRoom = () => view.roomInView((g.rooms || 1) + (nextRoom(g) ? 1 : 0));
 const canPip = () => !shell && pipSupported();
 ui.setPipAvailable(canPip() && g.mode === 'mini');
 $('btn-pip').hidden = !canPip();
@@ -168,7 +234,7 @@ function layout() {
     view.resize(win.innerWidth - 16, win.innerHeight - 120);
   } else if (shell) {
     // Fixed 2x pixels on the taskbar; ask the shell for a window that fits the strip + HUD.
-    view.resize(4000, 92);
+    view.resize(Math.max(400, screen.availWidth - 480), 92);
     fitShell();
   } else {
     const hudW = win.innerWidth < 640 ? 0 : 300;
@@ -192,6 +258,7 @@ function fitShell() {
 // --- Input -------------------------------------------------------------------------
 let touchHide = 0;
 canvas.addEventListener('pointermove', (ev) => {
+  if (moving) return;
   const p = view.toLocal(ev.clientX, ev.clientY);
   if (ev.pointerType === 'mouse') { whip.place(p.x, p.y, !whip.visible); whip.visible = true; }
   const h = view.pick(p.x, p.y);
@@ -200,32 +267,52 @@ canvas.addEventListener('pointermove', (ev) => {
 });
 canvas.addEventListener('pointerleave', () => { whip.visible = false; view.hover = null; ui.tag(0, 0, null); });
 
+canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
+
 canvas.addEventListener('pointerdown', (ev) => {
   ev.preventDefault();
   audio.unlock();
-  if (paused || whip.busy) return;
+  if (ev.button === 2) return startMove(ev);
+  if (ev.button !== 0 || moving || panning || paused || whip.busy) return;
   const p = view.toLocal(ev.clientX, ev.clientY);
   whip.place(p.x, p.y, !whip.visible);
   whip.visible = true;
   if (ev.pointerType !== 'mouse') touchHide = 1.2;
-  const W = WHIPS[g.whipLevel];
-  const hit = view.pick(p.x, p.y, W.radius);
-  // Aim the tip at the head of whoever is in reach, or at the empty spot clicked.
-  const tx = hit ? hit.head.x : p.x, ty = hit ? hit.head.y + 4 : p.y;
-  audio.whip(g.whipLevel);
-  whip.lash(tx, ty, g.whipLevel, () => resolveHit(hit, ev.clientX, ev.clientY));
+  const S = toolStats(g);
+  const hit = view.pick(p.x, p.y, S.radius);
+  if (!hit && g.mode === 'office' && offerRoomAt(p)) return;
+  // Aim at the head of whoever is in reach, or at the empty spot clicked.
+  const target = hit ? { x: hit.head.x, y: hit.head.y + 4 } : p;
+  // A taser arc jumps on to the nearest other slackers.
+  const dist = (h) => Math.hypot(h.head.x - hit.head.x, h.head.y - hit.head.y);
+  const chain = S.tool === 'taser' && hit && hit.e.state === 'slack'
+    ? view.hits.filter((h) => h !== hit && h.e.state === 'slack' && dist(h) < 110).sort((a, b) => dist(a) - dist(b)).slice(0, S.chain)
+    : [];
+  if (S.tool === 'baton') audio.bonk(S.level);
+  else if (S.tool === 'taser') audio.zap(S.level);
+  else audio.whip(S.level);
+  whip.use(S.tool, [target, ...chain.map((h) => ({ x: h.head.x, y: h.head.y + 4 }))], S.level, () => {
+    resolveHit(hit, S.tool);
+    chain.forEach((h) => resolveHit(h, S.tool, true));
+  });
 });
 
-function resolveHit(hit, cx, cy) {
+const SHOUT = { whip: 'BACK TO WORK!', baton: 'BỐP! LÀM VIỆC!', taser: 'BZZZT! TỈNH CHƯA?' };
+
+function resolveHit(hit, tool = 'whip', chained = false) {
   if (!hit) return;
   const e = hit.e;
-  const res = whipEmployee(g, e);
+  const res = whipEmployee(g, e, { chained });
   const at = view.toClient(hit.head.x, hit.head.y - 6);
-  if (res.kind === 'catch') {
+  if (res.kind === 'catch' && chained) {
+    audio.ouch(1.2);
+    ui.popup(at.x, at.y - 10, 'BZZT!', 'assist');
+    ui.popup(at.x, at.y + 18, `+${fmt(res.reward)} đ`, 'money');
+  } else if (res.kind === 'catch') {
     audio.ouch(1 + (e.id % 3) * 0.12);
     audio.coin(g.combo);
     ui.flash('hit');
-    ui.popup(at.x, at.y - 10, 'BACK TO WORK!', 'btw');
+    ui.popup(at.x, at.y - 10, SHOUT[tool], tool === 'whip' ? 'btw' : 'btw vn');
     ui.popup(at.x, at.y + 22, `+${fmt(res.reward)} đ`, 'money');
     if (g.combo > 1) ui.popup(at.x, at.y - 40, `COMBO x${g.combo}`, 'combo');
     if (Math.random() < 0.5) ui.popup(at.x, at.y + 44, `"${res.excuse}"`, 'say');
@@ -250,7 +337,7 @@ function onEvent(type, e) {
       break;
     case 'strike':
       audio.strike();
-      ui.popup(at.x, at.y - 20, `${e.name} ĐÌNH CÔNG!`, 'wrong');
+      ui.popup(at.x, at.y - 20, `${e.nickname || e.short} ĐÌNH CÔNG!`, 'wrong');
       break;
     case 'strikeEnd':
       ui.popup(at.x, at.y - 20, 'Quay lại làm...', 'say');
@@ -287,6 +374,7 @@ function endDay() {
     g.today = freshDay();
     for (const e of g.staff) { e.energy = 100; e.stress = Math.max(0, e.stress - 50); e.state = 'work'; e.slack = null; e.t = 0; }
     paused = false;
+    payday();
     save(g);
   };
   // In the taskbar bar there is no room for a report card: roll straight into the next day.
@@ -298,6 +386,143 @@ function endDay() {
     ui.showReport(next);
   }
 }
+
+/** Clicking the dimmed room for sale asks to buy it. */
+function offerRoomAt(p) {
+  const room = nextRoom(g);
+  if (!room) return false;
+  const { gx, gy } = view.toGrid(p.x, p.y);
+  const g0 = ROOM_W * (g.rooms || 1);
+  if (gx < g0 || gx > g0 + ROOM_W || gy < 0 || gy > 9) return false;
+  if (g.money < room.cost) {
+    audio.deny();
+    ui.popup(view.toClient(p.x, p.y).x, view.toClient(p.x, p.y).y, `${room.name}: cần ${fmt(room.cost)} đ`, 'say');
+  } else if (confirm(`Mở ${room.name} (+8 bàn) với giá ${fmt(room.cost)} đ?`)) {
+    act.buy('room');
+  }
+  return true;
+}
+
+/** Pay salaries if today is the 15th, and tell the player. */
+function payday() {
+  const pr = runPayroll(g);
+  if (!pr) return;
+  const r = stage.getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + Math.min(160, r.height * 0.35);
+  ui.popup(x, y, `TRẢ LƯƠNG ${fmtDate(dateOf(g))}: −${fmt(pr.total)} đ`, pr.short ? 'wrong' : 'loss big');
+  if (pr.short) {
+    audio.deny();
+    setTimeout(() => ui.popup(x, y + 40, 'NỢ LƯƠNG! Cả văn phòng bức xúc', 'wrong'), 700);
+  } else {
+    audio.coin(1);
+  }
+  save(g);
+}
+
+// --- Right-drag: move furniture, desks and the coffee machine ---------------------------
+let moving = null;
+
+function startMove(ev) {
+  if (g.mode !== 'office' || paused) return;
+  const p = view.toLocal(ev.clientX, ev.clientY);
+  const m = view.pickMovable(p.x, p.y);
+  if (!m) return;
+  const pos = refPos(m.ref);
+  const gp = view.toGrid(p.x, p.y);
+  moving = { ref: m.ref, start: { ...pos }, dx: pos.gx - gp.gx, dy: pos.gy - gp.gy, ok: true };
+  view.moving = moving;
+  whip.visible = false;
+  ui.tag(0, 0, null);
+  canvas.setPointerCapture(ev.pointerId);
+}
+
+function refPos(ref) {
+  if (ref.type === 'decor') return { gx: ref.item.gx, gy: ref.item.gy };
+  if (ref.type === 'coffee') return { ...coffeePos(g) };
+  const [gx, gy] = deskPos(g, ref.e, g.staff.indexOf(ref.e));
+  return { gx, gy };
+}
+
+function setRefPos(ref, gx, gy) {
+  if (ref.type === 'decor') { ref.item.gx = gx; ref.item.gy = gy; }
+  else if (ref.type === 'coffee') g.layout.coffee = { gx, gy };
+  else g.layout.desks[ref.e.id] = { gx, gy };
+}
+
+/** Clamp a dragged object to where it may stand; returns [gx, gy, ok]. */
+function placeRule(ref, gx, gy) {
+  const snap = (v) => Math.round(v * 4) / 4;
+  gx = snap(gx); gy = snap(gy);
+  if (ref.type === 'decor') {
+    const def = DECOR_ITEMS.find((d) => d.id === ref.item.kind);
+    if (def?.mount === 'wall') return [0, clamp(gy, 0.6, 8.6), true];
+    return [clamp(gx, 0.3, ROOM_W * (g.rooms || 1) - 0.3), clamp(gy, 0.3, 8.7), true];
+  }
+  if (ref.type === 'coffee') return [clamp(gx, 0, ROOM_W * (g.rooms || 1) - 1), clamp(gy, 0, 7.4), true];
+  // Desks stay inside the bought floor area and keep a gap from other desks.
+  const [lo, hi] = floorOf(g);
+  gx = clamp(gx, lo + 0.9, hi - 0.9); gy = clamp(gy, 0.7, 7.9);
+  const ok = g.staff.every((e, i) => {
+    if (e === ref.e) return true;
+    const [x, y] = deskPos(g, e, i);
+    return Math.abs(x - gx) > 1.7 || Math.abs(y - gy) > 1.4;
+  });
+  return [gx, gy, ok];
+}
+
+canvas.addEventListener('pointermove', (ev) => {
+  if (!moving) return;
+  const p = view.toLocal(ev.clientX, ev.clientY);
+  const gp = view.toGrid(p.x, p.y);
+  const [gx, gy, ok] = placeRule(moving.ref, gp.gx + moving.dx, gp.gy + moving.dy);
+  setRefPos(moving.ref, gx, gy);
+  moving.ok = ok;
+});
+
+function endMove() {
+  if (!moving) return;
+  if (!moving.ok) {
+    setRefPos(moving.ref, moving.start.gx, moving.start.gy);
+    const r = stage.getBoundingClientRect();
+    ui.popup(r.left + r.width / 2, r.top + 80, 'Chỗ này chật quá, không đặt được', 'say');
+  }
+  moving = null;
+  view.moving = null;
+  save(g);
+}
+canvas.addEventListener('pointerup', (ev) => { if (moving && ev.button === 2) endMove(); });
+canvas.addEventListener('lostpointercapture', endMove);
+
+// Number keys switch tools; ←/→ or A/D jump between rooms.
+addEventListener('keydown', (ev) => {
+  if (ev.target.closest && ev.target.closest('input, textarea, select')) return;
+  const kind = { 1: 'whip', 2: 'baton', 3: 'taser' }[ev.key];
+  if (kind) act.tool(kind);
+  if (g.mode !== 'office') return;
+  const step = { ArrowLeft: -1, a: -1, A: -1, ArrowRight: 1, d: 1, D: 1 }[ev.key];
+  if (step) { ev.preventDefault(); act.focusRoom(view.roomInView(g.rooms || 1) + step); }
+});
+
+// Mouse wheel scrolls the office sideways (along the row of rooms); middle-drag pans freely.
+canvas.addEventListener('wheel', (ev) => {
+  if (g.mode !== 'office') return;
+  ev.preventDefault();
+  const d = (Math.abs(ev.deltaX) > Math.abs(ev.deltaY) ? ev.deltaX : ev.deltaY) / view.scale;
+  view.pan(d, d / 2);
+}, { passive: false });
+let panning = null;
+canvas.addEventListener('pointerdown', (ev) => {
+  if (ev.button !== 1 || g.mode !== 'office') return;
+  ev.preventDefault();
+  panning = { x: ev.clientX, y: ev.clientY };
+  canvas.setPointerCapture(ev.pointerId);
+});
+canvas.addEventListener('pointermove', (ev) => {
+  if (!panning) return;
+  view.pan(-(ev.clientX - panning.x) / view.scale, -(ev.clientY - panning.y) / view.scale);
+  panning = { x: ev.clientX, y: ev.clientY };
+});
+canvas.addEventListener('pointerup', (ev) => { if (ev.button === 1) panning = null; });
 
 // --- Loop ------------------------------------------------------------------------------
 let last = performance.now();
@@ -316,6 +541,7 @@ function step(dt) {
   t += dt;
   if (!paused) simUpdate(g, dt, onEvent);
   whip.update(dt);
+  view.updateCam(dt);
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
   view.render(g, whip, t);
   uiAcc += dt;
@@ -366,5 +592,7 @@ async function togglePip() {
 
 // --- Boot -------------------------------------------------------------------------------
 setMode(g.mode);
+view.focusRoom(0, true);
+payday(); // a save made the evening of the 14th resumes on payday
 schedule();
 window.__game = { g, view, whip }; // handy for debugging in the console

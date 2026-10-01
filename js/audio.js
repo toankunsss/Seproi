@@ -80,6 +80,30 @@ export function whip(level = 0, delay = 0.13) {
   }
 }
 
+/** Baton: a short swish, then a hollow BONK with a cartoon boing. */
+export function bonk(level = 0, delay = 0.12) {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  noise(t, delay, { type: 'bandpass', f0: 500, f1: 1400, q: 1, gain: 0.25, attack: delay * 0.7 });
+  const c = t + delay;
+  tone(c, 0.12, { type: 'triangle', f0: 220 - level * 30, f1: 55, gain: 0.9, attack: 0.001 });
+  noise(c, 0.06, { type: 'lowpass', f0: 1800, f1: 300, q: 0.7, gain: 0.9, attack: 0.001 });
+  if (level >= 2) noise(c, 0.25, { type: 'bandpass', f0: 3200, f1: 2600, q: 8, gain: 0.25 }); // steel ring
+  tone(c + 0.04, 0.28, { type: 'sine', f0: 300, f1: 900, gain: 0.08 });
+}
+
+/** Taser: a crackling electric buzz. */
+export function zap(level = 0) {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  const len = 0.22 + level * 0.08;
+  tone(t, len, { type: 'sawtooth', f0: 110, f1: 95, gain: 0.22, attack: 0.002 });
+  tone(t, len, { type: 'square', f0: 1400, f1: 700, gain: 0.05, attack: 0.002 });
+  for (let i = 0; i < 6 + level * 3; i++) {
+    noise(t + Math.random() * len, 0.025, { type: 'highpass', f0: 3000, q: 0.7, gain: 0.7, attack: 0.001 });
+  }
+}
+
 export function ouch(pitch = 1) {
   if (!ensure()) return;
   const t = ac.currentTime + 0.14;

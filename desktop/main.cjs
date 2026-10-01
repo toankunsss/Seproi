@@ -198,7 +198,7 @@ app.whenReady().then(async () => {
     setTimeout(async () => {
       fs.writeFileSync(out('shot-mini.png'), (await win.webContents.capturePage()).toPNG());
       // drag smoke test: press on the grip, check the shell entered drag, release
-      const r = await win.webContents.executeJavaScript("(() => { const b = document.querySelector('.grip').getBoundingClientRect(); return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) }; })()");
+      const r = await win.webContents.executeJavaScript("(() => { const b = document.querySelector('.grip').getBoundingClientRect(); const x = Math.round(b.x + b.width / 2), y = Math.round(b.y + b.height / 2); const el = document.elementFromPoint(x, y); return { x, y, at: el && (el.className || el.tagName), mode: document.body.className }; })()");
       win.webContents.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
       win.webContents.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
       await new Promise((ok) => setTimeout(ok, 300));
