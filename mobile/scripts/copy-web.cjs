@@ -9,7 +9,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const OUT = path.join(__dirname, '..', 'www');
 // Everything the game needs at runtime. Keep in sync with desktop/package.json "extraResources".
-const ENTRIES = ['index.html', 'icon.svg', 'manifest.webmanifest', 'css', 'js', 'fonts', 'icons'];
+const ENTRIES = ['index.html', 'icon.svg', 'css', 'js', 'fonts'];
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });

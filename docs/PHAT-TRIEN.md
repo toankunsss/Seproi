@@ -2,22 +2,23 @@
 
 ## Quy trình
 
-1. Chạy `node serve.cjs`, mở http://localhost:5566 (desktop) và http://localhost:5566/?shell=mobile (mobile). Kiểm tra cả màn ngang lẫn màn dọc bằng DevTools.
+1. Chạy `node serve.cjs`, mở http://localhost:5566/?shell=mobile với chế độ giả lập điện thoại **màn ngang** trong DevTools (Pixel 7, iPhone 13…) để xem nhanh. Bản PC thì mở không kèm `?shell=mobile`.
 2. Sửa code ở `js/`, `css/`, rồi tải lại trang (server tắt cache).
 3. Thử trên app: `cd mobile && npm run sync`, sau đó chạy lại từ Android Studio/Xcode (hoặc `npm run run:android`).
 4. Desktop: `cd desktop && npm start`. `npm run shot` chụp ảnh tự động và kiểm tra kéo thả.
-5. Commit. Workflow GitHub Actions sẽ build APK để kiểm tra Android không bị hỏng.
+5. Thử trên điện thoại thật trước khi phát hành (rung, nút Back, ra/vào app chỉ kiểm tra được trên máy thật).
+6. Commit. Workflow GitHub Actions sẽ build APK để kiểm tra Android không bị hỏng.
 
 Mẹo console: `__game.g.money = 1e6`, `__game.g.dayTime = 148` (sắp tan ca), `__game.g.staff[0].stress = 99` (sắp đình công).
 
 ## Quy ước code
 
-- ES modules thuần, không bundler. Đường dẫn import phải ghi đủ `./x.js`. **Không `import` package npm trong `js/`** (WebView và trình duyệt không hiểu); plugin native gọi qua `platform.js`.
+- ES modules thuần, không bundler. Đường dẫn import phải ghi đủ `./x.js`. **Không `import` package npm trong `js/`** (WebView không hiểu); plugin native gọi qua `platform.js`.
 - Dữ liệu và con số cân bằng để ở `config.js`, không viết số cứng trong logic.
 - `sim.js` không đụng DOM. Logic mới thì đặt ở `sim.js`, rồi phát sự kiện qua `emit` để `main.js` lo âm thanh, rung, chữ bay.
 - Chữ hiển thị là tiếng Việt. Khi chèn dữ liệu người chơi nhập vào HTML, luôn bọc bằng `esc()` (xem `ui.js`).
 - Mọi nút trên mobile phải cao ≥ 44 px. Nút mới trên HUD phải thêm vào **cả** markup desktop lẫn `MOBILE_HUD` trong `ui.js`.
-- Thêm file mới mà game cần khi chạy thì cập nhật cả 3 nơi: `mobile/scripts/copy-web.cjs` (`ENTRIES`, nếu là thư mục hoặc file ở gốc mới), `desktop/package.json` (`extraResources.filter`), `sw.js` (`PRECACHE`, nhớ tăng `VERSION`).
+- Thêm thư mục hoặc file mới ở gốc mà game cần khi chạy thì cập nhật cả 2 nơi: `mobile/scripts/copy-web.cjs` (`ENTRIES`) và `desktop/package.json` (`extraResources.filter`). File mới bên trong `js/`, `css/`, `fonts/` thì không cần sửa gì.
 
 ## Thêm nội dung
 
@@ -101,4 +102,4 @@ Một số công thức đáng chú ý:
 - [ ] Mobile: xoay màn hình, mở/đóng panel, nút Back Android ở từng hộp thoại, đưa app xuống nền 1 phút rồi mở lại (thời gian và tiền phải được bù).
 - [ ] Đóng hẳn app rồi mở lại: save còn nguyên. "Chơi lại từ đầu" xóa sạch, kể cả bản sao trong Preferences.
 - [ ] Màn hình có tai thỏ (iPhone ngang): HUD không bị che.
-- [ ] Desktop Electron: chế độ taskbar, kéo thả, click xuyên qua vẫn chạy.
+- [ ] Bản PC (Electron) nếu vẫn phát hành: chế độ taskbar, kéo thả, click xuyên qua vẫn chạy.

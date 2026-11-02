@@ -243,10 +243,10 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .shell.mode-mini .assist { background: rgba(15, 12, 24, 0.75); padding: 1px 8px; box-shadow: 0 0 0 3px var(--edge); }
 
 /* --- Mobile (touch) layout ------------------------------------------------------------------
-   html.mobile is set by js/platform.js (Capacitor app, ?shell=mobile, or a touch-only browser).
-   Landscape: [stats column] [office canvas] [buttons column]. Portrait: rows above/below.
+   html.mobile is set by js/platform.js (the Capacitor app, or ?shell=mobile on the dev server).
+   Landscape: [stats column] [office canvas] [buttons column]. The app is locked to landscape;
+   the portrait rules are only a fallback (split screen / freeform windows on Android).
    js/main.js fitMobile() measures the .side columns and gives the canvas the rest. */
-.rotate-hint { display: none; }
 .mobile body { -webkit-touch-callout: none; touch-action: manipulation; }
 .mobile #stage {
   flex-direction: row; align-items: center; justify-content: center; gap: 8px;
@@ -299,5 +299,4 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
   .mobile .side .px-btn { width: auto; min-width: 72px; }
   .mobile .side .px-btn.icon { flex: 0 0 48px; min-width: 48px; }
   .mobile .whipname, .mobile .assist, .mobile .combo { flex: 0 1 auto; align-self: center; }
-  .mobile .rotate-hint { display: block; order: 3; color: var(--muted); font-size: 17px; text-align: center; }
 }

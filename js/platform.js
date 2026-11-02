@@ -1,8 +1,9 @@
-// Platform layer: lets the same web game run on desktop browsers, mobile browsers,
-// the Electron taskbar shell and the Capacitor app (Android/iOS) without a bundler.
+// Platform layer: the game code in js/ is shared by the mobile app (Capacitor, Android/iOS)
+// and the desktop app (Electron taskbar shell). This module tells them apart.
 //
-//  - `mobile`  → touch-first layout (big buttons, side HUD, no taskbar/PiP mode)
-//  - `native`  → running inside the Capacitor app; native plugins are reachable
+//  - `native`  → running inside the Capacitor mobile app; native plugins are reachable
+//  - `mobile`  → touch layout (big buttons, side HUD, no taskbar/PiP mode). True in the app,
+//                and with `?shell=mobile` on the dev server (node serve.cjs) to preview it
 //
 // Native plugins are called through Capacitor's runtime proxy (`registerPlugin`), so no
 // npm imports are needed in the game code. Every call degrades to a web fallback or a no-op.
@@ -13,10 +14,8 @@ const cap = () => window.Capacitor;
 export const native = !!(cap() && cap().isNativePlatform && cap().isNativePlatform());
 export const platform = native ? cap().getPlatform() : 'web';
 
-/** Touch-first layout: native app, `?shell=mobile`, or a phone/tablet browser. */
-export const mobile = !window.taskbarShell && params.get('shell') !== 'desktop' && (
-  native || params.get('shell') === 'mobile' || matchMedia('(hover: none) and (pointer: coarse)').matches
-);
+/** Touch layout: the mobile app, or `?shell=mobile` when previewing on the dev server. */
+export const mobile = !window.taskbarShell && (native || params.get('shell') === 'mobile');
 
 const plugins = {};
 function plugin(name) {
@@ -67,8 +66,6 @@ export async function initPlatform(hooks = {}) {
   if (bar) safe(bar.hide());
   const splash = plugin('SplashScreen');
   if (splash) safe(splash.hide({ fadeOutDuration: 250 }));
-
-  registerServiceWorker();
 }
 
 // --- Haptics ----------------------------------------------------------------------------
@@ -77,18 +74,11 @@ export function setHaptics(on) { hapticsOn = !!on; }
 
 /** kind: 'light' | 'hit' | 'heavy' | 'wrong' | 'success' */
 export function haptic(kind = 'hit') {
-  if (!hapticsOn || !mobile) return;
-  const H = plugin('Haptics');
-  if (H) {
-    if (kind === 'wrong') safe(H.notification({ type: 'ERROR' }));
-    else if (kind === 'success') safe(H.notification({ type: 'SUCCESS' }));
-    else safe(H.impact({ style: kind === 'heavy' ? 'HEAVY' : kind === 'light' ? 'LIGHT' : 'MEDIUM' }));
-    return;
-  }
-  try {
-    const pattern = { light: 8, hit: 18, heavy: 35, wrong: [40, 50, 70], success: [15, 40, 15] }[kind] || 18;
-    navigator.vibrate && navigator.vibrate(pattern);
-  } catch {}
+  const H = hapticsOn && plugin('Haptics');
+  if (!H) return;
+  if (kind === 'wrong') safe(H.notification({ type: 'ERROR' }));
+  else if (kind === 'success') safe(H.notification({ type: 'SUCCESS' }));
+  else safe(H.impact({ style: kind === 'heavy' ? 'HEAVY' : kind === 'light' ? 'LIGHT' : 'MEDIUM' }));
 }
 
 // --- Save backup -------------------------------------------------------------------------
@@ -113,12 +103,4 @@ export function backup(key, value) {
   const P = plugin('Preferences');
   if (!P) return Promise.resolve();
   return (value == null ? P.remove({ key }) : P.set({ key, value })).catch(() => {});
-}
-
-// --- PWA ----------------------------------------------------------------------------------
-function registerServiceWorker() {
-  // Native apps already ship their files locally; Electron serves app:// (no SW support).
-  if (native || window.taskbarShell || !('serviceWorker' in navigator)) return;
-  if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
-  navigator.serviceWorker.register('sw.js').catch((err) => console.warn('[sw] register failed', err));
 }

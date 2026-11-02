@@ -24,7 +24,7 @@
     "directories": { "output": "dist", "buildResources": "build" },
     "files": ["main.cjs", "preload.cjs", "package.json"],
     "extraResources": [
-      { "from": "..", "to": "game", "filter": ["index.html", "icon.svg", "manifest.webmanifest", "css/**", "js/**", "fonts/**", "icons/**"] }
+      { "from": "..", "to": "game", "filter": ["index.html", "icon.svg", "css/**", "js/**", "fonts/**"] }
     ],
     "win": {
       "icon": "build/icon.ico",

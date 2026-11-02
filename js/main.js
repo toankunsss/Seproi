@@ -199,8 +199,7 @@ function fitMobile(force = false) {
   const gap = parseFloat(row ? cs.columnGap : cs.rowGap) || 0;
   let w = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   let h = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-  for (const el of root.hud.querySelectorAll('.side, .rotate-hint')) {
-    if (!el.offsetParent) continue; // hidden
+  for (const el of root.hud.querySelectorAll('.side')) {
     if (row) w -= el.offsetWidth + gap; else h -= el.offsetHeight + gap;
   }
   const sig = `${Math.round(w)}x${Math.round(h)}|${g.staff.length}`;

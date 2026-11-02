@@ -1,20 +1,18 @@
 # Kiến trúc mã nguồn
 
-Game là trang web tĩnh: `index.html` nạp `js/main.js` dưới dạng ES module. Không có framework, bundler hay file ảnh/âm thanh. Hình pixel-art được vẽ bằng code lên `<canvas>`, âm thanh được tổng hợp bằng Web Audio. Nhờ vậy, cùng một thư mục chạy được trên trình duyệt, Electron và Capacitor.
+Mã nguồn game là HTML/CSS/JavaScript: `index.html` nạp `js/main.js` dưới dạng ES module. Không có framework, bundler hay file ảnh/âm thanh. Hình pixel-art được vẽ bằng code lên `<canvas>`, âm thanh được tổng hợp bằng Web Audio. App mobile (`mobile/`, Capacitor) và bản PC (`desktop/`, Electron) đều đóng gói cùng mã nguồn này.
 
 ## Sơ đồ thư mục
 
 ```
 index.html              khung trang: #stage (canvas + #fx + #hud), #panel, #modal
-manifest.webmanifest    PWA manifest
-sw.js                   service worker (chỉ dùng cho bản trình duyệt)
-serve.cjs               server tĩnh để phát triển (node serve.cjs → :5566)
-icon.svg, icons/        icon
+serve.cjs               server để xem thử khi phát triển (node serve.cjs → :5566/?shell=mobile)
+icon.svg                icon (favicon cho bản PC)
 css/style.css           toàn bộ giao diện DOM (HUD, panel, modal, mobile, taskbar)
 css/fonts.css, fonts/   font VT323 và Press Start 2P (tự host, chạy offline)
 js/
 ├── main.js       khởi động, vòng lặp, xử lý input, nối các module với nhau, các "action" của nút
-├── platform.js   phát hiện nền tảng (mobile/native), plugin Capacitor, rung, sao lưu save, SW
+├── platform.js   phát hiện nền tảng (app mobile / PC), plugin Capacitor, rung, sao lưu save
 ├── config.js     DỮ LIỆU GAME: roi, cà phê, trợ lý, nhân viên, văn phòng, nội thất, TUNING, cấp bậc
 ├── state.js      tạo game mới, load/save localStorage, nâng cấp save cũ
 ├── sim.js        mô phỏng: hành vi nhân viên, kinh tế, KPI, combo, trợ lý, cà phê
@@ -36,7 +34,7 @@ main.js
   ├─ await restoreBackup()     (native: lấy save từ Preferences nếu localStorage trống)
   ├─ g = load()                state.js
   ├─ createView / createWhip / createUI
-  ├─ await initPlatform()      nút Back, pause/resume, ẩn status bar & splash, đăng ký SW
+  ├─ await initPlatform()      nút Back, pause/resume, ẩn status bar & splash
   ├─ setMode(g.mode) → layout()
   └─ requestAnimationFrame loop:
         step(dt):
@@ -97,11 +95,10 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 
 | | `shell` (Electron) | `mobile` | `native` |
 |---|---|---|---|
-| Phát hiện | có `window.taskbarShell` (preload) | `native`, `?shell=mobile`, hoặc `(hover:none) and (pointer:coarse)` | `Capacitor.isNativePlatform()` |
+| Phát hiện | có `window.taskbarShell` (preload) | `native`, hoặc `?shell=mobile` khi xem thử | `Capacitor.isNativePlatform()` |
 | Class CSS | `body.shell` | `html.mobile` | `html.native`, `html.native-android` / `html.native-ios` |
 | Khác biệt | chế độ mini trong suốt, click xuyên qua, kéo thả, khay hệ thống | HUD 2 cột, khóa chế độ office, chạm rộng hơn, rung | plugin Capacitor: App, Haptics, Preferences, StatusBar, SplashScreen |
 
-Thêm `?shell=desktop` vào URL để ép giao diện desktop trên thiết bị cảm ứng (ví dụ laptop màn hình cảm ứng bị nhận nhầm).
 
 ## Bố cục DOM
 

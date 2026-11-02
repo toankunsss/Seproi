@@ -1,13 +1,13 @@
 # Bản mobile (Android / iOS)
 
-Bản mobile dùng **Capacitor 8**: game web được chép vào app native và chạy trong WebView. Toàn bộ logic game vẫn nằm ở `js/` tại thư mục gốc. Không có bản code game riêng cho mobile: sửa ở `js/` thì cả web, desktop và mobile đều nhận thay đổi.
+App dùng **Capacitor 8**: mã nguồn game (`js/`, `css/`, `fonts/`, `index.html` ở thư mục gốc) được đóng gói vào app Android/iOS native, và chạy trong WebView của hệ điều hành. Không có code game riêng cho từng nền tảng: sửa ở `js/` thì cả app mobile lẫn bản PC (`desktop/`) đều nhận thay đổi.
 
 ```
 mobile/
 ├── package.json            scripts npm + phiên bản Capacitor/plugin
 ├── capacitor.config.json   appId, tên app, màu nền, cấu hình Splash/StatusBar
 ├── scripts/
-│   ├── copy-web.cjs        chép game (../index.html, css, js, fonts, icons…) vào www/
+│   ├── copy-web.cjs        chép game (../index.html, css, js, fonts) vào www/
 │   └── make-icons.cjs      sinh icon + splash từ hình cây roi 16x16 (không cần file ảnh)
 ├── assets/                 ảnh nguồn cho @capacitor/assets (do make-icons sinh ra)
 ├── android/                project Android Studio (đã commit, sửa được)
@@ -15,22 +15,21 @@ mobile/
 └── www/                    bản copy của game, tự sinh, KHÔNG commit
 ```
 
-## Những gì đã thay đổi so với bản desktop
+## Khác biệt so với bản PC
 
 | Hạng mục | Trên mobile |
 |---|---|
 | Chế độ chơi | Luôn ở "Văn phòng". Chế độ taskbar mini và "Ghim nổi" (PiP) bị ẩn. |
-| Bố cục | Màn ngang: cột chỉ số bên trái, canvas ở giữa, cột nút lớn bên phải. Màn dọc (chỉ trên trình duyệt): chỉ số ở trên, nút ở dưới, kèm gợi ý xoay ngang. |
+| Bố cục | Màn ngang: cột chỉ số bên trái, canvas ở giữa, cột nút lớn bên phải. (Có sẵn bố cục dọc dự phòng cho chế độ chia đôi màn hình trên Android.) |
 | Tỷ lệ phóng | Phóng theo bước 5% (`view.fineScale`) để lấp đầy màn hình. Desktop vẫn phóng theo số nguyên. |
 | Cảm ứng | Chạm để quất. Vùng trúng rộng thêm `TUNING.touchSlop` (7 px) vì ngón tay kém chính xác hơn chuột. Nút cao tối thiểu 44 px. |
-| Rung | Quất trúng (combo ≥ 3 thì rung mạnh), quất oan, đình công, mua đồ, cà phê. Plugin Haptics trên app, `navigator.vibrate` trên trình duyệt Android. |
+| Rung | Plugin Haptics: quất trúng (combo ≥ 3 thì rung mạnh), quất oan, đình công, mua đồ, cà phê. |
 | Tai thỏ / viền | Có padding theo `env(safe-area-inset-*)`. |
 | Toàn màn hình | Android: chế độ immersive (ẩn status bar và thanh điều hướng, vuốt từ mép để hiện tạm). iOS: ẩn status bar. |
 | Hướng màn hình | Khóa ngang (`sensorLandscape` trên Android, Landscape Left/Right trên iOS). |
 | Nút Back Android | Đóng hộp thoại hoặc panel đang mở. Nếu không có gì mở thì đưa app xuống nền (không thoát). |
 | Ra/vào app | Lưu game khi app xuống nền. Khi quay lại, mô phỏng bù tối đa `TUNING.awayCap` (300 giây) thời gian đã vắng. |
 | Lưu game | Vẫn dùng `localStorage`, có thêm bản sao trong **Capacitor Preferences** (SharedPreferences / UserDefaults). Nếu hệ điều hành xóa dữ liệu WebView, game tự khôi phục từ bản sao. |
-| PWA | `manifest.webmanifest` + `sw.js`: trên trình duyệt điện thoại có thể "Thêm vào màn hình chính" và chơi offline. |
 
 ## Yêu cầu
 
@@ -56,13 +55,13 @@ npm run sync
 
 `sync` = `copy-web.cjs` (chép game vào `www/`) + `cap sync` (chép `www/` vào android/ios và cập nhật plugin). **Phải chạy lại sau mỗi lần sửa code web** thì app mới nhận thay đổi.
 
-Thử nhanh giao diện mobile trên máy tính (không cần build):
+Xem thử nhanh trên máy tính khi đang sửa code (không cần build; không có rung và plugin native):
 
 ```bash
 node ../serve.cjs
 ```
 
-Mở http://localhost:5566/?shell=mobile, hoặc dùng chế độ giả lập thiết bị trong Chrome DevTools (Ctrl+Shift+M).
+Mở http://localhost:5566/?shell=mobile và bật chế độ giả lập thiết bị trong Chrome DevTools (Ctrl+Shift+M), chọn màn hình ngang.
 
 ### Android
 
@@ -82,7 +81,7 @@ Build file APK debug bằng dòng lệnh (file ra ở `android/app/build/outputs
 npm run apk
 ```
 
-**Không cài Android Studio?** Workflow `.github/workflows/android.yml` tự build APK mỗi khi push thay đổi ở `js/`, `css/`, `mobile/`… Vào tab **Actions** trên GitHub → lần chạy "Android build" → phần **Artifacts** → tải `sep-roi-debug-apk`, giải nén rồi cài lên điện thoại (cần cho phép "cài ứng dụng không rõ nguồn gốc").
+**Không cài Android Studio?** Workflow `.github/workflows/android.yml` tự build APK mỗi khi push thay đổi ở `js/`, `css/`, `fonts/`, `mobile/`… Vào tab **Actions** trên GitHub → lần chạy "Android build" → phần **Artifacts** → tải `sep-roi-debug-apk`, giải nén rồi cài lên điện thoại (cần cho phép "cài ứng dụng không rõ nguồn gốc").
 
 ### iOS (trên Mac)
 
@@ -107,7 +106,7 @@ Icon và splash được sinh từ hình cây roi 16x16 trong `scripts/make-icon
 npm run icons
 ```
 
-Lệnh này sinh lại `../icons/*.png` (cho PWA), `assets/*.png`, rồi `@capacitor/assets` ghi đè toàn bộ icon/splash trong `android/` và `ios/`.
+Lệnh này sinh lại `assets/*.png`, rồi `@capacitor/assets` ghi đè toàn bộ icon/splash trong `android/` và `ios/`.
 
 Muốn dùng ảnh do họa sĩ vẽ: đặt ảnh vào `assets/` (`icon-only.png` 1024², `icon-foreground.png` 1024² nền trong suốt, `icon-background.png`, `splash.png` và `splash-dark.png` 2732²), rồi chỉ chạy phần `capacitor-assets generate …` trong script `icons` (bỏ bước `make-icons.cjs` để không ghi đè ảnh của bạn).
 
@@ -173,7 +172,7 @@ const Share = plugin('Share');           // null nếu không chạy trong app h
 if (Share) await Share.share({ title: 'Sếp Roi', text: 'Mình vừa đạt combo x12!' });
 ```
 
-`plugin(name)` dùng `Capacitor.registerPlugin`, có sẵn nhờ `www/capacitor.js` (bản build sẵn của `@capacitor/core`, do `copy-web.cjs` chép vào). Luôn viết nhánh dự phòng cho trình duyệt, vì `plugin()` trả về `null` khi không ở trong app native.
+`plugin(name)` dùng `Capacitor.registerPlugin`, có sẵn nhờ `www/capacitor.js` (bản build sẵn của `@capacitor/core`, do `copy-web.cjs` chép vào). `plugin()` trả về `null` khi xem thử bằng trình duyệt hoặc trong bản PC, nên luôn kiểm tra `null` trước khi gọi.
 
 ## Xử lý sự cố
 
@@ -182,6 +181,6 @@ if (Share) await Share.share({ title: 'Sếp Roi', text: 'Mình vừa đạt com
 | App không nhận code mới | Chạy lại `npm run sync`. Trên Android Studio có thể cần Build → Clean Project. |
 | Màn hình đen hoặc trắng khi mở app | Bật gỡ lỗi WebView (xem phần trên) và đọc lỗi trong console. Thường do lỗi cú pháp JS, vì module ES lỗi thì cả game dừng. |
 | `SDK location not found` | Mở `android/` bằng Android Studio một lần, hoặc tạo `android/local.properties` chứa `sdk.dir=/đường/dẫn/Android/sdk`. |
-| Không rung | Android: kiểm tra chế độ rung/haptic của máy. iOS: iPhone ở chế độ im lặng hoặc tiết kiệm pin có thể tắt haptic. Trình duyệt iOS không hỗ trợ rung. |
+| Không rung | Android: kiểm tra chế độ rung/haptic của máy. iOS: iPhone ở chế độ im lặng hoặc tiết kiệm pin có thể tắt haptic. Khi xem thử bằng trình duyệt (`?shell=mobile`) thì không có rung. |
 | Không có tiếng | Âm thanh dùng Web Audio và chỉ bật sau lần chạm đầu tiên. Trên iOS, gạt công tắc im lặng sẽ tắt âm WebView. |
 | Mất save | Save nằm trong `localStorage` của WebView, kèm bản sao trong Preferences. Gỡ app thì mất cả hai. Đổi `appId` thì được coi là app khác. |

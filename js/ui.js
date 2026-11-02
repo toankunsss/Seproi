@@ -47,7 +47,6 @@ const MOBILE_HUD = `
       <button class="px-btn icon" data-a="mute" data-k="mute" title="Âm thanh">♪</button>
       <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden>Cà phê sốc</button>
     </div>
-    <div class="rotate-hint">Xoay ngang máy để văn phòng to hơn</div>
     <div class="tag" data-k="tag" hidden></div>`;
 
 export function createUI(root, g, act, { mobile = false } = {}) {

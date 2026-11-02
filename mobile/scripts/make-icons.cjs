@@ -1,7 +1,6 @@
 // Generates every app icon / splash source from the 16x16 pixel whip (same art as icon.svg
 // and desktop/build/make-icon.cjs), so the repo needs no binary design files.
 //
-//   ../icons/*.png        PWA icons (manifest.webmanifest, apple-touch-icon)
 //   assets/*.png          sources for `capacitor-assets generate` (Android + iOS icons/splash)
 //
 // Run: npm run icons   (this script, then @capacitor/assets writes the native resources)
@@ -61,13 +60,8 @@ function write(file, size, opts) {
   console.log('  ' + path.relative(process.cwd(), file));
 }
 
-const web = path.join(__dirname, '..', '..', 'icons');
 const assets = path.join(__dirname, '..', 'assets');
 console.log('Writing icons:');
-write(path.join(web, 'icon-192.png'), 192, { artFrac: 0.84 });
-write(path.join(web, 'icon-512.png'), 512, { artFrac: 0.84 });
-write(path.join(web, 'icon-maskable-512.png'), 512, { artFrac: 0.6 }); // maskable safe zone = 80% circle
-write(path.join(web, 'apple-touch-icon.png'), 180, { artFrac: 0.8 });
 write(path.join(assets, 'icon-only.png'), 1024, { artFrac: 0.8 });
 write(path.join(assets, 'icon-foreground.png'), 1024, { bg: null, artFrac: 0.56 }); // adaptive icon safe zone
 write(path.join(assets, 'icon-background.png'), 1024, { artFrac: 0 });
