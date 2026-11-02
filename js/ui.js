@@ -29,11 +29,32 @@ export function rankFor(kpi) {
   return r.title;
 }
 
-export function createUI(root, g, act) {
+// Touch layout: stats in a left column, big buttons in a right column (rows in portrait).
+// Uses the same data-k / data-a hooks as the desktop HUD, so update() drives both.
+const MOBILE_HUD = `
+    <div class="side left">
+      <div class="stat money"><span class="coin"></span><b data-k="money">0</b><small data-k="rate"></small></div>
+      <div class="stat kpi"><span>KPI</span><div class="meter"><i data-k="kpiBar"></i></div><b data-k="kpi">100%</b></div>
+      <div class="stat day"><span data-k="day">Ngày 1</span><b data-k="clock">09:00</b></div>
+      <div class="whipname" data-k="whip"></div>
+      <div class="combo" data-k="combo"></div>
+      <div class="assist" data-k="assist"></div>
+    </div>
+    <div class="side right">
+      <button class="px-btn" data-a="shop">Quản lý</button>
+      <button class="px-btn" data-a="decor">Nội thất</button>
+      <button class="px-btn" data-a="board">Áp lực</button>
+      <button class="px-btn icon" data-a="mute" data-k="mute" title="Âm thanh">♪</button>
+      <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden>Cà phê sốc</button>
+    </div>
+    <div class="rotate-hint">Xoay ngang máy để văn phòng to hơn</div>
+    <div class="tag" data-k="tag" hidden></div>`;
+
+export function createUI(root, g, act, { mobile = false } = {}) {
   const { hud, fx, panel, modal } = root;
   let panelOpen = false, lastPanelSig = '';
 
-  hud.innerHTML = `
+  hud.innerHTML = mobile ? MOBILE_HUD : `
     <div class="bar top">
       <div class="grip" title="Giữ chuột và kéo để di chuyển game (thả gần taskbar sẽ tự hít vào)"></div>
       <div class="stat money"><span class="coin"></span><b data-k="money">0</b><small data-k="rate"></small></div>
@@ -77,7 +98,7 @@ export function createUI(root, g, act) {
   function set(el, text) { if (el && el.textContent !== text) el.textContent = text; }
 
   const ui = {
-    setPipAvailable(ok) { K.pipBtn.hidden = !ok; },
+    setPipAvailable(ok) { if (K.pipBtn) K.pipBtn.hidden = !ok; },
 
     update() {
       const rate = g.staff.reduce((s, e) => s + incomeOf(g, e), 0);

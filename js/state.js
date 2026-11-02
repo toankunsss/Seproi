@@ -1,8 +1,9 @@
 // Game state + persistence. Only durable fields are saved; transient ones
 // (animation timers, current slack) are rebuilt on load.
 import { STAFF_POOL, STARTING_STAFF } from './config.js';
+import { backup } from './platform.js';
 
-const SAVE_KEY = 'whipboss.save.v1';
+export const SAVE_KEY = 'whipboss.save.v1';
 
 export function makeEmployee(i, profile = {}) {
   const p = STAFF_POOL[i];
@@ -60,6 +61,8 @@ export function load() {
   }
 }
 
+let lastSaved = '';
+
 export function save(g) {
   try {
     const data = {
@@ -69,12 +72,19 @@ export function save(g) {
         energy: e.energy, stress: e.stress, whips: e.whips, wrong: e.wrong,
       })),
     };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    const json = JSON.stringify(data);
+    if (json === lastSaved) return;
+    lastSaved = json;
+    localStorage.setItem(SAVE_KEY, json);
+    backup(SAVE_KEY, json);
   } catch (err) {
     console.warn('[save] could not write', err);
   }
 }
 
+/** Returns a promise that settles once the native backup copy is gone too. */
 export function wipe() {
+  lastSaved = '';
   try { localStorage.removeItem(SAVE_KEY); } catch {}
+  return backup(SAVE_KEY, null);
 }

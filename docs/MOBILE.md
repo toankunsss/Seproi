@@ -1,0 +1,187 @@
+# Bản mobile (Android / iOS)
+
+Bản mobile dùng **Capacitor 8**: game web được chép vào app native và chạy trong WebView. Toàn bộ logic game vẫn nằm ở `js/` tại thư mục gốc. Không có bản code game riêng cho mobile: sửa ở `js/` thì cả web, desktop và mobile đều nhận thay đổi.
+
+```
+mobile/
+├── package.json            scripts npm + phiên bản Capacitor/plugin
+├── capacitor.config.json   appId, tên app, màu nền, cấu hình Splash/StatusBar
+├── scripts/
+│   ├── copy-web.cjs        chép game (../index.html, css, js, fonts, icons…) vào www/
+│   └── make-icons.cjs      sinh icon + splash từ hình cây roi 16x16 (không cần file ảnh)
+├── assets/                 ảnh nguồn cho @capacitor/assets (do make-icons sinh ra)
+├── android/                project Android Studio (đã commit, sửa được)
+├── ios/                    project Xcode (đã commit, sửa được, dùng Swift Package Manager)
+└── www/                    bản copy của game, tự sinh, KHÔNG commit
+```
+
+## Những gì đã thay đổi so với bản desktop
+
+| Hạng mục | Trên mobile |
+|---|---|
+| Chế độ chơi | Luôn ở "Văn phòng". Chế độ taskbar mini và "Ghim nổi" (PiP) bị ẩn. |
+| Bố cục | Màn ngang: cột chỉ số bên trái, canvas ở giữa, cột nút lớn bên phải. Màn dọc (chỉ trên trình duyệt): chỉ số ở trên, nút ở dưới, kèm gợi ý xoay ngang. |
+| Tỷ lệ phóng | Phóng theo bước 5% (`view.fineScale`) để lấp đầy màn hình. Desktop vẫn phóng theo số nguyên. |
+| Cảm ứng | Chạm để quất. Vùng trúng rộng thêm `TUNING.touchSlop` (7 px) vì ngón tay kém chính xác hơn chuột. Nút cao tối thiểu 44 px. |
+| Rung | Quất trúng (combo ≥ 3 thì rung mạnh), quất oan, đình công, mua đồ, cà phê. Plugin Haptics trên app, `navigator.vibrate` trên trình duyệt Android. |
+| Tai thỏ / viền | Có padding theo `env(safe-area-inset-*)`. |
+| Toàn màn hình | Android: chế độ immersive (ẩn status bar và thanh điều hướng, vuốt từ mép để hiện tạm). iOS: ẩn status bar. |
+| Hướng màn hình | Khóa ngang (`sensorLandscape` trên Android, Landscape Left/Right trên iOS). |
+| Nút Back Android | Đóng hộp thoại hoặc panel đang mở. Nếu không có gì mở thì đưa app xuống nền (không thoát). |
+| Ra/vào app | Lưu game khi app xuống nền. Khi quay lại, mô phỏng bù tối đa `TUNING.awayCap` (300 giây) thời gian đã vắng. |
+| Lưu game | Vẫn dùng `localStorage`, có thêm bản sao trong **Capacitor Preferences** (SharedPreferences / UserDefaults). Nếu hệ điều hành xóa dữ liệu WebView, game tự khôi phục từ bản sao. |
+| PWA | `manifest.webmanifest` + `sw.js`: trên trình duyệt điện thoại có thể "Thêm vào màn hình chính" và chơi offline. |
+
+## Yêu cầu
+
+- Node.js ≥ 22.
+- **Android**: Android Studio (bản mới, có SDK 36) và JDK 21 (đi kèm Android Studio).
+- **iOS**: máy Mac có Xcode 26 trở lên. Muốn cài lên iPhone thật hoặc đưa lên App Store thì cần tài khoản Apple Developer.
+
+## Quy trình phát triển hằng ngày
+
+```bash
+cd mobile
+```
+
+```bash
+npm install
+```
+
+Sửa game ở `../js`, `../css`… rồi đồng bộ vào project native:
+
+```bash
+npm run sync
+```
+
+`sync` = `copy-web.cjs` (chép game vào `www/`) + `cap sync` (chép `www/` vào android/ios và cập nhật plugin). **Phải chạy lại sau mỗi lần sửa code web** thì app mới nhận thay đổi.
+
+Thử nhanh giao diện mobile trên máy tính (không cần build):
+
+```bash
+node ../serve.cjs
+```
+
+Mở http://localhost:5566/?shell=mobile, hoặc dùng chế độ giả lập thiết bị trong Chrome DevTools (Ctrl+Shift+M).
+
+### Android
+
+```bash
+npm run android
+```
+
+Lệnh này mở Android Studio, sau đó bấm ▶ Run. Muốn cài thẳng lên máy/emulator đang cắm:
+
+```bash
+npm run run:android
+```
+
+Build file APK debug bằng dòng lệnh (file ra ở `android/app/build/outputs/apk/debug/app-debug.apk`):
+
+```bash
+npm run apk
+```
+
+**Không cài Android Studio?** Workflow `.github/workflows/android.yml` tự build APK mỗi khi push thay đổi ở `js/`, `css/`, `mobile/`… Vào tab **Actions** trên GitHub → lần chạy "Android build" → phần **Artifacts** → tải `sep-roi-debug-apk`, giải nén rồi cài lên điện thoại (cần cho phép "cài ứng dụng không rõ nguồn gốc").
+
+### iOS (trên Mac)
+
+```bash
+npm run ios
+```
+
+Trong Xcode: chọn target **App** → *Signing & Capabilities* → chọn Team (Apple ID của bạn). Sau đó chọn iPhone hoặc simulator và bấm ▶. Project dùng Swift Package Manager nên không cần CocoaPods.
+
+## Gỡ lỗi trên máy thật
+
+- **Android**: bật `"webContentsDebuggingEnabled": true` trong `capacitor.config.json` (nhớ tắt lại trước khi phát hành), chạy `npm run sync`, cắm máy rồi mở `chrome://inspect` trên Chrome máy tính.
+- **iOS**: bản debug cho phép Safari → menu Develop → [tên iPhone] → Sếp Roi.
+- Trong console có `window.__game` (`g` = state, `view`, `whip`). Ví dụ, để có tiền thử nghiệm: `__game.g.money = 99999`.
+- Xem log native: `npx cap run android` hoặc Logcat trong Android Studio; Xcode console cho iOS.
+
+## Icon và màn hình chờ
+
+Icon và splash được sinh từ hình cây roi 16x16 trong `scripts/make-icons.cjs` (cùng hình với `icon.svg` và `desktop/build/make-icon.cjs`).
+
+```bash
+npm run icons
+```
+
+Lệnh này sinh lại `../icons/*.png` (cho PWA), `assets/*.png`, rồi `@capacitor/assets` ghi đè toàn bộ icon/splash trong `android/` và `ios/`.
+
+Muốn dùng ảnh do họa sĩ vẽ: đặt ảnh vào `assets/` (`icon-only.png` 1024², `icon-foreground.png` 1024² nền trong suốt, `icon-background.png`, `splash.png` và `splash-dark.png` 2732²), rồi chỉ chạy phần `capacitor-assets generate …` trong script `icons` (bỏ bước `make-icons.cjs` để không ghi đè ảnh của bạn).
+
+## Phát hành
+
+### Đổi phiên bản
+
+- Android: `android/app/build.gradle` → `versionCode` (số nguyên, **mỗi lần upload phải tăng**) và `versionName` (ví dụ `1.1.0`).
+- iOS: Xcode → target App → General → *Version* và *Build*.
+- Nên cập nhật cả `mobile/package.json` và `desktop/package.json` cho đồng bộ.
+
+### Android: ký app và đưa lên Google Play
+
+1. Tạo keystore một lần duy nhất. **Giữ kỹ file này và mật khẩu**: mất nó thì không cập nhật được app trên Play nữa.
+
+   ```bash
+   keytool -genkey -v -keystore mobile/android/seproi-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias seproi
+   ```
+
+2. Tạo `mobile/android/keystore.properties` (đã nằm trong `.gitignore`, không commit):
+
+   ```properties
+   storeFile=../seproi-release.jks
+   storePassword=MẬT_KHẨU
+   keyAlias=seproi
+   keyPassword=MẬT_KHẨU
+   ```
+
+3. Build file AAB (ra ở `android/app/build/outputs/bundle/release/app-release.aab`), rồi upload lên Google Play Console:
+
+   ```bash
+   npm run aab
+   ```
+
+Muốn GitHub Actions ký luôn: thêm các secret `ANDROID_KEYSTORE_BASE64` (giá trị là output của `base64 -w0 seproi-release.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Workflow sẽ tạo thêm artifact `sep-roi-release`.
+
+### iOS: TestFlight / App Store
+
+Trong Xcode chọn thiết bị *Any iOS Device* → Product → **Archive** → Distribute App → App Store Connect. Sau đó vào App Store Connect để gửi TestFlight hoặc gửi duyệt.
+
+### Lưu ý khi đưa lên store
+
+- Nội dung game là hài hước châm biếm nhưng có cảnh "quất" nhân viên. Khi khai báo phân loại độ tuổi (IARC trên Google Play, Age Rating trên App Store), hãy chọn đúng mục bạo lực hoạt hình/hài hước để tránh bị từ chối.
+- Game không thu thập dữ liệu, không có quảng cáo, không gọi mạng: phần khai báo Data safety / Privacy Nutrition Label chọn "Không thu thập dữ liệu". Nếu sau này thêm analytics hoặc quảng cáo thì phải khai báo lại.
+- `appId` là `vn.seproi.game` (trùng với bản desktop). Muốn đổi thì phải đổi **trước** lần phát hành đầu tiên: sửa `capacitor.config.json`, `android/app/build.gradle` (`namespace`, `applicationId`), thư mục package Java của `MainActivity`, và Bundle Identifier trong Xcode.
+
+## Thêm plugin native mới
+
+Ví dụ thêm plugin Share:
+
+```bash
+npm install @capacitor/share
+```
+
+```bash
+npx cap sync
+```
+
+Game không dùng bundler, nên **không `import` package npm trong `js/`**. Thay vào đó, gọi plugin qua proxy của Capacitor trong `js/platform.js`:
+
+```js
+const Share = plugin('Share');           // null nếu không chạy trong app hoặc chưa cài plugin
+if (Share) await Share.share({ title: 'Sếp Roi', text: 'Mình vừa đạt combo x12!' });
+```
+
+`plugin(name)` dùng `Capacitor.registerPlugin`, có sẵn nhờ `www/capacitor.js` (bản build sẵn của `@capacitor/core`, do `copy-web.cjs` chép vào). Luôn viết nhánh dự phòng cho trình duyệt, vì `plugin()` trả về `null` khi không ở trong app native.
+
+## Xử lý sự cố
+
+| Triệu chứng | Cách xử lý |
+|---|---|
+| App không nhận code mới | Chạy lại `npm run sync`. Trên Android Studio có thể cần Build → Clean Project. |
+| Màn hình đen hoặc trắng khi mở app | Bật gỡ lỗi WebView (xem phần trên) và đọc lỗi trong console. Thường do lỗi cú pháp JS, vì module ES lỗi thì cả game dừng. |
+| `SDK location not found` | Mở `android/` bằng Android Studio một lần, hoặc tạo `android/local.properties` chứa `sdk.dir=/đường/dẫn/Android/sdk`. |
+| Không rung | Android: kiểm tra chế độ rung/haptic của máy. iOS: iPhone ở chế độ im lặng hoặc tiết kiệm pin có thể tắt haptic. Trình duyệt iOS không hỗ trợ rung. |
+| Không có tiếng | Âm thanh dùng Web Audio và chỉ bật sau lần chạm đầu tiên. Trên iOS, gạt công tắc im lặng sẽ tắt âm WebView. |
+| Mất save | Save nằm trong `localStorage` của WebView, kèm bản sao trong Preferences. Gỡ app thì mất cả hai. Đổi `appId` thì được coi là app khác. |

@@ -241,3 +241,63 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .shell.mode-mini .bar { flex-wrap: nowrap; }
 .shell.mode-mini .stat, .shell.mode-mini .px-btn { box-shadow: 0 0 0 3px var(--edge); }
 .shell.mode-mini .assist { background: rgba(15, 12, 24, 0.75); padding: 1px 8px; box-shadow: 0 0 0 3px var(--edge); }
+
+/* --- Mobile (touch) layout ------------------------------------------------------------------
+   html.mobile is set by js/platform.js (Capacitor app, ?shell=mobile, or a touch-only browser).
+   Landscape: [stats column] [office canvas] [buttons column]. Portrait: rows above/below.
+   js/main.js fitMobile() measures the .side columns and gives the canvas the rest. */
+.rotate-hint { display: none; }
+.mobile body { -webkit-touch-callout: none; touch-action: manipulation; }
+.mobile #stage {
+  flex-direction: row; align-items: center; justify-content: center; gap: 8px;
+  padding:
+    max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+    max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+}
+.mobile #hud { display: contents; }
+.mobile #game { order: 1; flex: none; margin: 0; cursor: default; }
+.mobile .side {
+  display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  flex: none; width: clamp(108px, 15vw, 156px); align-self: stretch; pointer-events: none;
+}
+.mobile .side.left { order: 0; }
+.mobile .side.right { order: 2; }
+.mobile .side .px-btn {
+  width: 100%; min-height: 44px; margin: 0; padding: 9px 6px 10px; font-size: 20px;
+  touch-action: manipulation; white-space: normal;
+}
+.mobile .side .px-btn.coffee { min-height: 58px; font-size: 21px; }
+.mobile .stat { flex-wrap: wrap; gap: 0 6px; padding: 3px 7px; }
+.mobile .stat b { font-size: 21px; }
+.mobile .stat.money small { flex-basis: 100%; font-size: 17px; }
+.mobile .stat.kpi .meter { flex: 1; width: auto; min-width: 24px; }
+.mobile .whipname { text-align: center; font-size: 18px; }
+.mobile .combo { text-align: center; font-size: 12px; line-height: 1.4; }
+.mobile .assist { text-align: center; font-size: 17px; background: rgba(15, 12, 24, 0.75); padding: 2px 6px; box-shadow: 0 0 0 3px var(--edge); }
+
+.mobile #panel {
+  top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom)); max-height: none;
+  width: min(440px, calc(100vw - 16px)); overscroll-behavior: contain;
+}
+.mobile .panel { min-height: 100%; }
+.mobile .item .buy, .mobile .decor-row .buy { min-height: 44px; }
+.mobile .panel-head .px-btn.icon { width: 44px; height: 40px; }
+.mobile #modal {
+  padding:
+    max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+.mobile .card { max-height: 100%; overscroll-behavior: contain; }
+.mobile .card .px-btn.big { min-height: 48px; }
+.mobile .nick-btn { min-height: 36px; }
+
+@media (orientation: portrait) {
+  .mobile #stage { flex-direction: column; }
+  .mobile .side { flex-direction: row; flex-wrap: wrap; width: 100%; align-self: auto; gap: 6px; }
+  .mobile .side > * { flex: 1 1 auto; }
+  .mobile .side .px-btn { width: auto; min-width: 72px; }
+  .mobile .side .px-btn.icon { flex: 0 0 48px; min-width: 48px; }
+  .mobile .whipname, .mobile .assist, .mobile .combo { flex: 0 1 auto; align-self: center; }
+  .mobile .rotate-hint { display: block; order: 3; color: var(--muted); font-size: 17px; text-align: center; }
+}

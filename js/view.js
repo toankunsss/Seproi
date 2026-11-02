@@ -27,7 +27,10 @@ export function createView(canvas) {
       v.W = Math.max(MINI_SLOT * 3, v.staffCount * MINI_SLOT + 8); v.H = MINI_H;
     }
     let s = Math.min(cw / v.W, ch / v.H);
-    s = s >= 2 ? Math.floor(s) : Math.max(0.5, Math.floor(s * 4) / 4);
+    // Integer scales keep pixels square. Phones have little room and very dense screens,
+    // so `fineScale` allows 5% steps there (uneven pixels are invisible at 3x DPR).
+    if (v.fineScale) s = Math.max(0.5, Math.floor(s * 20) / 20);
+    else s = s >= 2 ? Math.floor(s) : Math.max(0.5, Math.floor(s * 4) / 4);
     v.scale = s;
     canvas.width = v.W; canvas.height = v.H;
     canvas.style.width = v.W * s + 'px';

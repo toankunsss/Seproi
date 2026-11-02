@@ -1,20 +1,25 @@
 // Boot, game loop and glue between simulation, view, whip and UI.
 import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, OFFICE_LEVELS, DECOR_ITEMS, hireCost, TUNING } from './config.js';
-import { load, save, wipe, makeEmployee, freshDay } from './state.js';
+import { load, save, wipe, makeEmployee, freshDay, SAVE_KEY } from './state.js';
 import { update as simUpdate, whipEmployee, useCoffee } from './sim.js';
 import { createView } from './view.js';
 import { createWhip } from './whip.js';
 import { createUI, fmt } from './ui.js';
 import { pipSupported, openPip } from './pip.js';
 import * as audio from './audio.js';
+import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage'), canvas = $('game');
 const root = { stage, hud: $('hud'), fx: $('fx'), panel: $('panel'), modal: $('modal') };
 
+// Native app: bring back the save from the native backup if the WebView storage was wiped.
+await restoreBackup(SAVE_KEY);
 const g = load();
 const params = new URLSearchParams(location.search);
 if (params.get('mode') === 'mini') g.mode = 'mini';
+// Phones/tablets have no taskbar: always play the full office.
+if (mobile) g.mode = 'office';
 audio.setMuted(g.muted);
 
 // Running inside the Electron taskbar shell (desktop/preload.cjs)?
@@ -23,6 +28,7 @@ if (shell) document.body.classList.add('shell');
 
 const view = createView(canvas);
 view.transparentMini = !!shell;
+view.fineScale = mobile;
 const whip = createWhip();
 let pipWin = null;
 let paused = false;
@@ -33,7 +39,7 @@ const act = {
   mode() { setMode(g.mode === 'office' ? 'mini' : 'office'); },
   mute() { g.muted = !g.muted; audio.setMuted(g.muted); },
   coffee() {
-    if (useCoffee(g)) { audio.coffee(); ui.popup(innerWidth / 2, innerHeight * 0.3, 'CÀ PHÊ SỐC!', 'coffee'); }
+    if (useCoffee(g)) { audio.coffee(); haptic('success'); ui.popup(innerWidth / 2, innerHeight * 0.3, 'CÀ PHÊ SỐC!', 'coffee'); }
   },
   pip: () => togglePip(),
   quit() { save(g); shell && shell.quit(); },
@@ -53,6 +59,7 @@ const act = {
       }
     }
     ok ? audio.buy() : audio.deny();
+    haptic(ok ? 'success' : 'light');
     save(g);
   },
   purchaseDecor(id) {
@@ -61,6 +68,7 @@ const act = {
     if (!pay(item.cost)) { audio.deny(); return false; }
     g.decor.push(id);
     audio.buy();
+    haptic('success');
     save(g);
     return true;
   },
@@ -95,14 +103,14 @@ const act = {
     // pagehide normally persists the current game. Mark this navigation as a reset
     // first, otherwise pagehide immediately writes the old save back after wipe().
     resetting = true;
-    wipe();
-    location.reload();
+    // Wait for the native backup to be removed too, or the next boot would restore it.
+    wipe().finally(() => location.reload());
   },
 };
 const pay = (cost) => { if (g.money < cost) return false; g.money -= cost; return true; };
 
-const ui = createUI(root, g, act);
-const canPip = () => !shell && pipSupported();
+const ui = createUI(root, g, act, { mobile });
+const canPip = () => !shell && !mobile && pipSupported();
 ui.setPipAvailable(canPip() && g.mode === 'mini');
 $('btn-pip').hidden = !canPip();
 $('btn-pip').addEventListener('click', () => togglePip());
@@ -164,7 +172,9 @@ function layout() {
   }
   view.mode = g.mode;
   view.staffCount = g.staff.length;
-  if (g.mode === 'office') {
+  if (mobile) {
+    fitMobile(true);
+  } else if (g.mode === 'office') {
     view.resize(win.innerWidth - 16, win.innerHeight - 120);
   } else if (shell) {
     // Fixed 2x pixels on the taskbar; ask the shell for a window that fits the strip + HUD.
@@ -176,6 +186,28 @@ function layout() {
   }
 }
 addEventListener('resize', layout);
+
+/**
+ * Mobile: the HUD sits in two columns beside the canvas (landscape) or in rows above and
+ * below it (portrait). The canvas takes whatever space the stage has left.
+ */
+let lastFit = '';
+function fitMobile(force = false) {
+  if (!mobile) return;
+  const cs = getComputedStyle(stage);
+  const row = cs.flexDirection.startsWith('row');
+  const gap = parseFloat(row ? cs.columnGap : cs.rowGap) || 0;
+  let w = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  let h = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  for (const el of root.hud.querySelectorAll('.side, .rotate-hint')) {
+    if (!el.offsetParent) continue; // hidden
+    if (row) w -= el.offsetWidth + gap; else h -= el.offsetHeight + gap;
+  }
+  const sig = `${Math.round(w)}x${Math.round(h)}|${g.staff.length}`;
+  if (!force && sig === lastFit) return;
+  lastFit = sig;
+  view.resize(Math.max(120, w), Math.max(80, h));
+}
 
 /** Size the shell window to the strip + the HUD's natural width (it changes as items unlock). */
 function fitShell() {
@@ -209,7 +241,9 @@ canvas.addEventListener('pointerdown', (ev) => {
   whip.visible = true;
   if (ev.pointerType !== 'mouse') touchHide = 1.2;
   const W = WHIPS[g.whipLevel];
-  const hit = view.pick(p.x, p.y, W.radius);
+  // Fingers are less precise than a mouse: give touch a little extra reach.
+  const reach = W.radius + (ev.pointerType === 'mouse' ? 0 : TUNING.touchSlop);
+  const hit = view.pick(p.x, p.y, reach);
   // Aim the tip at the head of whoever is in reach, or at the empty spot clicked.
   const tx = hit ? hit.head.x : p.x, ty = hit ? hit.head.y + 4 : p.y;
   audio.whip(g.whipLevel);
@@ -222,6 +256,7 @@ function resolveHit(hit, cx, cy) {
   const res = whipEmployee(g, e);
   const at = view.toClient(hit.head.x, hit.head.y - 6);
   if (res.kind === 'catch') {
+    haptic(g.combo >= 3 ? 'heavy' : 'hit');
     audio.ouch(1 + (e.id % 3) * 0.12);
     audio.coin(g.combo);
     ui.flash('hit');
@@ -230,6 +265,7 @@ function resolveHit(hit, cx, cy) {
     if (g.combo > 1) ui.popup(at.x, at.y - 40, `COMBO x${g.combo}`, 'combo');
     if (Math.random() < 0.5) ui.popup(at.x, at.y + 44, `"${res.excuse}"`, 'say');
   } else if (res.kind === 'wrong') {
+    haptic('wrong');
     audio.ouch(0.8);
     audio.grumble();
     ui.flash('wrong');
@@ -250,6 +286,7 @@ function onEvent(type, e) {
       break;
     case 'strike':
       audio.strike();
+      haptic('heavy');
       ui.popup(at.x, at.y - 20, `${e.name} ĐÌNH CÔNG!`, 'wrong');
       break;
     case 'strikeEnd':
@@ -319,7 +356,7 @@ function step(dt) {
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
   view.render(g, whip, t);
   uiAcc += dt;
-  if (uiAcc > 0.1) { uiAcc = 0; ui.update(); fitShell(); }
+  if (uiAcc > 0.1) { uiAcc = 0; ui.update(); fitShell(); fitMobile(); }
 }
 
 function schedule() {
@@ -328,16 +365,23 @@ function schedule() {
   win.requestAnimationFrame((now) => { if (token === loopToken) frame(now); });
 }
 
-// Catch up on time spent in a hidden tab (rAF pauses there). Capped at 5 minutes.
+// Catch up on time spent in a hidden tab / backgrounded app (rAF pauses there).
+// Wall-clock time is used because performance.now() stops while a phone app is suspended.
+// Both visibilitychange and the native pause/resume events land here; the calls are idempotent.
 let hiddenAt = 0;
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { hiddenAt = performance.now(); save(g); return; }
-  if (!hiddenAt || pipWin) return;
-  let away = Math.min(300, (performance.now() - hiddenAt) / 1000);
+function goAway() {
+  if (!hiddenAt) hiddenAt = Date.now();
+  save(g);
+}
+function comeBack() {
+  if (!hiddenAt) return;
+  let away = Math.min(TUNING.awayCap, Math.max(0, (Date.now() - hiddenAt) / 1000));
   hiddenAt = 0;
-  while (away > 0 && !paused) { const d = Math.min(0.25, away); simUpdate(g, d, onEvent); away -= d; }
+  if (!pipWin) while (away > 0 && !paused) { const d = Math.min(0.25, away); simUpdate(g, d, onEvent); away -= d; }
   last = performance.now();
-});
+  if (mobile) fitMobile(true);
+}
+document.addEventListener('visibilitychange', () => (document.hidden ? goAway() : comeBack()));
 addEventListener('pagehide', () => { if (!resetting) save(g); });
 setInterval(() => { if (!resetting) save(g); }, 5000);
 
@@ -365,6 +409,19 @@ async function togglePip() {
 }
 
 // --- Boot -------------------------------------------------------------------------------
+/** Android back button: close the top-most dialog; returns false when nothing was open. */
+function handleBack() {
+  if (!root.modal.hidden) {
+    if (act.nextDay) act.nextDay();
+    else if (act.closeInterview) act.closeInterview();
+    else root.modal.hidden = true;
+    return true;
+  }
+  if (!root.panel.hidden) { ui.closePanel(); return true; }
+  return false;
+}
+await initPlatform({ onBack: handleBack, onPause: goAway, onResume: comeBack });
+
 setMode(g.mode);
 schedule();
 window.__game = { g, view, whip }; // handy for debugging in the console

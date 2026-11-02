@@ -83,6 +83,8 @@ export const TUNING = {
   comboWindow: 2.5,
   kpiTau: 20,              // seconds for the KPI moving average
   dayMult: 0.12,           // income growth per day
+  touchSlop: 7,            // extra whip reach (buffer px) for fingers on touch screens
+  awayCap: 300,            // max seconds of background time simulated on return
 };
 
 export const RANKS = [
