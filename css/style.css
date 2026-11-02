@@ -290,7 +290,7 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .mobile .stat.kpi { grid-area: kpi; }
 .mobile .stat.kpi .meter { flex: 1; width: auto; height: 12px; }
 .mobile .whipname, .mobile .assist, .mobile .combo { background: none; box-shadow: none; padding: 0 2px; align-self: center; }
-.mobile .whipname { grid-area: whip; font-size: 19px; }
+.mobile .whipname { grid-area: whip; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mobile .combo { grid-area: combo; display: block; text-align: center; font-size: 11px; line-height: 1.4; }
 .mobile .assist { grid-area: assist; display: block; text-align: right; font-size: 18px; color: #8fe8ff; white-space: nowrap; }
 .mobile .combo:empty, .mobile .assist:empty { display: block; visibility: hidden; }
@@ -350,6 +350,28 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .mobile .board small { display: block; line-height: 1; }
 .mobile .board .meter.small { width: 46px; }
 .mobile .nick-btn { min-height: 36px; font-size: 17px; }
+
+/* Short phones (iPhone SE, 16:9 Androids): tighter chrome so the office keeps its size. */
+@media (orientation: portrait) and (max-height: 720px) {
+  .mobile #stage { gap: 6px; padding-top: max(6px, var(--sa-top)); padding-bottom: max(6px, var(--sa-bottom)); }
+  .mobile .side.info { gap: 4px; padding: 5px; grid-template-areas: "money money day" "kpi kpi kpi" "whip whip assist"; }
+  .mobile .stat { padding: 2px 6px; }
+  .mobile .stat.money b { font-size: 24px; }
+  .mobile .stat.money small { font-size: 16px; }
+  .mobile .stat.day span { font-size: 15px; }
+  .mobile .stat.day b { font-size: 21px; }
+  .mobile .stat b { font-size: 19px; }
+  .mobile .stat.kpi .meter { height: 9px; }
+  .mobile .whipname, .mobile .assist { font-size: 16px; }
+  .mobile .combo { display: none; }
+  .mobile .side.controls { gap: 6px; }
+  .mobile .hint { font-size: 17px; min-height: 0; line-height: 18px; }
+  .mobile .hint:empty { display: none; }
+  .mobile .side .px-btn.coffee { min-height: 42px; font-size: 20px; padding-top: 6px; padding-bottom: 7px; }
+  .mobile .tabbar { padding: 4px; gap: 4px; }
+  .mobile .tab { min-height: 48px; gap: 2px; font-size: 16px; padding: 4px 2px; }
+  .mobile .tab svg { width: 20px; height: 20px; }
+}
 
 /* Landscape fallback: the two groups become side columns. */
 @media (orientation: landscape) {

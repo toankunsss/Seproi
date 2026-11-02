@@ -18,7 +18,7 @@ Mẹo console: `__game.g.money = 1e6`, `__game.g.dayTime = 148` (sắp tan ca), 
 - `sim.js` không đụng DOM. Logic mới thì đặt ở `sim.js`, rồi phát sự kiện qua `emit` để `main.js` lo âm thanh, rung, chữ bay.
 - Chữ hiển thị là tiếng Việt. Khi chèn dữ liệu người chơi nhập vào HTML, luôn bọc bằng `esc()` (xem `ui.js`).
 - Mọi nút trên mobile phải cao ≥ 44 px. Nút mới trên HUD phải thêm vào **cả** markup desktop lẫn `MOBILE_HUD` trong `ui.js`. Thanh tab mobile đang có 4 ô (`grid-template-columns: repeat(4, 1fr)`); thêm tab thứ 5 thì nhớ sửa CSS và kiểm tra trên màn 320 px.
-- Thêm vật thể mới mà người chơi cần chạm vào (ví dụ một máy móc mới) thì thêm nó vào `view.frame()`, để camera màn dọc không cắt mất.
+- Vật thể mới trong văn phòng (máy móc, nội thất) phải vẽ ở **cả hai** cảnh: phòng isometric (`sprites.js`, dùng cho PC và màn ngang) và văn phòng dọc (`portrait.js → drawWall`, xếp dọc chân tường từ hai đầu vào). Nhớ thử với văn phòng 4 bàn, vì tường ở đó hẹp nhất (114 px).
 - Thêm thư mục hoặc file mới ở gốc mà game cần khi chạy thì cập nhật cả 2 nơi: `mobile/scripts/copy-web.cjs` (`ENTRIES`) và `desktop/package.json` (`extraResources.filter`). File mới bên trong `js/`, `css/`, `fonts/` thì không cần sửa gì.
 
 ## Thêm nội dung
@@ -42,7 +42,7 @@ Thêm một phần tử vào `WHIPS` trong `config.js`:
 ### Nhân viên mới (vượt quá 8 người)
 
 1. Thêm vào `STAFF_POOL` (tên, `role`, màu da/tóc/áo, `style` tóc).
-2. Thêm vị trí bàn vào `SLOTS` trong `view.js` (tọa độ lưới isometric, nằm trong phòng).
+2. Thêm vị trí bàn vào `SLOTS` trong `view.js` (tọa độ lưới isometric, nằm trong phòng). Văn phòng dọc tự xếp thêm ô; nếu sức chứa vượt 8 thì xem lại các lựa chọn số cột trong `portraitLayout()`.
 3. Tăng `capacity` hoặc thêm cấp mới trong `OFFICE_LEVELS`. Nếu thêm cấp văn phòng thì sửa `roomLayer()` trong `sprites.js` (độ rộng tường/sàn theo `level`), và giới hạn `Math.min(2, …)` trong `state.js → load()`.
 
 ### Vai trò mới
@@ -52,7 +52,7 @@ Thêm vào `ROLES` (`label`, `income`, `screen`), rồi viết `case` trong `ren
 ### Nội thất mới
 
 1. `DECOR_ITEMS`: `{ id: 'plant', name: 'Cây kim tiền', desc: '…', cost: 700, level: 0 }`.
-2. Vẽ trong phòng: `drawOfficeDecor` (`sprites.js`) → `if (has('plant')) { … }`.
+2. Vẽ trong phòng isometric: `drawOfficeDecor` (`sprites.js`) → `if (has('plant')) { … }`. Vẽ thêm ở văn phòng dọc: `drawWall` trong `portrait.js`.
 3. Ảnh xem trước trong cửa hàng: thêm `.decor-plant::after { … }` trong `style.css`.
 
 ### Nâng cấp mới trong cửa hàng

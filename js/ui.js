@@ -200,6 +200,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     },
 
     closePanel() { panelOpen = false; panel.hidden = true; },
+    openShop() { if (!panelOpen) togglePanel(); },
   };
 
   function togglePanel() {

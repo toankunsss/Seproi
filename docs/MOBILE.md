@@ -21,7 +21,7 @@ mobile/
 |---|---|
 | Chế độ chơi | Luôn ở "Văn phòng". Chế độ taskbar mini và "Ghim nổi" (PiP) bị ẩn. |
 | Bố cục | **Màn dọc.** Trên cùng là thẻ thông tin (tiền + thu nhập/giây, ngày + giờ, KPI, roi đang dùng, combo, trợ lý). Giữa là văn phòng. Dưới là dòng gợi ý cho người mới, nút lớn "Cà phê sốc", và thanh tab 4 nút có icon (Quản lý · Nội thất · Áp lực · Âm). Bảng Quản lý trượt lên từ đáy (bottom sheet). |
-| Camera | Văn phòng isometric vốn nằm ngang, nên trên màn dọc camera tự căn khung vào đội nhân viên (`view.frame`). Đầu game ít người thì cảnh phóng to tới 2,4 lần, tuyển thêm người thì camera lùi ra. Phóng theo bước 5% (`view.fineScale`). |
+| Văn phòng | Cảnh vẽ riêng cho màn dọc (`js/portrait.js`): bức tường có cửa sổ, đồng hồ, máy cà phê, trợ lý và nội thất; bên dưới là lưới ô làm việc, mỗi nhân viên một ô nhìn từ sau lưng, thấy rõ màn hình họ đang xem. **Chạm vào ô của ai là quất người đó.** Ô trống có dấu "+", chạm vào để tuyển người. Lưới có 2 cột (4 bàn), 3 cột (6 bàn), 3 hoặc 4 cột (8 bàn); phóng theo bước 5% (`view.fineScale`). Màn hình thấp (≤ 720 px, ví dụ iPhone SE) dùng giao diện gọn hơn để văn phòng không bị nhỏ. |
 | Cảm ứng | Chạm để quất. Vùng trúng rộng thêm `TUNING.touchSlop` (7 px) vì ngón tay kém chính xác hơn chuột. Nút cao tối thiểu 44 px. |
 | Rung | Plugin Haptics: quất trúng (combo ≥ 3 thì rung mạnh), quất oan, đình công, mua đồ, cà phê. |
 | Tai thỏ / viền | Có padding theo vùng an toàn: iOS dùng `env(safe-area-inset-*)`, Android dùng biến `--safe-area-inset-*` do Capacitor 8 bơm vào. Cả hai được gộp vào `--sa-*` trong `style.css`. |

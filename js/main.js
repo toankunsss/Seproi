@@ -190,7 +190,7 @@ addEventListener('resize', layout);
 /**
  * Mobile: portrait (the normal phone layout) stacks the info card above the office and the
  * controls below it; the landscape fallback puts them in side columns. The canvas takes
- * whatever space the stage has left. Portrait also turns on the camera that frames the team.
+ * whatever space the stage has left. Portrait draws the phone office (cubicle grid, portrait.js).
  */
 let lastFit = '';
 function fitMobile(force = false) {
@@ -203,8 +203,9 @@ function fitMobile(force = false) {
   for (const el of root.hud.querySelectorAll('.side')) {
     if (row) w -= el.offsetWidth + gap; else h -= el.offsetHeight + gap;
   }
-  view.framed = !row;
-  const sig = `${Math.round(w)}x${Math.round(h)}|${row}|${view.frame(g)}`;
+  view.portrait = !row;
+  view.capacity = OFFICE_LEVELS[g.officeLevel].capacity;
+  const sig = `${Math.round(w)}x${Math.round(h)}|${row}|${view.capacity}|${g.staff.length}`;
   if (!force && sig === lastFit) return;
   lastFit = sig;
   view.resize(Math.max(120, w), Math.max(80, h));
@@ -244,6 +245,8 @@ canvas.addEventListener('pointerdown', (ev) => {
   const W = WHIPS[g.whipLevel];
   // Fingers are less precise than a mouse: give touch a little extra reach.
   const reach = W.radius + (ev.pointerType === 'mouse' ? 0 : TUNING.touchSlop);
+  // Portrait office: tapping a free desk opens hiring instead of swinging at a neighbour.
+  if (view.pickSlot(p.x, p.y)) { whip.visible = false; ui.openShop(); return; }
   const hit = view.pick(p.x, p.y, reach);
   // Aim the tip at the head of whoever is in reach, or at the empty spot clicked.
   const tx = hit ? hit.head.x : p.x, ty = hit ? hit.head.y + 4 : p.y;

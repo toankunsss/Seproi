@@ -16,7 +16,8 @@ js/
 ├── config.js     DỮ LIỆU GAME: roi, cà phê, trợ lý, nhân viên, văn phòng, nội thất, TUNING, cấp bậc
 ├── state.js      tạo game mới, load/save localStorage, nâng cấp save cũ
 ├── sim.js        mô phỏng: hành vi nhân viên, kinh tế, KPI, combo, trợ lý, cà phê
-├── view.js       vẽ 2 chế độ (office isometric / mini taskbar), tỷ lệ phóng, tọa độ, chọn đối tượng
+├── view.js       vẽ các chế độ (office isometric / văn phòng dọc / mini taskbar), tỷ lệ phóng, tọa độ, chọn đối tượng
+├── portrait.js   văn phòng cho điện thoại cầm dọc: bức tường + lưới ô làm việc, bàn trống để tuyển
 ├── sprites.js    sprite thủ tục: phòng, bàn, màn hình, nhân viên, bong bóng, nội thất…
 ├── pixel.js      hàm vẽ cơ bản: rect, px, line, poly, iso, isoBox, glyphs, hash
 ├── whip.js       dây roi verlet, hiệu ứng (tia lửa, vòng sóng, sét, lửa), rung màn hình
@@ -87,9 +88,15 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 
 - Canvas có độ phân giải gốc nhỏ (phòng: `ROOM_SIZE` 352×238; mini: `MINI_SLOT` × số nhân viên, cao 46), sau đó được phóng bằng CSS với `image-rendering: pixelated`.
 - `view.resize(cw, ch)` chọn tỷ lệ `scale`: desktop dùng số nguyên (hoặc bước 0,25 nếu < 2); mobile dùng bước 0,05 (`fineScale`).
-- **Camera màn dọc** (`view.framed`): thay vì vẽ cả căn phòng 352×238 (vốn nằm ngang), `view.frame(g)` tính khung bao quanh bàn của nhân viên, trợ lý và máy cà phê. `cameraWindow()` nới khung đó theo tỷ lệ màn hình rồi phóng to, tối đa `MAX_SCALE` = 2,4 và không hẹp hơn `MIN_VIEW` = 176 px. Đầu game ít người thì cảnh gần, tuyển thêm người thì camera tự lùi ra. Khi đó canvas chỉ chứa phần cửa sổ camera (`v.W`×`v.H`), lệch `v.offX`/`v.offY` so với tọa độ phòng; `toLocal`/`toClient` đã tính sẵn độ lệch này, nên mọi logic khác vẫn dùng tọa độ phòng như cũ.
+- **Văn phòng màn dọc** (`js/portrait.js`, bật khi `view.portrait`): căn phòng isometric vốn vẽ cho màn ngang, ép vào màn dọc thì nhân viên rất nhỏ. Vì vậy trên điện thoại cầm dọc, game vẽ một cảnh riêng:
+  - **Bức tường phía trên** (`drawWall`): cửa sổ có màu trời đổi theo giờ, đồng hồ, cây cảnh, cùng máy cà phê, tủ sách, cúp, sofa, bể cá, đèn và trợ lý khi đã mua.
+  - **Lưới ô làm việc** (`drawCubicle`): vách ngăn đổi màu theo vai trò, bàn, màn hình hướng về người chơi, và nhân viên nhìn từ sau lưng (dùng lại `drawEmployee`).
+  - **Ô trống**: ô chưa có người (trong sức chứa văn phòng) vẽ bàn trống với dấu "+". Chạm vào thì `main.js` mở bảng Quản lý để tuyển người (`view.pickSlot`).
+  - **Kích thước lưới** (`portraitLayout(capacity, cw, ch)`): văn phòng 4 bàn dùng 2 cột, 6 bàn dùng 3 cột. Văn phòng 8 bàn chọn 3 hoặc 4 cột, tùy cái nào cho tỷ lệ phóng lớn hơn trên máy đó; ô thừa của lưới 3×3 là góc nghỉ (bình nước và cây).
+  - **Vùng chạm** của mỗi nhân viên là cả ô của họ. Thanh áp lực vẽ ở đáy ô.
+  - **Màn ngang dự phòng** (tablet) và bản PC vẫn dùng phòng isometric.
 - Lớp phòng (tường, sàn) được vẽ một lần cho mỗi cấp văn phòng rồi cache lại (`roomLayer`). Nhân viên được sắp xếp theo chiều sâu isometric `gx + gy`.
-- Vị trí bàn: `SLOTS` trong `view.js`, theo thứ tự tuyển dụng. Muốn tăng số nhân viên tối đa thì phải thêm slot ở đây.
+- Vị trí bàn: `SLOTS` trong `view.js` (phòng isometric), theo thứ tự tuyển dụng. Muốn tăng số nhân viên tối đa thì phải thêm slot ở đây. Trên màn dọc, ô thứ i của lưới là nhân viên thứ i, nên không cần khai báo vị trí.
 - Vùng trúng (`view.hits`) được tính lại mỗi frame, đúng theo hình vừa vẽ.
 
 ## Lớp nền tảng
@@ -98,7 +105,7 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 |---|---|---|---|
 | Phát hiện | có `window.taskbarShell` (preload) | `native`, hoặc `?shell=mobile` khi xem thử | `Capacitor.isNativePlatform()` |
 | Class CSS | `body.shell` | `html.mobile` | `html.native`, `html.native-android` / `html.native-ios` |
-| Khác biệt | chế độ mini trong suốt, click xuyên qua, kéo thả, khay hệ thống | bố cục dọc + thanh tab, camera căn khung, khóa chế độ office, chạm rộng hơn, rung | plugin Capacitor: App, Haptics, Preferences, StatusBar, SplashScreen |
+| Khác biệt | chế độ mini trong suốt, click xuyên qua, kéo thả, khay hệ thống | bố cục dọc + thanh tab, văn phòng dạng lưới ô (`portrait.js`), khóa chế độ office, chạm rộng hơn, rung | plugin Capacitor: App, Haptics, Preferences, StatusBar, SplashScreen |
 
 
 ## Bố cục DOM
@@ -109,5 +116,5 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
   - `.side.info`: thẻ thông tin dạng lưới (tiền · giờ / KPI / roi · combo · trợ lý).
   - `.side.controls`: dòng gợi ý `.hint`, nút Cà phê, và `.tabbar` (4 tab có icon SVG pixel định nghĩa trong `ICON`).
 
-  `#hud` dùng `display: contents` nên hai nhóm này trở thành phần tử flex của `#stage`. Màn dọc xếp theo thứ tự thẻ thông tin → canvas → điều khiển. Màn ngang (chỉ là dự phòng) đưa hai nhóm thành hai cột bên cạnh canvas. `fitMobile()` trong `main.js` đo hai nhóm, giao phần còn lại cho canvas, và bật camera khi màn dọc. Bảng Quản lý (`#panel`) hiện thành bottom sheet trượt lên từ đáy.
+  `#hud` dùng `display: contents` nên hai nhóm này trở thành phần tử flex của `#stage`. Màn dọc xếp theo thứ tự thẻ thông tin → canvas → điều khiển. Màn ngang (chỉ là dự phòng) đưa hai nhóm thành hai cột bên cạnh canvas. `fitMobile()` trong `main.js` đo hai nhóm, giao phần còn lại cho canvas, và bật cảnh văn phòng dọc (`view.portrait`) khi màn dọc. Bảng Quản lý (`#panel`) hiện thành bottom sheet trượt lên từ đáy.
 - Cả hai bố cục dùng chung `data-k` (ô hiển thị) và `data-a` (hành động), nên `ui.update()` không cần biết đang ở bố cục nào.
