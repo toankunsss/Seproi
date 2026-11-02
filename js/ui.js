@@ -44,7 +44,7 @@ const MOBILE_HUD = `
       <button class="px-btn" data-a="shop">Quản lý</button>
       <button class="px-btn" data-a="decor">Nội thất</button>
       <button class="px-btn" data-a="board">Áp lực</button>
-      <button class="px-btn icon" data-a="mute" data-k="mute" title="Âm thanh">♪</button>
+      <button class="px-btn" data-a="mute" data-k="mute">Tiếng: Bật</button>
       <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden>Cà phê sốc</button>
     </div>
     <div class="tag" data-k="tag" hidden></div>`;
@@ -112,7 +112,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       set(K.whip, WHIPS[g.whipLevel].name);
       set(K.combo, g.combo > 1 ? `COMBO x${g.combo}` : '');
       set(K.modeBtn, g.mode === 'office' ? 'Thu nhỏ' : 'Văn phòng');
-      set(K.mute, g.muted ? '×' : '♪');
+      set(K.mute, mobile ? (g.muted ? 'Tiếng: Tắt' : 'Tiếng: Bật') : g.muted ? '×' : '♪');
       if (g.coffeeLevel >= 0) {
         K.coffee.hidden = false;
         const ready = g.coffeeCd <= 0;
