@@ -77,6 +77,7 @@ function hintText(g) {
 export function createUI(root, g, act, { mobile = false } = {}) {
   const { hud, fx, panel, modal } = root;
   let panelOpen = false, lastPanelSig = '';
+  let liveCheck = null; // open dialog that depends on money (interview), refreshed by update()
 
   hud.innerHTML = mobile ? MOBILE_HUD : `
     <div class="bar top">
@@ -148,6 +149,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       const cd = Math.max(0, Math.ceil(g.assistantCd));
       set(K.assist, g.assistantLevel < 0 ? '' : mobile ? `Trợ lý: ${cd}s` : `Trợ lý Lv${g.assistantLevel + 1} · ${cd}s`);
       if (panelOpen) renderPanel();
+      if (liveCheck && !modal.hidden) liveCheck(); else liveCheck = null;
     },
 
     /** Floating text at client coords. */
@@ -369,6 +371,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       error.textContent = complete && g.money < cost ? 'Quỹ công ty chưa đủ chi phí tuyển dụng.' : '';
     };
     form.addEventListener('input', validate);
+    liveCheck = validate; // money keeps changing while the form is open
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       if (!form.reportValidity()) return;

@@ -375,7 +375,8 @@ function schedule() {
 let hiddenAt = 0;
 function goAway() {
   if (!hiddenAt) hiddenAt = Date.now();
-  save(g);
+  // A reset reloads the page, which also fires visibilitychange → don't write the old save back.
+  if (!resetting) save(g);
 }
 function comeBack() {
   if (!hiddenAt) return;
@@ -428,4 +429,4 @@ await initPlatform({ onBack: handleBack, onPause: goAway, onResume: comeBack });
 
 setMode(g.mode);
 schedule();
-window.__game = { g, view, whip }; // handy for debugging in the console
+window.__game = { g, view, whip, act, ui }; // debugging + automated play tests (console only)
