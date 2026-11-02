@@ -247,12 +247,20 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
    Landscape: [stats column] [office canvas] [buttons column]. The app is locked to landscape;
    the portrait rules are only a fallback (split screen / freeform windows on Android).
    js/main.js fitMobile() measures the .side columns and gives the canvas the rest. */
+/* Safe areas (notch / camera cutout / home indicator). iOS provides env(); on Android,
+   Capacitor 8 zeroes the WebView's native insets and injects --safe-area-inset-* instead. */
+.mobile {
+  --sa-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sa-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+  --sa-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --sa-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+}
 .mobile body { -webkit-touch-callout: none; touch-action: manipulation; }
 .mobile #stage {
   flex-direction: row; align-items: center; justify-content: center; gap: 8px;
   padding:
-    max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
-    max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    max(6px, var(--sa-top)) max(8px, var(--sa-right))
+    max(6px, var(--sa-bottom)) max(8px, var(--sa-left));
 }
 .mobile #hud { display: contents; }
 .mobile #game { order: 1; flex: none; margin: 0; cursor: default; }
@@ -276,8 +284,8 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .mobile .assist { text-align: center; font-size: 17px; background: rgba(15, 12, 24, 0.75); padding: 2px 6px; box-shadow: 0 0 0 3px var(--edge); }
 
 .mobile #panel {
-  top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
-  bottom: max(8px, env(safe-area-inset-bottom)); max-height: none;
+  top: max(8px, var(--sa-top)); right: max(8px, var(--sa-right));
+  bottom: max(8px, var(--sa-bottom)); max-height: none;
   width: min(440px, calc(100vw - 16px)); overscroll-behavior: contain;
 }
 .mobile .panel { min-height: 100%; }
@@ -285,8 +293,8 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .mobile .panel-head .px-btn.icon { width: 44px; height: 40px; }
 .mobile #modal {
   padding:
-    max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
-    max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    max(8px, var(--sa-top)) max(12px, var(--sa-right))
+    max(8px, var(--sa-bottom)) max(12px, var(--sa-left));
 }
 .mobile .card { max-height: 100%; overscroll-behavior: contain; }
 .mobile .card .px-btn.big { min-height: 48px; }

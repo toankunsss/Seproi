@@ -24,9 +24,9 @@ mobile/
 | Tỷ lệ phóng | Phóng theo bước 5% (`view.fineScale`) để lấp đầy màn hình. Desktop vẫn phóng theo số nguyên. |
 | Cảm ứng | Chạm để quất. Vùng trúng rộng thêm `TUNING.touchSlop` (7 px) vì ngón tay kém chính xác hơn chuột. Nút cao tối thiểu 44 px. |
 | Rung | Plugin Haptics: quất trúng (combo ≥ 3 thì rung mạnh), quất oan, đình công, mua đồ, cà phê. |
-| Tai thỏ / viền | Có padding theo `env(safe-area-inset-*)`. |
+| Tai thỏ / viền | Có padding theo vùng an toàn: iOS dùng `env(safe-area-inset-*)`, Android dùng biến `--safe-area-inset-*` do Capacitor 8 bơm vào. Cả hai được gộp vào `--sa-*` trong `style.css`. |
 | Toàn màn hình | Android: chế độ immersive (ẩn status bar và thanh điều hướng, vuốt từ mép để hiện tạm). iOS: ẩn status bar. |
-| Hướng màn hình | Khóa ngang (`sensorLandscape` trên Android, Landscape Left/Right trên iOS). |
+| Hướng màn hình | Khóa ngang (`sensorLandscape` trên Android, Landscape Left/Right trên iOS). Riêng Android 16 trở lên, trên máy tính bảng và máy gập, hệ điều hành bỏ qua khóa xoay; khi đó game tự chuyển sang bố cục dọc dự phòng. |
 | Nút Back Android | Đóng hộp thoại hoặc panel đang mở. Nếu không có gì mở thì đưa app xuống nền (không thoát). |
 | Ra/vào app | Lưu game khi app xuống nền. Khi quay lại, mô phỏng bù tối đa `TUNING.awayCap` (300 giây) thời gian đã vắng. |
 | Lưu game | Vẫn dùng `localStorage`, có thêm bản sao trong **Capacitor Preferences** (SharedPreferences / UserDefaults). Nếu hệ điều hành xóa dữ liệu WebView, game tự khôi phục từ bản sao. |
@@ -179,7 +179,7 @@ if (Share) await Share.share({ title: 'Sếp Roi', text: 'Mình vừa đạt com
 | Triệu chứng | Cách xử lý |
 |---|---|
 | App không nhận code mới | Chạy lại `npm run sync`. Trên Android Studio có thể cần Build → Clean Project. |
-| Màn hình đen hoặc trắng khi mở app | Bật gỡ lỗi WebView (xem phần trên) và đọc lỗi trong console. Thường do lỗi cú pháp JS, vì module ES lỗi thì cả game dừng. |
+| Màn hình chờ hiện 2 giây rồi chỉ thấy nền tối, không có game | Bật gỡ lỗi WebView (xem phần trên) và đọc lỗi trong console. Thường do lỗi cú pháp JS, vì module ES lỗi thì cả game dừng. |
 | `SDK location not found` | Mở `android/` bằng Android Studio một lần, hoặc tạo `android/local.properties` chứa `sdk.dir=/đường/dẫn/Android/sdk`. |
 | Không rung | Android: kiểm tra chế độ rung/haptic của máy. iOS: iPhone ở chế độ im lặng hoặc tiết kiệm pin có thể tắt haptic. Khi xem thử bằng trình duyệt (`?shell=mobile`) thì không có rung. |
 | Không có tiếng | Âm thanh dùng Web Audio và chỉ bật sau lần chạm đầu tiên. Trên iOS, gạt công tắc im lặng sẽ tắt âm WebView. |
