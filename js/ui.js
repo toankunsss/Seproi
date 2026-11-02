@@ -29,25 +29,50 @@ export function rankFor(kpi) {
   return r.title;
 }
 
-// Touch layout: stats in a left column, big buttons in a right column (rows in portrait).
-// Uses the same data-k / data-a hooks as the desktop HUD, so update() drives both.
+// Pixel icons for the mobile tab bar (12x12 grid, drawn in currentColor).
+const svg = (body) => `<svg viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true">${body}</svg>`;
+const r = (x, y, w, h, cls = '') => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${cls ? ` class="${cls}"` : ''}/>`;
+const ICON = {
+  shop: svg(r(4, 1, 4, 1) + r(3, 2, 1, 1) + r(8, 2, 1, 1) + r(1, 3, 10, 7) + r(5, 6, 2, 1, 'cut')),
+  decor: svg(r(2, 3, 8, 4) + r(0, 5, 2, 4) + r(10, 5, 2, 4) + r(2, 7, 8, 2) + r(1, 9, 1, 2) + r(10, 9, 1, 2)),
+  board: svg(r(1, 10, 10, 1) + r(2, 6, 2, 4) + r(5, 2, 2, 8) + r(8, 5, 2, 5)),
+  sound: svg(r(1, 4, 2, 4) + r(3, 3, 1, 6) + r(4, 2, 1, 8)
+    + r(7, 4, 1, 4, 'on') + r(9, 2, 1, 8, 'on')
+    + [[7, 4], [8, 5], [9, 6], [10, 7], [10, 4], [9, 5], [8, 6], [7, 7]].map(([x, y]) => r(x, y, 1, 1, 'off')).join('')),
+};
+
+// Touch layout (phones). Portrait: info card on top, office in the middle, hint + coffee +
+// tab bar at the bottom. Landscape fallback (tablets that ignore the orientation lock): the
+// two groups become side columns. Uses the same data-k / data-a hooks as the desktop HUD,
+// so update() drives both.
 const MOBILE_HUD = `
-    <div class="side left">
+    <div class="side info">
       <div class="stat money"><span class="coin"></span><b data-k="money">0</b><small data-k="rate"></small></div>
-      <div class="stat kpi"><span>KPI</span><div class="meter"><i data-k="kpiBar"></i></div><b data-k="kpi">100%</b></div>
       <div class="stat day"><span data-k="day">Ngày 1</span><b data-k="clock">09:00</b></div>
+      <div class="stat kpi"><span>KPI</span><div class="meter"><i data-k="kpiBar"></i></div><b data-k="kpi">100%</b></div>
       <div class="whipname" data-k="whip"></div>
       <div class="combo" data-k="combo"></div>
       <div class="assist" data-k="assist"></div>
     </div>
-    <div class="side right">
-      <button class="px-btn" data-a="shop">Quản lý</button>
-      <button class="px-btn" data-a="decor">Nội thất</button>
-      <button class="px-btn" data-a="board">Áp lực</button>
-      <button class="px-btn" data-a="mute" data-k="mute">Tiếng: Bật</button>
+    <div class="side controls">
+      <div class="hint" data-k="hint"></div>
       <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden>Cà phê sốc</button>
+      <nav class="tabbar">
+        <button class="tab" data-a="shop">${ICON.shop}<span>Quản lý</span></button>
+        <button class="tab" data-a="decor">${ICON.decor}<span>Nội thất</span></button>
+        <button class="tab" data-a="board">${ICON.board}<span>Áp lực</span></button>
+        <button class="tab sound" data-a="mute">${ICON.sound}<span data-k="mute">Âm: Bật</span></button>
+      </nav>
     </div>
     <div class="tag" data-k="tag" hidden></div>`;
+
+/** Short coaching line under the office for new players (mobile only). */
+function hintText(g) {
+  const n = g.records.totalWhips;
+  if (n < 3) return 'Chạm vào người có bong bóng để quất!';
+  if (n < 8) return 'Đừng quất oan người đang làm việc!';
+  return '';
+}
 
 export function createUI(root, g, act, { mobile = false } = {}) {
   const { hud, fx, panel, modal } = root;
@@ -112,14 +137,16 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       set(K.whip, WHIPS[g.whipLevel].name);
       set(K.combo, g.combo > 1 ? `COMBO x${g.combo}` : '');
       set(K.modeBtn, g.mode === 'office' ? 'Thu nhỏ' : 'Văn phòng');
-      set(K.mute, mobile ? (g.muted ? 'Tiếng: Tắt' : 'Tiếng: Bật') : g.muted ? '×' : '♪');
+      set(K.mute, mobile ? (g.muted ? 'Âm: Tắt' : 'Âm: Bật') : g.muted ? '×' : '♪');
+      if (mobile) { hud.classList.toggle('muted', g.muted); set(K.hint, hintText(g)); }
       if (g.coffeeLevel >= 0) {
         K.coffee.hidden = false;
         const ready = g.coffeeCd <= 0;
         K.coffee.disabled = !ready;
         set(K.coffee, ready ? 'Cà phê sốc' : `Cà phê ${Math.ceil(g.coffeeCd)}s`);
       }
-      set(K.assist, g.assistantLevel >= 0 ? `Trợ lý Lv${g.assistantLevel + 1} · ${Math.max(0, Math.ceil(g.assistantCd))}s` : '');
+      const cd = Math.max(0, Math.ceil(g.assistantCd));
+      set(K.assist, g.assistantLevel < 0 ? '' : mobile ? `Trợ lý: ${cd}s` : `Trợ lý Lv${g.assistantLevel + 1} · ${cd}s`);
       if (panelOpen) renderPanel();
     },
 

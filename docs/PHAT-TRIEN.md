@@ -2,7 +2,7 @@
 
 ## Quy trình
 
-1. Chạy `node serve.cjs`, mở http://localhost:5566/?shell=mobile với chế độ giả lập điện thoại **màn ngang** trong DevTools (Pixel 7, iPhone 13…) để xem nhanh. Bản PC thì mở không kèm `?shell=mobile`.
+1. Chạy `node serve.cjs`, mở http://localhost:5566/?shell=mobile với chế độ giả lập điện thoại **màn dọc** trong DevTools (Pixel 7, iPhone 13, và một máy nhỏ như iPhone SE) để xem nhanh. Bản PC thì mở không kèm `?shell=mobile`.
 2. Sửa code ở `js/`, `css/`, rồi tải lại trang (server tắt cache).
 3. Thử trên app: `cd mobile && npm run sync`, sau đó chạy lại từ Android Studio/Xcode (hoặc `npm run run:android`).
 4. Desktop: `cd desktop && npm start`. `npm run shot` chụp ảnh tự động và kiểm tra kéo thả.
@@ -17,7 +17,8 @@ Mẹo console: `__game.g.money = 1e6`, `__game.g.dayTime = 148` (sắp tan ca), 
 - Dữ liệu và con số cân bằng để ở `config.js`, không viết số cứng trong logic.
 - `sim.js` không đụng DOM. Logic mới thì đặt ở `sim.js`, rồi phát sự kiện qua `emit` để `main.js` lo âm thanh, rung, chữ bay.
 - Chữ hiển thị là tiếng Việt. Khi chèn dữ liệu người chơi nhập vào HTML, luôn bọc bằng `esc()` (xem `ui.js`).
-- Mọi nút trên mobile phải cao ≥ 44 px. Nút mới trên HUD phải thêm vào **cả** markup desktop lẫn `MOBILE_HUD` trong `ui.js`.
+- Mọi nút trên mobile phải cao ≥ 44 px. Nút mới trên HUD phải thêm vào **cả** markup desktop lẫn `MOBILE_HUD` trong `ui.js`. Thanh tab mobile đang có 4 ô (`grid-template-columns: repeat(4, 1fr)`); thêm tab thứ 5 thì nhớ sửa CSS và kiểm tra trên màn 320 px.
+- Thêm vật thể mới mà người chơi cần chạm vào (ví dụ một máy móc mới) thì thêm nó vào `view.frame()`, để camera màn dọc không cắt mất.
 - Thêm thư mục hoặc file mới ở gốc mà game cần khi chạy thì cập nhật cả 2 nơi: `mobile/scripts/copy-web.cjs` (`ENTRIES`) và `desktop/package.json` (`extraResources.filter`). File mới bên trong `js/`, `css/`, `fonts/` thì không cần sửa gì.
 
 ## Thêm nội dung
@@ -75,7 +76,7 @@ Một số công thức đáng chú ý:
 ## Danh sách việc nên làm tiếp (gợi ý ưu tiên)
 
 **Trải nghiệm mobile**
-- [ ] Hướng dẫn chơi lần đầu (chạm vào người có bong bóng đỏ, giải thích KPI và quất oan). Hiện game chưa có hướng dẫn.
+- [ ] Hướng dẫn chơi lần đầu đầy đủ hơn. Hiện mới có dòng gợi ý dưới văn phòng (`hintText()` trong `ui.js`, hiện trong 8 roi đầu tiên); có thể thêm các bước giải thích KPI, đình công, cửa hàng.
 - [ ] Nhấn giữ vào nhân viên để xem thẻ thông tin (bản desktop có tooltip khi rê chuột, mobile chưa có).
 - [ ] Nút bật/tắt rung riêng (`platform.setHaptics` đã có, chỉ cần thêm nút và lưu vào `g`).
 - [ ] Thu nhập offline: khi mở lại app sau nhiều giờ, trả một phần thu nhập (ví dụ 20%, tối đa 2 giờ) kèm hộp thoại "Trong lúc sếp vắng mặt…". Cần lưu `savedAt` trong `save()`.
@@ -101,5 +102,6 @@ Một số công thức đáng chú ý:
 - [ ] Quất oan nhiều lần để thấy đình công.
 - [ ] Mobile: xoay màn hình, mở/đóng panel, nút Back Android ở từng hộp thoại, đưa app xuống nền 1 phút rồi mở lại (thời gian và tiền phải được bù).
 - [ ] Đóng hẳn app rồi mở lại: save còn nguyên. "Chơi lại từ đầu" xóa sạch, kể cả bản sao trong Preferences.
-- [ ] Màn hình có tai thỏ (iPhone ngang): HUD không bị che.
+- [ ] Màn hình có tai thỏ / Dynamic Island và thanh Home: thẻ thông tin và thanh tab không bị che.
+- [ ] Máy nhỏ (iPhone SE 320×568) và máy lớn: chữ không xuống dòng sai, văn phòng không quá nhỏ.
 - [ ] Bản PC (Electron) nếu vẫn phát hành: chế độ taskbar, kéo thả, click xuyên qua vẫn chạy.

@@ -12,16 +12,25 @@ import { TUNING, COFFEE } from './config.js';
 // Desk slots in hiring order (grid coords of the desk anchor).
 export const SLOTS = [[5, 2.4], [7.5, 2.4], [5, 6.1], [7.5, 6.1], [2.5, 2.4], [10, 2.4], [2.5, 6.1], [10, 6.1]];
 
+
 export function createView(canvas) {
   const ctx = canvas.getContext('2d');
   const v = {
     canvas, ctx, mode: 'office', scale: 1, W: ROOM_SIZE.w, H: ROOM_SIZE.h,
+    // Portrait camera (office mode): instead of the whole room, frame the part that matters
+    // (staff desks, assistant, coffee machine) and zoom in on it. Set by v.frame(g).
+    framed: false,
+    focus: null, // { x0, y0, x1, y1 } in room pixels
+    offX: 0, offY: 0,
     hits: [], // [{e, x0,y0,x1,y1, head}]
     hover: null,
   };
 
   v.resize = (cw, ch) => {
-    if (v.mode === 'office') {
+    v.offX = v.offY = 0;
+    if (v.mode === 'office' && v.framed && v.focus) {
+      Object.assign(v, cameraWindow(v.focus, cw, ch));
+    } else if (v.mode === 'office') {
       v.W = ROOM_SIZE.w; v.H = ROOM_SIZE.h;
     } else {
       v.W = Math.max(MINI_SLOT * 3, v.staffCount * MINI_SLOT + 8); v.H = MINI_H;
@@ -29,6 +38,7 @@ export function createView(canvas) {
     let s = Math.min(cw / v.W, ch / v.H);
     // Integer scales keep pixels square. Phones have little room and very dense screens,
     // so `fineScale` allows 5% steps there (uneven pixels are invisible at 3x DPR).
+    if (v.framed && v.mode === 'office') s = Math.min(s, MAX_SCALE);
     if (v.fineScale) s = Math.max(0.5, Math.floor(s * 20) / 20);
     else s = s >= 2 ? Math.floor(s) : Math.max(0.5, Math.floor(s * 4) / 4);
     v.scale = s;
@@ -39,14 +49,32 @@ export function createView(canvas) {
   };
   v.staffCount = 3;
 
-  /** Client coords → buffer pixels. */
+  /** Client coords → room/buffer pixels (accounts for the portrait camera). */
   v.toLocal = (clientX, clientY) => {
     const r = canvas.getBoundingClientRect();
-    return { x: (clientX - r.left) / v.scale, y: (clientY - r.top) / v.scale };
+    return { x: (clientX - r.left) / v.scale + v.offX, y: (clientY - r.top) / v.scale + v.offY };
   };
   v.toClient = (x, y) => {
     const r = canvas.getBoundingClientRect();
-    return { x: r.left + x * v.scale, y: r.top + y * v.scale };
+    return { x: r.left + (x - v.offX) * v.scale, y: r.top + (y - v.offY) * v.scale };
+  };
+
+  /**
+   * Portrait camera target: bounding box of everything the player interacts with. Returns a
+   * string key so the caller can tell when it changed (hire, assistant, coffee machine).
+   */
+  v.frame = (g) => {
+    const P = roomLayer(g.officeLevel || 0).P;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    const add = (ax0, ay0, ax1, ay1) => { x0 = Math.min(x0, ax0); y0 = Math.min(y0, ay0); x1 = Math.max(x1, ax1); y1 = Math.max(y1, ay1); };
+    g.staff.forEach((e, i) => {
+      const p = P(SLOTS[i][0], SLOTS[i][1]);
+      add(p.x + PERSON_OFFSET.x - 12, p.y - 50, p.x + 16, p.y + PERSON_OFFSET.y + 10); // desk, monitor, bubble, chair
+    });
+    if (g.assistantLevel >= 0) { const a = assistantPos(P); add(a.x - 12, a.y - 34, a.x + 12, a.y + 4); }
+    if (g.coffeeLevel >= 0) { const c = P(0.15, 0.35); add(c.x - 12, c.y - 34, c.x + 16, c.y + 6); }
+    v.focus = { x0, y0, x1, y1 };
+    return [x0, y0, x1, y1].map(Math.round).join(',');
   };
 
   /** Employee under a buffer-space point, allowing `slop` pixels of whip reach. */
@@ -71,7 +99,7 @@ export function createView(canvas) {
       ctx.fillStyle = v.mode === 'office' ? '#1a1626' : '#221c33';
       ctx.fillRect(0, 0, v.W, v.H);
     }
-    ctx.translate(sx, sy);
+    ctx.translate(sx - v.offX, sy - v.offY);
     v.hits = [];
     if (v.mode === 'office') renderOffice(g, whip, t); else renderMini(g, t);
     whip.drawFx(ctx);
@@ -154,6 +182,23 @@ export function createView(canvas) {
   }
 
   return v;
+}
+
+/**
+ * Grow the focus box (plus margins) to the screen's aspect ratio, keep it inside the room and
+ * not smaller than MIN_VIEW, and pick the scale. Wide teams → zoomed out, small teams → close up.
+ */
+const MIN_VIEW = 176;  // room pixels: never zoom in further than this width
+const MAX_SCALE = 2.4;
+function cameraWindow(f, cw, ch) {
+  const RW = ROOM_SIZE.w, RH = ROOM_SIZE.h, aspect = cw / ch;
+  let x0 = f.x0 - 10, x1 = f.x1 + 10, y0 = f.y0 - 8, y1 = f.y1 + 8;
+  let w = Math.max(x1 - x0, MIN_VIEW), h = y1 - y0;
+  if (w / h < aspect) w = h * aspect; else h = w / aspect;
+  w = Math.min(w, RW); h = Math.min(h, RH);
+  const cx = (f.x0 + f.x1) / 2, cy = (f.y0 + f.y1) / 2;
+  const ox = Math.max(0, Math.min(RW - w, cx - w / 2)), oy = Math.max(0, Math.min(RH - h, cy - h / 2));
+  return { W: Math.round(w), H: Math.round(h), offX: Math.round(ox), offY: Math.round(oy) };
 }
 
 export function coffeeReadyFrac(g) {

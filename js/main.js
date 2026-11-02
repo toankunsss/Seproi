@@ -188,8 +188,9 @@ function layout() {
 addEventListener('resize', layout);
 
 /**
- * Mobile: the HUD sits in two columns beside the canvas (landscape) or in rows above and
- * below it (portrait). The canvas takes whatever space the stage has left.
+ * Mobile: portrait (the normal phone layout) stacks the info card above the office and the
+ * controls below it; the landscape fallback puts them in side columns. The canvas takes
+ * whatever space the stage has left. Portrait also turns on the camera that frames the team.
  */
 let lastFit = '';
 function fitMobile(force = false) {
@@ -202,7 +203,8 @@ function fitMobile(force = false) {
   for (const el of root.hud.querySelectorAll('.side')) {
     if (row) w -= el.offsetWidth + gap; else h -= el.offsetHeight + gap;
   }
-  const sig = `${Math.round(w)}x${Math.round(h)}|${g.staff.length}`;
+  view.framed = !row;
+  const sig = `${Math.round(w)}x${Math.round(h)}|${row}|${view.frame(g)}`;
   if (!force && sig === lastFit) return;
   lastFit = sig;
   view.resize(Math.max(120, w), Math.max(80, h));

@@ -87,6 +87,7 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 
 - Canvas có độ phân giải gốc nhỏ (phòng: `ROOM_SIZE` 352×238; mini: `MINI_SLOT` × số nhân viên, cao 46), sau đó được phóng bằng CSS với `image-rendering: pixelated`.
 - `view.resize(cw, ch)` chọn tỷ lệ `scale`: desktop dùng số nguyên (hoặc bước 0,25 nếu < 2); mobile dùng bước 0,05 (`fineScale`).
+- **Camera màn dọc** (`view.framed`): thay vì vẽ cả căn phòng 352×238 (vốn nằm ngang), `view.frame(g)` tính khung bao quanh bàn của nhân viên, trợ lý và máy cà phê. `cameraWindow()` nới khung đó theo tỷ lệ màn hình rồi phóng to, tối đa `MAX_SCALE` = 2,4 và không hẹp hơn `MIN_VIEW` = 176 px. Đầu game ít người thì cảnh gần, tuyển thêm người thì camera tự lùi ra. Khi đó canvas chỉ chứa phần cửa sổ camera (`v.W`×`v.H`), lệch `v.offX`/`v.offY` so với tọa độ phòng; `toLocal`/`toClient` đã tính sẵn độ lệch này, nên mọi logic khác vẫn dùng tọa độ phòng như cũ.
 - Lớp phòng (tường, sàn) được vẽ một lần cho mỗi cấp văn phòng rồi cache lại (`roomLayer`). Nhân viên được sắp xếp theo chiều sâu isometric `gx + gy`.
 - Vị trí bàn: `SLOTS` trong `view.js`, theo thứ tự tuyển dụng. Muốn tăng số nhân viên tối đa thì phải thêm slot ở đây.
 - Vùng trúng (`view.hits`) được tính lại mỗi frame, đúng theo hình vừa vẽ.
@@ -97,12 +98,16 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 |---|---|---|---|
 | Phát hiện | có `window.taskbarShell` (preload) | `native`, hoặc `?shell=mobile` khi xem thử | `Capacitor.isNativePlatform()` |
 | Class CSS | `body.shell` | `html.mobile` | `html.native`, `html.native-android` / `html.native-ios` |
-| Khác biệt | chế độ mini trong suốt, click xuyên qua, kéo thả, khay hệ thống | HUD 2 cột, khóa chế độ office, chạm rộng hơn, rung | plugin Capacitor: App, Haptics, Preferences, StatusBar, SplashScreen |
+| Khác biệt | chế độ mini trong suốt, click xuyên qua, kéo thả, khay hệ thống | bố cục dọc + thanh tab, camera căn khung, khóa chế độ office, chạm rộng hơn, rung | plugin Capacitor: App, Haptics, Preferences, StatusBar, SplashScreen |
 
 
 ## Bố cục DOM
 
 - `#stage` chứa `canvas#game`, `#fx` (chữ bay), `#hud`.
 - Desktop: `#hud` phủ lên canvas, gồm `.bar.top` và `.bar.bottom`.
-- Mobile: `ui.js` dựng markup khác (`MOBILE_HUD`) gồm `.side.left` (chỉ số) và `.side.right` (nút). `#hud` dùng `display: contents` nên hai cột này trở thành phần tử flex của `#stage`. `fitMobile()` trong `main.js` đo hai cột rồi giao phần còn lại cho canvas.
+- Mobile: `ui.js` dựng markup khác (`MOBILE_HUD`) gồm hai nhóm:
+  - `.side.info`: thẻ thông tin dạng lưới (tiền · giờ / KPI / roi · combo · trợ lý).
+  - `.side.controls`: dòng gợi ý `.hint`, nút Cà phê, và `.tabbar` (4 tab có icon SVG pixel định nghĩa trong `ICON`).
+
+  `#hud` dùng `display: contents` nên hai nhóm này trở thành phần tử flex của `#stage`. Màn dọc xếp theo thứ tự thẻ thông tin → canvas → điều khiển. Màn ngang (chỉ là dự phòng) đưa hai nhóm thành hai cột bên cạnh canvas. `fitMobile()` trong `main.js` đo hai nhóm, giao phần còn lại cho canvas, và bật camera khi màn dọc. Bảng Quản lý (`#panel`) hiện thành bottom sheet trượt lên từ đáy.
 - Cả hai bố cục dùng chung `data-k` (ô hiển thị) và `data-a` (hành động), nên `ui.update()` không cần biết đang ở bố cục nào.

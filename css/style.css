@@ -244,9 +244,13 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 
 /* --- Mobile (touch) layout ------------------------------------------------------------------
    html.mobile is set by js/platform.js (the Capacitor app, or ?shell=mobile on the dev server).
-   Landscape: [stats column] [office canvas] [buttons column]. The app is locked to landscape;
-   the portrait rules are only a fallback (split screen / freeform windows on Android).
-   js/main.js fitMobile() measures the .side columns and gives the canvas the rest. */
+   Portrait is the app's orientation:
+     [info card: money · clock / KPI / whip · combo · assistant]
+     [office canvas]
+     [hint] [coffee button] [tab bar: Quản lý · Nội thất · Áp lực · Âm]
+   Landscape is only a fallback for tablets/foldables that ignore the orientation lock.
+   js/main.js fitMobile() measures the .side groups and gives the canvas the rest. */
+
 /* Safe areas (notch / camera cutout / home indicator). iOS provides env(); on Android,
    Capacitor 8 zeroes the WebView's native insets and injects --safe-area-inset-* instead. */
 .mobile {
@@ -257,54 +261,111 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 }
 .mobile body { -webkit-touch-callout: none; touch-action: manipulation; }
 .mobile #stage {
-  flex-direction: row; align-items: center; justify-content: center; gap: 8px;
+  flex-direction: column; align-items: stretch; justify-content: space-between; gap: 10px;
   padding:
-    max(6px, var(--sa-top)) max(8px, var(--sa-right))
-    max(6px, var(--sa-bottom)) max(8px, var(--sa-left));
+    max(10px, var(--sa-top)) max(10px, var(--sa-right))
+    max(10px, var(--sa-bottom)) max(10px, var(--sa-left));
 }
 .mobile #hud { display: contents; }
-.mobile #game { order: 1; flex: none; margin: 0; cursor: default; }
-.mobile .side {
-  display: flex; flex-direction: column; justify-content: center; gap: 8px;
-  flex: none; width: clamp(108px, 15vw, 156px); align-self: stretch; pointer-events: none;
-}
-.mobile .side.left { order: 0; }
-.mobile .side.right { order: 2; }
-.mobile .side .px-btn {
-  width: 100%; min-height: 44px; margin: 0; padding: 9px 6px 10px; font-size: 20px;
-  touch-action: manipulation; white-space: normal;
-}
-.mobile .side .px-btn.coffee { min-height: 58px; font-size: 21px; }
-.mobile .stat { flex-wrap: wrap; gap: 0 6px; padding: 3px 7px; }
-.mobile .stat b { font-size: 21px; }
-.mobile .stat.money small { flex-basis: 100%; font-size: 17px; }
-.mobile .stat.kpi .meter { flex: 1; width: auto; min-width: 24px; }
-.mobile .whipname { text-align: center; font-size: 18px; }
-.mobile .combo { text-align: center; font-size: 12px; line-height: 1.4; }
-.mobile .assist { text-align: center; font-size: 17px; background: rgba(15, 12, 24, 0.75); padding: 2px 6px; box-shadow: 0 0 0 3px var(--edge); }
+.mobile #game { order: 1; flex: none; align-self: center; margin: 0; cursor: default; }
+.mobile .side { flex: none; pointer-events: none; }
+.mobile .side.info { order: 0; }
+.mobile .side.controls { order: 2; display: flex; flex-direction: column; gap: 8px; }
 
-.mobile #panel {
-  top: max(8px, var(--sa-top)); right: max(8px, var(--sa-right));
-  bottom: max(8px, var(--sa-bottom)); max-height: none;
-  width: min(440px, calc(100vw - 16px)); overscroll-behavior: contain;
+/* Info card */
+.mobile .side.info {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 8px;
+  grid-template-areas: "money money day" "kpi kpi kpi" "whip combo assist";
+  background: var(--panel); box-shadow: 0 0 0 3px var(--edge), 0 6px 0 3px rgba(0, 0, 0, 0.35);
 }
-.mobile .panel { min-height: 100%; }
+.mobile .stat { padding: 4px 8px; gap: 0 6px; }
+.mobile .stat b { font-size: 22px; }
+.mobile .stat.money { grid-area: money; flex-wrap: wrap; align-items: baseline; }
+.mobile .stat.money .coin { align-self: center; width: 16px; height: 16px; }
+.mobile .stat.money b { font-size: 30px; }
+.mobile .stat.money small { font-size: 19px; }
+.mobile .stat.day { grid-area: day; flex-direction: column; justify-content: center; align-items: flex-end; gap: 0; line-height: 1; }
+.mobile .stat.day span { font-size: 18px; }
+.mobile .stat.day b { font-size: 26px; }
+.mobile .stat.kpi { grid-area: kpi; }
+.mobile .stat.kpi .meter { flex: 1; width: auto; height: 12px; }
+.mobile .whipname, .mobile .assist, .mobile .combo { background: none; box-shadow: none; padding: 0 2px; align-self: center; }
+.mobile .whipname { grid-area: whip; font-size: 19px; }
+.mobile .combo { grid-area: combo; display: block; text-align: center; font-size: 11px; line-height: 1.4; }
+.mobile .assist { grid-area: assist; display: block; text-align: right; font-size: 18px; color: #8fe8ff; white-space: nowrap; }
+.mobile .combo:empty, .mobile .assist:empty { display: block; visibility: hidden; }
+
+/* Controls: hint, coffee, tab bar */
+.mobile .hint {
+  min-height: 22px; line-height: 22px; text-align: center; font-size: 20px; color: var(--gold);
+  text-shadow: 2px 2px 0 #000; animation: hint-pulse 1.4s ease-in-out infinite;
+}
+.mobile .hint:empty { visibility: hidden; animation: none; }
+@keyframes hint-pulse { 50% { opacity: 0.55; } }
+.mobile .side .px-btn.coffee { width: 100%; min-height: 54px; margin: 0; font-size: 24px; touch-action: manipulation; }
+.mobile .tabbar {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px;
+  background: var(--panel); box-shadow: 0 0 0 3px var(--edge);
+}
+.mobile .tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 60px; padding: 6px 2px 5px; border: 0; margin: 0; cursor: pointer; touch-action: manipulation;
+  background: var(--panel-2); color: var(--ink); font: 18px/1 var(--font); pointer-events: auto;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.1);
+}
+.mobile .tab:active { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.35); }
+.mobile .tab svg { width: 26px; height: 26px; fill: currentColor; }
+.mobile .tab span { color: var(--ink); white-space: nowrap; }
+.mobile .tab svg .cut { fill: var(--panel-2); }
+.mobile .tab[data-a="shop"] { color: var(--gold); }
+.mobile .tab[data-a="decor"] { color: #c99bff; }
+.mobile .tab[data-a="board"] { color: #ff7a7a; }
+.mobile .tab.sound { color: #8fe8ff; }
+.mobile .tab .off, .mobile .muted .tab .on { display: none; }
+.mobile .muted .tab .off { display: inline; }
+.mobile .muted .tab.sound { color: var(--muted); }
+
+/* Quản lý: bottom sheet */
+.mobile #panel {
+  top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 78%;
+  overflow: auto; overscroll-behavior: contain; animation: sheet-up 0.18s ease-out;
+}
+.mobile .panel {
+  padding: 12px max(14px, var(--sa-right)) max(16px, var(--sa-bottom)) max(14px, var(--sa-left));
+  box-shadow: 0 -4px 0 0 var(--edge), 0 -12px 30px rgba(0, 0, 0, 0.55);
+}
+@keyframes sheet-up { from { transform: translateY(60px); opacity: 0; } }
 .mobile .item .buy, .mobile .decor-row .buy { min-height: 44px; }
 .mobile .panel-head .px-btn.icon { width: 44px; height: 40px; }
+
+/* Dialogs */
 .mobile #modal {
   padding:
-    max(8px, var(--sa-top)) max(12px, var(--sa-right))
-    max(8px, var(--sa-bottom)) max(12px, var(--sa-left));
+    max(10px, var(--sa-top)) max(10px, var(--sa-right))
+    max(10px, var(--sa-bottom)) max(10px, var(--sa-left));
 }
-.mobile .card { max-height: 100%; overscroll-behavior: contain; }
+.mobile .card { max-height: 100%; padding: 14px 14px; overscroll-behavior: contain; }
 .mobile .card .px-btn.big { min-height: 48px; }
-.mobile .nick-btn { min-height: 36px; }
+.mobile .board td { padding: 4px 2px; }
+.mobile .board small { display: block; line-height: 1; }
+.mobile .board .meter.small { width: 46px; }
+.mobile .nick-btn { min-height: 36px; font-size: 17px; }
 
-@media (orientation: portrait) {
-  .mobile #stage { flex-direction: column; }
-  .mobile .side { flex-direction: row; flex-wrap: wrap; width: 100%; align-self: auto; gap: 6px; }
-  .mobile .side > * { flex: 1 1 auto; }
-  .mobile .side .px-btn { width: auto; min-width: 72px; }
-  .mobile .side .px-btn.icon { flex: 0 0 48px; min-width: 48px; }
-  .mobile .whipname, .mobile .assist, .mobile .combo { flex: 0 1 auto; align-self: center; }
+/* Landscape fallback: the two groups become side columns. */
+@media (orientation: landscape) {
+  .mobile #stage { flex-direction: row; align-items: center; justify-content: center; }
+  .mobile .side { align-self: stretch; width: clamp(150px, 20vw, 210px); }
+  .mobile .side.info {
+    align-self: center; grid-template-columns: 1fr;
+    grid-template-areas: "money" "day" "kpi" "whip" "combo" "assist";
+  }
+  .mobile .stat.day { flex-direction: row; justify-content: space-between; align-items: baseline; }
+  .mobile .whipname, .mobile .assist, .mobile .combo { text-align: center; }
+  .mobile .side.controls { justify-content: center; }
+  .mobile .tabbar { grid-template-columns: 1fr 1fr; }
+  .mobile .hint { display: none; }
+  .mobile #panel {
+    left: auto; top: max(8px, var(--sa-top)); right: max(8px, var(--sa-right));
+    bottom: max(8px, var(--sa-bottom)); width: min(440px, calc(100vw - 16px)); max-height: none;
+  }
 }

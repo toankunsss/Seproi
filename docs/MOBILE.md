@@ -20,13 +20,13 @@ mobile/
 | Hạng mục | Trên mobile |
 |---|---|
 | Chế độ chơi | Luôn ở "Văn phòng". Chế độ taskbar mini và "Ghim nổi" (PiP) bị ẩn. |
-| Bố cục | Màn ngang: cột chỉ số bên trái, canvas ở giữa, cột nút lớn bên phải. (Có sẵn bố cục dọc dự phòng cho chế độ chia đôi màn hình trên Android.) |
-| Tỷ lệ phóng | Phóng theo bước 5% (`view.fineScale`) để lấp đầy màn hình. Desktop vẫn phóng theo số nguyên. |
+| Bố cục | **Màn dọc.** Trên cùng là thẻ thông tin (tiền + thu nhập/giây, ngày + giờ, KPI, roi đang dùng, combo, trợ lý). Giữa là văn phòng. Dưới là dòng gợi ý cho người mới, nút lớn "Cà phê sốc", và thanh tab 4 nút có icon (Quản lý · Nội thất · Áp lực · Âm). Bảng Quản lý trượt lên từ đáy (bottom sheet). |
+| Camera | Văn phòng isometric vốn nằm ngang, nên trên màn dọc camera tự căn khung vào đội nhân viên (`view.frame`). Đầu game ít người thì cảnh phóng to tới 2,4 lần, tuyển thêm người thì camera lùi ra. Phóng theo bước 5% (`view.fineScale`). |
 | Cảm ứng | Chạm để quất. Vùng trúng rộng thêm `TUNING.touchSlop` (7 px) vì ngón tay kém chính xác hơn chuột. Nút cao tối thiểu 44 px. |
 | Rung | Plugin Haptics: quất trúng (combo ≥ 3 thì rung mạnh), quất oan, đình công, mua đồ, cà phê. |
 | Tai thỏ / viền | Có padding theo vùng an toàn: iOS dùng `env(safe-area-inset-*)`, Android dùng biến `--safe-area-inset-*` do Capacitor 8 bơm vào. Cả hai được gộp vào `--sa-*` trong `style.css`. |
 | Toàn màn hình | Android: chế độ immersive (ẩn status bar và thanh điều hướng, vuốt từ mép để hiện tạm). iOS: ẩn status bar. |
-| Hướng màn hình | Khóa ngang (`sensorLandscape` trên Android, Landscape Left/Right trên iOS). Riêng Android 16 trở lên, trên máy tính bảng và máy gập, hệ điều hành bỏ qua khóa xoay; khi đó game tự chuyển sang bố cục dọc dự phòng. |
+| Hướng màn hình | Khóa dọc (`portrait` trên Android, Portrait trên iOS). Riêng Android 16 trở lên, trên máy tính bảng và máy gập, hệ điều hành bỏ qua khóa xoay; khi máy nằm ngang, game tự chuyển sang bố cục ngang dự phòng (hai nhóm điều khiển thành hai cột bên cạnh văn phòng). |
 | Nút Back Android | Đóng hộp thoại hoặc panel đang mở. Nếu không có gì mở thì đưa app xuống nền (không thoát). |
 | Ra/vào app | Lưu game khi app xuống nền. Khi quay lại, mô phỏng bù tối đa `TUNING.awayCap` (300 giây) thời gian đã vắng. |
 | Lưu game | Vẫn dùng `localStorage`, có thêm bản sao trong **Capacitor Preferences** (SharedPreferences / UserDefaults). Nếu hệ điều hành xóa dữ liệu WebView, game tự khôi phục từ bản sao. |
@@ -61,7 +61,7 @@ Xem thử nhanh trên máy tính khi đang sửa code (không cần build; khôn
 node ../serve.cjs
 ```
 
-Mở http://localhost:5566/?shell=mobile và bật chế độ giả lập thiết bị trong Chrome DevTools (Ctrl+Shift+M), chọn màn hình ngang.
+Mở http://localhost:5566/?shell=mobile và bật chế độ giả lập thiết bị trong Chrome DevTools (Ctrl+Shift+M), chọn một điện thoại (màn dọc).
 
 ### Android
 

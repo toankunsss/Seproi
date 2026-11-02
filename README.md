@@ -11,7 +11,7 @@ Game mobile idle văn phòng pixel-art cho **Android và iOS**. Bạn là sếp;
 | `desktop/` | bản PC phụ (Electron, thanh nhỏ nằm trên taskbar Windows/macOS), dùng chung mã nguồn game |
 | `docs/` | tài liệu phát triển |
 
-App mobile đóng gói mã nguồn game vào trong app native. Game chạy offline hoàn toàn, có rung (haptics), nút Back Android, toàn màn hình, khóa màn hình ngang, và có bản sao lưu save trong bộ nhớ native.
+App mobile đóng gói mã nguồn game vào trong app native. Game chạy offline hoàn toàn, có rung (haptics), nút Back Android, toàn màn hình, chơi màn hình dọc (khóa xoay), và có bản sao lưu save trong bộ nhớ native.
 
 ## Build app
 

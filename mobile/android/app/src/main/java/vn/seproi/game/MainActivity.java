@@ -10,7 +10,7 @@ import com.getcapacitor.BridgeActivity;
 
 /**
  * Sếp Roi runs full screen (immersive): status bar and navigation bar are hidden and come
- * back temporarily with a swipe from the screen edge. Orientation is locked to landscape in
+ * back temporarily with a swipe from the screen edge. Orientation is locked to portrait in
  * AndroidManifest.xml. All game logic lives in the web layer (www/ → js/).
  */
 public class MainActivity extends BridgeActivity {
