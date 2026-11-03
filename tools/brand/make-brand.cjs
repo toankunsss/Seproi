@@ -93,7 +93,10 @@ function write(rel, data) {
   write('desktop/build/icon.png', render(512));
   // mobile (@capacitor/assets sources)
   write('mobile/assets/icon-only.png', render(1024));
-  write('mobile/assets/icon-foreground.png', render(1024, 640, { background: false })); // adaptive icon safe zone (66%)
+  write('mobile/assets/icon-foreground.png', render(1024, 900, { background: false, at: [62, 124] }));
+  // ^ adaptive icon: the Android project wraps this layer in a 16.7% inset, so the whole image is
+  //   what shows inside the launcher's mask. The boss sits low so his shoulders run off the
+  //   bottom of a round mask instead of floating, and the whip tip stays inside the circle.
   write('mobile/assets/icon-background.png', render(1024, 1024, { figure: false })); // backdrop only
   write('mobile/assets/splash.png', render(2732, 640, { bg: BG }));
   write('mobile/assets/splash-dark.png', render(2732, 640, { bg: BG }));
