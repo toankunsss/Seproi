@@ -425,4 +425,20 @@ export default {
   "Quyền riêng tư": "Privacy",
   // ads
   "Chưa có quảng cáo, thử lại sau ít phút.": "No ad available right now, try again in a few minutes.",
+  // tutorial + day banner
+  "Trợ lý Hạnh": "Assistant Hanh",
+  "Bỏ qua": "Skip",
+  "Chào Sếp! Đây là công ty khởi nghiệp của Sếp: 3 nhân viên, quỹ 0 đồng. Việc của Sếp: giữ cho mọi người làm việc, kiếm tiền và mở rộng công ty!": "Welcome, Boss! This is your brand-new startup: 3 employees and 0 đ in the bank. Your job: keep everyone working, make money and grow the company!",
+  "Bắt đầu thôi": "Let's go",
+  "Ơ kìa! {name} đang lén chơi game. Ai có bong bóng trên đầu là đang lười. Chạm vào người đó để quất!": "Look! {name} is secretly playing games. Anyone with a speech bubble is slacking. Tap them to crack the whip!",
+  "Tuyệt vời! Bắt quả tang được thưởng tiền, quất liên tiếp nhiều người thì combo càng cao. Nhưng nhớ: quất oan người đang làm sẽ bị phạt, họ tức giận và có thể đình công.": "Great! Every slacker you catch pays a bonus, and catching several in a row builds a combo. But careful: whip someone who is working and you pay a fine, they get angry and may go on strike.",
+  "Đã hiểu": "Got it",
+  "Nhà đầu tư vừa rót {m} đ cho công ty! Mình đi nâng cấp cây roi nhé. Mở mục Quản lý.": "An investor just put {m} đ into the company! Let's upgrade your whip. Open Manage.",
+  "Mua {w}: thưởng bắt quả tang cao hơn, quất trúng dễ hơn.": "Buy the {w}: bigger catch bonus and easier hits.",
+  "Roi mới đây rồi! Giờ nhận một dự án: nhân viên làm việc sẽ đẩy tiến độ, xong trước hạn được thưởng tiền và kim cương. Mở mục Dự án.": "Nice whip! Now take a project: working staff push it forward, and finishing before the deadline pays money and diamonds. Open Projects.",
+  "Chọn một hợp đồng và bấm Nhận. Để ý số ngày và mức phạt nếu trễ hạn!": "Pick a contract and tap Accept. Mind the days and the fine if you're late!",
+  "Xong! 18:00 tan ca sẽ có báo cáo cuối ngày. Thỉnh thoảng thanh tra sẽ ghé bất ngờ đấy. Đây là quà ra mắt Sếp mới: +{n} kim cương. Chúc Sếp thành công!": "All set! At 18:00 you get the end-of-day report, and inspectors may drop by without warning. Here's a welcome gift for the new boss: +{n} diamonds. Good luck!",
+  "Vào làm việc!": "Get to work!",
+  "NGÀY {n}": "DAY {n}",
+  "09:00 · Vào việc thôi!": "09:00 · Time to work!",
 };

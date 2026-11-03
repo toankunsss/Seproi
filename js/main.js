@@ -18,6 +18,7 @@ import { pipSupported, openPip } from './pip.js';
 import * as audio from './audio.js';
 import * as music from './music.js';
 import { showTitle } from './title.js';
+import { createTutorial, needsTutorial } from './tutorial.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 
 const $ = (id) => document.getElementById(id);
@@ -46,6 +47,7 @@ let pipWin = null;
 let paused = false;
 let adOpen = false; // the simulation waits while a rewarded ad is on screen
 let rewardOpen = false; // …and while the project reward card waits to be collected
+let tutorial = null;     // first-time tutorial (tutorial.js) while it runs
 let userPaused = false; // phone: frozen while away / until the player taps "Tiếp tục"
 let resetting = false;
 // Phone: the title screen is up and the office waits behind it (?title=0 skips it, for tests).
@@ -478,6 +480,22 @@ function onEvent(type, e) {
   }
 }
 
+/** Phone, entering the office: the first-time tutorial for a new game, else the day banner. */
+function startDay() {
+  if (mobile && needsTutorial(g) && params.get('tutorial') !== '0') {
+    tutorial = createTutorial({
+      g, view,
+      onSave: () => save(g),
+      onGems: (n) => { addGems(g, n); audio.buy(); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); save(g); },
+      slackFor: (e, kind) => Object.assign(e, { state: 'slack', slack: kind, t: 0, dur: 999 }),
+    });
+    tutorial.start();
+  } else {
+    if (g.tutorial === undefined) needsTutorial(g);
+    ui.dayBanner(g.day);
+  }
+}
+
 /** Show the reward card for a finished project (the taskbar strip has no room: pay at once). */
 function showProjectReward() {
   if (!g.projects.reward) return;
@@ -536,6 +554,7 @@ function endDay() {
     for (const e of g.staff) { e.energy = 100; e.stress = Math.max(0, e.stress - 50); e.state = 'work'; e.slack = null; e.t = 0; }
     paused = false;
     save(g);
+    if (mobile) ui.dayBanner(g.day);
   };
   // In the taskbar bar there is no room for a report card: roll straight into the next day.
   if (g.mode === 'mini') {
@@ -562,12 +581,12 @@ function frame(now) {
 
 function step(dt) {
   t += dt;
-  if (!paused && !adOpen && !rewardOpen && !userPaused && !onTitle) simUpdate(g, dt, onEvent);
+  if (!paused && !adOpen && !rewardOpen && !userPaused && !onTitle && !(tutorial && tutorial.blocking)) simUpdate(g, dt, onEvent);
   whip.update(dt);
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
   view.render(g, whip, t);
   uiAcc += dt;
-  if (uiAcc > 0.1) { uiAcc = 0; ui.update(); fitShell(); fitMobile(); }
+  if (uiAcc > 0.1) { uiAcc = 0; ui.update(); fitShell(); fitMobile(); if (tutorial) { tutorial.update(); if (!tutorial.active) tutorial = null; } }
 }
 
 function schedule() {
@@ -670,7 +689,8 @@ if (onTitle) {
       last = performance.now();
       music.play('office');
       showProjectReward(); // a reward left uncollected last time
+      startDay();
     },
   });
-} else { music.play('office'); showProjectReward(); }
+} else { music.play('office'); showProjectReward(); if (mobile) startDay(); }
 window.__game = { g, view, whip, act, ui, projects }; // debugging + automated play tests (console only)

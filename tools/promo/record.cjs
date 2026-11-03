@@ -14,7 +14,7 @@ const path = require('path');
 
 const OUT = process.argv[2] || path.join(__dirname, 'frames');
 const FPS = 30, STEP = 1000 / FPS;
-const URL = process.env.PROMO_URL || 'http://localhost:5566/?shell=mobile';
+const URL = process.env.PROMO_URL || 'http://localhost:5566/?shell=mobile&tutorial=0';
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });

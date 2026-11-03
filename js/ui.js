@@ -294,6 +294,15 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       };
       requestAnimationFrame(tick);
     },
+    /** Big "DAY N" banner sliding over the office at the start of a work day. */
+    dayBanner(day) {
+      document.querySelector('.day-banner')?.remove();
+      const el = document.createElement('div');
+      el.className = 'day-banner';
+      el.innerHTML = `<b>${t('NGÀY {n}', { n: day })}</b><span>${t('09:00 · Vào việc thôi!')}</span>`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2200);
+    },
     hideProjectReward() { const el = document.getElementById('reward'); if (el) el.hidden = true; },
   };
 

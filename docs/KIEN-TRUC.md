@@ -37,6 +37,7 @@ js/
 ├── screens.js    hộp thoại meta: CV ứng viên, Dự án, Cửa hàng 💎, Thành tựu, menu Thêm (chọn ngôn ngữ)
 ├── audio.js      hiệu ứng âm thanh tổng hợp (whip, ouch, coin, bell…)
 ├── music.js      nhạc nền 8-bit tự tổng hợp (bộ sequencer nhỏ; bài 'title' và 'office'), chỉ bật trên điện thoại
+├── tutorial.js   hướng dẫn lần đầu (điện thoại, game mới): trợ lý chỉ từng bước, vùng sáng + ngón tay, chặn chạm ngoài vùng; g.tutorial (99 = xong)
 ├── title.js      màn hình tiêu đề (điện thoại): nền thành phố đêm, logo, nút Bắt đầu/Chơi tiếp, âm thanh/nhạc/ngôn ngữ
 ├── brand.js      logo + chữ "WHIP BOSS" pixel; nguồn của icon app, splash, ảnh Google Play (tools/brand/make-brand.cjs)
 └── pip.js        Document Picture-in-Picture (ghim thanh mini nổi trên Chrome/Edge)

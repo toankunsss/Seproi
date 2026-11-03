@@ -48,6 +48,7 @@ export function newGame() {
     hotBonus: 0,             // seconds of x2 income left (premium boost)
     ads: { day: 0, gems: 0 },// rewarded-ad counters for daily caps
     muted: false, musicOff: false, mode: 'office',
+    tutorial: 0,             // first-time tutorial step (tutorial.js; 99 = done)
   };
 }
 
@@ -66,6 +67,8 @@ export function load() {
     g.records = { ...freshRecords(), ...(s.records || {}) };
     g.records.caught = { ...freshRecords().caught, ...(g.records.caught || {}) };
     g.projects = { ...newGame().projects, ...(s.projects || {}) };
+    // saves from before the tutorial existed: only brand-new games get it
+    if (s.tutorial === undefined) g.tutorial = g.day > 1 || g.records.totalWhips > 0 ? 99 : 0;
     g.ads = { ...newGame().ads, ...(s.ads || {}) };
     g.today = { ...freshDay(), ...(s.today || {}) };
     for (const k of ['candidates', 'claimed', 'perks']) if (!Array.isArray(g[k])) g[k] = [];

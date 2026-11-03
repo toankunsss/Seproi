@@ -1,7 +1,7 @@
 {
   "name": "sep-roi-desktop",
   "productName": "Whip Boss",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Whip Boss — taskbar idle game",
   "author": "Whip Boss",
   "main": "main.cjs",

@@ -681,3 +681,44 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 }
 .px-btn.link { text-align: center; text-decoration: none; font-size: 18px; color: var(--muted); background: transparent; box-shadow: none; }
 .title-foot a { color: #b4a6e8; }
+
+/* --- First-time tutorial (tutorial.js) --------------------------------------------------- */
+#tut { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+#tut[hidden] { display: none; }
+#tut.full { background: rgba(8, 6, 14, 0.55); }
+.tut-block { position: fixed; display: none; pointer-events: auto; }
+.tut-hole {
+  position: fixed; display: none; border-radius: 6px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(8, 6, 14, 0.62); outline: 3px solid var(--gold); outline-offset: 0;
+  animation: tut-ring 1s steps(2) infinite;
+}
+@keyframes tut-ring { 50% { outline-color: #fff3a0; outline-offset: 3px; } }
+.tut-finger { position: fixed; display: none; width: 44px; height: 48px; margin: 6px 0 0 -6px; pointer-events: none; animation: tut-tap .8s steps(2) infinite; filter: drop-shadow(2px 3px 0 rgba(0,0,0,.5)); }
+@keyframes tut-tap { 50% { transform: translate(-6px, -8px); } }
+.tut-card {
+  position: fixed; left: 50%; bottom: calc(var(--sa-bottom, 0px) + 96px); transform: translateX(-50%);
+  width: min(380px, calc(100vw - 24px)); display: flex; gap: 10px; align-items: flex-start; padding: 12px;
+  background: #fff7e8; color: #2a1d14; pointer-events: auto;
+  box-shadow: 0 0 0 4px var(--edge), 0 0 0 7px var(--gold), 0 0 0 10px var(--edge), 6px 10px 0 8px rgba(0,0,0,.4);
+}
+.tut-card.top { bottom: auto; top: calc(var(--sa-top, 0px) + 16px); }
+.tut-card.tut-pop { animation: reward-pop .3s steps(4); }
+.tut-face { width: 60px; height: 60px; flex: none; image-rendering: pixelated; background: #2f3a5a; box-shadow: 0 0 0 3px var(--edge); }
+.tut-body { flex: 1; min-width: 0; }
+.tut-name { font-size: 18px; color: #8a4a20; }
+.tut-text { font-size: 21px; line-height: 1.1; margin: 2px 0 8px; }
+.tut-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.tut-actions .px-btn { margin: 3px; font-size: 19px; }
+.tut-skip { background: #c8bfae; color: #2a1d14; }
+.tut-next { background: #2f8a4a; color: #fff; }
+.tut-next[hidden] { display: none; }
+
+/* "DAY N" banner at the start of a work day */
+.day-banner {
+  position: fixed; left: 0; right: 0; top: 34%; z-index: 25; pointer-events: none; text-align: center;
+  padding: 10px 0 12px; background: rgba(15, 12, 24, .88); box-shadow: 0 4px 0 var(--gold), 0 -4px 0 var(--gold);
+  animation: day-in 2.2s steps(10) forwards;
+}
+.day-banner b { display: block; font-family: var(--font-big); font-weight: normal; font-size: 30px; color: var(--gold); text-shadow: 3px 3px 0 var(--edge); }
+.day-banner span { display: block; margin-top: 8px; font-size: 22px; color: #e8deff; }
+@keyframes day-in { 0% { transform: translateX(-100%); } 18%, 82% { transform: translateX(0); } 100% { transform: translateX(100%); } }
