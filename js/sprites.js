@@ -533,6 +533,34 @@ export function drawBubble(ctx, x, y, kind, t, urgent) {
   }
 }
 
+/** Motivation hint centred above the head at (x, y): ♥ when keen (≥75), rain cloud when fed up (≤25).
+ *  Each shape gets a dark 1px outline so it reads over the desk, monitor or floor. */
+export function drawMood(ctx, x, y, motiv, t) {
+  const bob = Math.floor(t * 2) % 2;
+  let shape = null;
+  if (motiv >= 75) {
+    const y0 = y - bob;
+    shape = (dx, dy, c, hi) => {
+      rect(ctx, x - 3 + dx, y0 + dy, 2, 1, c); rect(ctx, x + 1 + dx, y0 + dy, 2, 1, c);
+      rect(ctx, x - 4 + dx, y0 + 1 + dy, 8, 2, c); rect(ctx, x - 3 + dx, y0 + 3 + dy, 6, 1, c); rect(ctx, x - 2 + dx, y0 + 4 + dy, 4, 1, c);
+      rect(ctx, x - 1 + dx, y0 + 5 + dy, 2, 1, c);
+      if (hi) px(ctx, x - 3, y0 + 1, hi);
+    };
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) shape(dx, dy, '#1d1826');
+    shape(0, 0, '#ff5a7a', '#ffd0dc');
+  } else if (motiv <= 25) {
+    shape = (dx, dy, c, light) => {
+      rect(ctx, x - 4 + dx, y + dy, 8, 3, c); rect(ctx, x - 2 + dx, y - 1 + dy, 4, 1, c); rect(ctx, x - 5 + dx, y + 1 + dy, 10, 2, c);
+      if (light) rect(ctx, x - 2, y - 1, 4, 1, light);
+    };
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) shape(dx, dy, '#1d1826');
+    shape(0, 0, '#8a86a6', '#b4b0cc');
+    // rain drops
+    rect(ctx, x - 3, y + 4 + bob, 1, 2, '#1d1826'); px(ctx, x - 3, y + 4 + bob, '#7fb0ff');
+    rect(ctx, x + 2, y + 5 - bob, 1, 2, '#1d1826'); px(ctx, x + 2, y + 5 - bob, '#7fb0ff');
+  }
+}
+
 /** Little "z" glyphs drifting up from a sleeper. */
 export function drawZzz(ctx, x, y, t) {
   for (let i = 0; i < 3; i++) {

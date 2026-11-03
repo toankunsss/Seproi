@@ -143,7 +143,7 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 | Dự án (nghiệp vụ) | `PROJECT_TYPES`, `CLIENTS`, `WORK_RATE` | `projects.js` + `sim.js` (`addWork`) | `screens.js → projectsScreen`, thanh dự án trên HUD | `projects { offers, offersDay, active, done, failed }` |
 | Thành tựu | `ACHIEVEMENTS` (mỗi cái có `stat(g)`, `goal`, `gems`) | `achievements.js` | `screens.js → achScreen` | `claimed`, các bộ đếm trong `records` |
 | Kim cương 💎 | `GEMS_START`, `PREMIUM_ITEMS` | `premium.js`, `sim.js` (`hasPerk`) | `screens.js → vipScreen` | `gems`, `perks`, `hotBonus` |
-| Khen thưởng & sa thải | `MOTIVATION`, `STAFF_ACTIONS` | `staff.js`, `sim.js` (`motivFactor`) | `screens.js → staffScreen`, ♥/mây trong `portrait.js` | `staff[].motiv`, `staff[].wage`, `staff[].praisedDay`, `partyDay` |
+| Khen thưởng & sa thải | `MOTIVATION`, `STAFF_ACTIONS` | `staff.js`, `sim.js` (`motivFactor`) | `screens.js → staffScreen`, ♥/mây trên đầu nhân viên (`sprites.js → drawMood`, gọi từ `view.js`) | `staff[].motiv`, `staff[].wage`, `staff[].praisedDay`, `partyDay` |
 | Ghé thăm bất ngờ | `VISITS` | `events.js` (gọi từ `sim.js`), `main.js → showVisitResult` | nhân vật `drawVisitor` (`sprites.js`), băng `.visitbar` trên HUD | `visit`, `visitPlan`, `visitDay` |
 | Quảng cáo có thưởng | `ADS` | `ads.js`, `main.js → watchAd()` | các nút ▶ màu xanh | `ads { day, gems }`, `records.adsWatched` |
 

@@ -4,7 +4,7 @@
 //   mini     — a thin taskbar strip of workstations (desktop shell)
 import {
   roomLayer, ROOM_SIZE, drawClockHands, drawDesk, drawMonitor, drawKeyboard, renderScreen,
-  drawEmployee, drawBubble, drawZzz, drawCoffeeMachine, drawAssistant, drawOfficeDecor, assistantPos, drawVisitor,
+  drawEmployee, drawBubble, drawMood, drawZzz, drawCoffeeMachine, drawAssistant, drawOfficeDecor, assistantPos, drawVisitor,
   PERSON_OFFSET, MINI_SLOT, MINI_H, drawMiniStation,
 } from './sprites.js';
 import { iso, rect } from './pixel.js';
@@ -158,6 +158,9 @@ export function createView(canvas) {
       if (e.slack === 'sleep') drawZzz(ctx, head.x, head.y, t);
       const urgent = e.t > e.dur * 0.5;
       drawBubble(ctx, head.x + (mini ? 8 : 0), head.y + (mini ? 14 : 0), e.slack, t, urgent);
+    } else if (!mini) {
+      // mood above the head (the slacking bubble takes that spot while it shows)
+      drawMood(ctx, head.x, head.y - 10, e.motiv ?? 50, t);
     }
     if (e.state === 'angry') {
       const k = (t * 3) % 1;

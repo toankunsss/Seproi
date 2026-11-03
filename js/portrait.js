@@ -230,22 +230,7 @@ function drawCubicle(ctx, x, y, e, t) {
   rect(ctx, x + 26, y + 23, 14, 3, '#d8d4e0');
   if (e.state === 'work' && Math.floor(t * 10 + e.id) % 2) px(ctx, x + 28 + Math.floor((t * 23 + e.id * 5) % 10), y + 24, '#8a86a0');
   const head = drawEmployee(ctx, x + 15, y + CELL.h - 4, e, t);
-  drawMood(ctx, x + 40, y + 42, e.motiv ?? 50, t);
   return head;
-}
-
-/** Motivation hint on the floor next to the chair: ♥ when keen (≥75), rain cloud when fed up (≤25). */
-function drawMood(ctx, x, y, motiv, t) {
-  const bob = Math.floor(t * 2) % 2;
-  if (motiv >= 75) {
-    const c = '#ff5a7a', y0 = y - bob;
-    rect(ctx, x - 3, y0, 2, 1, c); rect(ctx, x + 1, y0, 2, 1, c);
-    rect(ctx, x - 4, y0 + 1, 8, 2, c); rect(ctx, x - 3, y0 + 3, 6, 1, c); rect(ctx, x - 2, y0 + 4, 4, 1, c); px(ctx, x - 1, y0 + 5, c); px(ctx, x, y0 + 5, c);
-    px(ctx, x - 3, y0 + 1, '#ffd0dc');
-  } else if (motiv <= 25) {
-    rect(ctx, x - 4, y, 8, 3, '#6a6680'); rect(ctx, x - 2, y - 1, 4, 1, '#6a6680'); rect(ctx, x - 5, y + 1, 10, 2, '#5a5670');
-    px(ctx, x - 2, y + 4 + bob, '#7fb0ff'); px(ctx, x + 2, y + 5 - bob, '#7fb0ff');
-  }
 }
 
 function drawPartition(ctx, x, y, color) {
