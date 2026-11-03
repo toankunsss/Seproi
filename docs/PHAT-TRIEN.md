@@ -28,7 +28,7 @@ Mẹo console: `__game.g.money = 1e6`, `__game.g.dayTime = 148` (sắp tan ca), 
 Thêm một phần tử vào `WHIPS` trong `config.js`:
 
 ```js
-{ name: 'Roi Băng', cost: 60000, bonus: 600, boost: 18, radius: 15, rope: '#2a5a8a', tip: '#cfffff', fx: 'elec' },
+{ name: 'Roi Băng', cost: 200000, bonus: 600, boost: 18, radius: 15, rope: '#2a5a8a', tip: '#cfffff', fx: 'elec' },
 ```
 
 `fx` quyết định hiệu ứng lúc roi nổ (`wood`, `metal`, `elec`, `fire` trong `whip.js` → `crack`). Muốn có hiệu ứng mới (ví dụ `ice`) thì thêm nhánh trong `crack()`, và thêm âm thanh theo `level` trong `audio.whip()`.
@@ -126,7 +126,13 @@ Một số công thức đáng chú ý:
 - Thu nhập mỗi giây = `ROLES[role].income × (boost ? 1.6 : 1) × (1 + 0.12 × (day − 1))`.
 - Xác suất lười mỗi giây = `slackBase + slackTired × (1 − energy/100)²`.
 - Thưởng bắt quả tang = `bonus × (1 + 0.5 × (combo − 1))`. Trợ lý chỉ nhận 50% và không cộng combo.
-- Phí tuyển người thứ n = `200 × 1.75^(n − 3)`.
+- Phí tuyển người thứ n = `300 × 1.85^(n − 3)` (rồi nhân theo chất lượng CV, `cv.js → hirePrice`).
+
+### Nhịp tiến triển (đã cân lại giá)
+
+Giá roi, cà phê, trợ lý, văn phòng, nội thất và phí tuyển được chỉnh để người chơi giỏi (không xem quảng cáo) có tiến trình như sau: văn phòng 6 bàn khoảng ngày 2–4, **Trụ sở 8 bàn ngày 12–13**, cà phê tối đa ngày 15–16, Cúp Sếp xuất sắc ngày 17–18, trợ lý tối đa ngày 19–20, **Roi Rồng Lửa ngày 23–24**. Người chơi xem quảng cáo (x2 doanh thu cuối ngày, x2 tiền dự án) nhanh gấp khoảng 2 lần (Trụ sở khoảng ngày 7), tạo động lực xem quảng cáo.
+
+Các con số này đo bằng `tools/balance/econ.cjs` (cần `node serve.cjs` đang chạy): một "bot" chạy đúng code mô phỏng (`sim.js`): quất kẻ lười sau 1,2 giây, dùng cà phê ngay khi sẵn, luôn nhận dự án, mua đồ ngay khi đủ tiền (ưu tiên tuyển → văn phòng → roi → trợ lý → cà phê → nội thất). Khi đổi giá hay thu nhập, nên chạy lại bot để xem ngày mua từng món thay đổi thế nào.
 
 ## Danh sách việc nên làm tiếp (gợi ý ưu tiên)
 

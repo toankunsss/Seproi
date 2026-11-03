@@ -669,3 +669,13 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .reward-card .px-btn { display: block; width: calc(100% - 6px); margin: 8px 3px 0; white-space: normal; }
 .reward-card .px-btn.big { min-height: 52px; background: #2f8a4a; font-size: 28px; }
 .reward-card .px-btn.ad { min-height: 46px; }
+
+/* Manage panel + furniture store item pictures (same frames as the 💎 shop) */
+.item.has-art { display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; }
+.decor-row { grid-template-columns: 64px 1fr auto; }
+.decor-row.locked .item-art img { filter: grayscale(1) brightness(.6); }
+.item.has-art.maxed .item-art { box-shadow: 0 0 0 3px var(--edge), inset 0 0 0 2px #6a5a2a, 0 0 10px rgba(255, 211, 77, .25); }
+@media (max-width: 400px) {
+  .item.has-art, .decor-row { grid-template-columns: 52px 1fr; }
+  .item.has-art .buy, .decor-row .buy { grid-column: 2; justify-self: start; }
+}

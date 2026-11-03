@@ -338,9 +338,11 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     if (panelOpen) renderPanel();
   }
 
-  function item(key, title, desc, cost, owned, maxed, disabledLabel = t('Tối đa')) {
+  const artBox = (id) => `<div class="item-art"><img src="${itemArtUrl(id)}" alt=""></div>`;
+  function item(key, title, desc, cost, owned, maxed, disabledLabel = t('Tối đa'), art = key) {
     const can = !maxed && g.money >= cost;
-    return `<div class="item ${maxed ? 'maxed' : ''}">
+    return `<div class="item has-art ${maxed ? 'maxed' : ''}">
+      ${artBox(art)}
       <div class="info"><div class="title">${title}</div><div class="desc">${desc}</div></div>
       <button class="px-btn buy" data-a="buy" data-arg="${key}" ${can ? '' : 'disabled'}>${maxed ? disabledLabel : fmt(cost) + ' đ'}</button>
     </div>`;
@@ -373,17 +375,19 @@ export function createUI(root, g, act, { mobile = false } = {}) {
         nextOffice
           ? (officeReady ? t('Đã đạt mốc doanh thu · mở {n} bàn làm việc.', { n: nextOffice.capacity }) : t('Cần tổng doanh thu {need} đ · hiện có {have} đ.', { need: fmt(nextOffice.unlockRevenue), have: fmt(g.lifetimeEarnings || 0) }))
           : t('Trụ sở tối đa · {n} bàn làm việc.', { n: office.capacity }),
-        nextOffice ? nextOffice.cost : 0, true, !nextOffice || !officeReady, nextOffice ? t('Chưa đạt') : t('Tối đa')),
+        nextOffice ? nextOffice.cost : 0, true, !nextOffice || !officeReady, nextOffice ? t('Chưa đạt') : t('Tối đa'), `office:${nextOffice ? g.officeLevel + 1 : g.officeLevel}`),
       item('whip',
         next ? `${t('Roi:')} ${t(WHIPS[wl].name)} → ${t(next.name)}` : `${t('Roi:')} ${t(WHIPS[wl].name)}`,
         next ? t('Thưởng bắt quả tang {a} → {b} đ · hăng say {s}s · tầm quất rộng hơn', { a: WHIPS[wl].bonus, b: next.bonus, s: next.boost }) : t('Cây roi tối thượng. Cả văn phòng run rẩy.'),
-        next ? next.cost : 0, true, !next),
-      hire ? `<div class="item">
+        next ? next.cost : 0, true, !next, undefined, `whip:${next ? wl + 1 : wl}`),
+      hire ? `<div class="item has-art">
+        ${artBox('hire')}
         <div class="info"><div class="title">${t('Tuyển dụng · {n} CV đang chờ', { n: g.candidates.length })}</div>
         <div class="desc">${n < office.capacity ? t('{n}/{cap} bàn đã có người. Đọc CV và chọn người phù hợp.', { n, cap: office.capacity }) : t('Hết bàn ({n}/{cap}). Mở rộng văn phòng để tuyển thêm.', { n, cap: office.capacity })}</div></div>
         <button class="px-btn buy" data-a="interview">${t('Xem CV')}</button>
       </div>` : item('hire', t('Văn phòng đã kín chỗ'), t('{n}/{n} bàn', { n: MAX_STAFF }), 0, false, true, t('Hết chỗ')),
-      `<div class="item">
+      `<div class="item has-art">
+        ${artBox('staff')}
         <div class="info"><div class="title">${t('Nhân sự · {n} người', { n })}</div>
         <div class="desc">${t('Khen thưởng, tăng lương, liên hoan hoặc sa thải nhân viên.')}</div></div>
         <button class="px-btn buy" data-a="staff">${t('Mở')}</button>
@@ -391,11 +395,11 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       item('coffee',
         cl < 0 ? t('Mua máy pha cà phê') : COFFEE[cl + 1] ? t('Máy cà phê Lv{a} → Lv{b}', { a: cl + 1, b: cl + 2 }) : t('Máy cà phê Lv{a}', { a: cl + 1 }),
         COFFEE[cl + 1] ? t('Nút "Cà phê sốc": +55 năng lượng, −30 áp lực, đánh thức kẻ ngủ gật. Hồi chiêu {s}s.', { s: COFFEE[cl + 1].cooldown }) : t('Espresso cấp công nghiệp.'),
-        COFFEE[cl + 1] ? COFFEE[cl + 1].cost : 0, cl >= 0, !COFFEE[cl + 1]),
+        COFFEE[cl + 1] ? COFFEE[cl + 1].cost : 0, cl >= 0, !COFFEE[cl + 1], undefined, `coffee:${COFFEE[cl + 1] ? cl + 1 : cl}`),
       item('assistant',
         al < 0 ? t('Thuê Trợ lý giám sát') : ASSISTANT[al + 1] ? t('Trợ lý Lv{a} → Lv{b}', { a: al + 1, b: al + 2 }) : t('Trợ lý Lv{a}', { a: al + 1 }),
         ASSISTANT[al + 1] ? t('Tự quất kẻ lười mỗi {s}s (nửa tiền thưởng). Chạy cả khi bạn bận.', { s: ASSISTANT[al + 1].interval }) : t('Mắt diều hâu, không bỏ sót ai.'),
-        ASSISTANT[al + 1] ? ASSISTANT[al + 1].cost : 0, al >= 0, !ASSISTANT[al + 1]),
+        ASSISTANT[al + 1] ? ASSISTANT[al + 1].cost : 0, al >= 0, !ASSISTANT[al + 1], undefined, `assistant:${ASSISTANT[al + 1] ? al + 1 : al}`),
       `<div class="panel-foot"><button class="px-btn danger" data-a="reset">${t('Chơi lại từ đầu')}</button></div>`,
     ].join('');
     panel.innerHTML = `<div class="panel">${html}</div>`;
@@ -409,7 +413,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       const locked = g.officeLevel < item.level;
       const can = !owned && !locked && g.money >= item.cost;
       return `<div class="decor-row ${owned ? 'owned' : ''} ${locked ? 'locked' : ''}">
-        <div class="decor-preview decor-${item.id}" aria-hidden="true"></div>
+        <div class="item-art">${itemArtUrl(item.id) ? `<img src="${itemArtUrl(item.id)}" alt="">` : `<div class="decor-preview decor-${item.id}" aria-hidden="true"></div>`}${owned ? '<i>✓</i>' : ''}</div>
         <div class="info"><div class="title">${t(item.name)}</div><div class="desc">${locked ? t('Cần văn phòng cấp {n}.', { n: item.level + 1 }) : t(item.desc)}</div></div>
         <button class="px-btn buy" data-a="buyDecor" data-arg="${item.id}" ${can ? '' : 'disabled'}>${owned ? t('Đã đặt') : fmt(item.cost) + ' đ'}</button>
       </div>`;

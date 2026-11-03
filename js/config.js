@@ -27,46 +27,46 @@ export const STAFF_POOL = [
 ];
 export const STARTING_STAFF = 3;
 export const MAX_STAFF = STAFF_POOL.length;
-export const hireCost = (count) => Math.round(200 * Math.pow(1.75, count - STARTING_STAFF));
+export const hireCost = (count) => Math.round(300 * Math.pow(1.85, count - STARTING_STAFF));
 
 // Office growth is driven by total revenue, then paid from the current company fund.
 export const OFFICE_LEVELS = [
   { name: 'Phòng khởi nghiệp', capacity: 4, unlockRevenue: 0, cost: 0 },
-  { name: 'Văn phòng mở rộng', capacity: 6, unlockRevenue: 1500, cost: 1200 },
-  { name: 'Trụ sở Whip Boss', capacity: 8, unlockRevenue: 7500, cost: 6000 },
+  { name: 'Văn phòng mở rộng', capacity: 6, unlockRevenue: 4000, cost: 3500 },
+  { name: 'Trụ sở Whip Boss', capacity: 8, unlockRevenue: 40000, cost: 30000 },
 ];
 
 export const DECOR_ITEMS = [
-  { id: 'rug', name: 'Thảm KPI', desc: 'Thảm đỏ chạy giữa văn phòng.', cost: 300, level: 0 },
-  { id: 'lamp', name: 'Đèn cây', desc: 'Một góc làm việc bớt u ám.', cost: 550, level: 0 },
-  { id: 'sofa', name: 'Sofa tiếp khách', desc: 'Chỗ ngồi sang hơn ghế nhựa.', cost: 900, level: 1 },
-  { id: 'shelf', name: 'Tủ sách chuyên môn', desc: 'Sách nhiều, đọc bao nhiêu chưa rõ.', cost: 1250, level: 1 },
-  { id: 'aquarium', name: 'Bể cá thư giãn', desc: 'Cá bơi, KPI vẫn chạy.', cost: 2400, level: 2 },
-  { id: 'trophy', name: 'Cúp Sếp xuất sắc', desc: 'Biểu tượng quyền lực tối thượng.', cost: 4200, level: 2 },
+  { id: 'rug', name: 'Thảm KPI', desc: 'Thảm đỏ chạy giữa văn phòng.', cost: 600, level: 0 },
+  { id: 'lamp', name: 'Đèn cây', desc: 'Một góc làm việc bớt u ám.', cost: 1200, level: 0 },
+  { id: 'sofa', name: 'Sofa tiếp khách', desc: 'Chỗ ngồi sang hơn ghế nhựa.', cost: 3000, level: 1 },
+  { id: 'shelf', name: 'Tủ sách chuyên môn', desc: 'Sách nhiều, đọc bao nhiêu chưa rõ.', cost: 5000, level: 1 },
+  { id: 'aquarium', name: 'Bể cá thư giãn', desc: 'Cá bơi, KPI vẫn chạy.', cost: 15000, level: 2 },
+  { id: 'trophy', name: 'Cúp Sếp xuất sắc', desc: 'Biểu tượng quyền lực tối thượng.', cost: 35000, level: 2 },
 ];
 
 export const WHIPS = [
   { name: 'Roi Mây',      cost: 0,     bonus: 6,   boost: 6,  radius: 4,  rope: '#9a6a3a', tip: '#c89a5a', fx: 'wood' },
-  { name: 'Roi Da Bò',    cost: 250,   bonus: 14,  boost: 8,  radius: 6,  rope: '#6e3b1f', tip: '#a8582c', fx: 'wood' },
-  { name: 'Roi Gai',      cost: 1500,  bonus: 35,  boost: 10, radius: 8,  rope: '#4a4a52', tip: '#c0c0cc', fx: 'metal' },
-  { name: 'Roi Điện',     cost: 6000,  bonus: 90,  boost: 12, radius: 10, rope: '#2a3a6a', tip: '#8fe8ff', fx: 'elec' },
-  { name: 'Roi Rồng Lửa', cost: 20000, bonus: 240, boost: 15, radius: 13, rope: '#6a1a10', tip: '#ffb030', fx: 'fire' },
+  { name: 'Roi Da Bò',    cost: 400,   bonus: 14,  boost: 8,  radius: 6,  rope: '#6e3b1f', tip: '#a8582c', fx: 'wood' },
+  { name: 'Roi Gai',      cost: 3000,  bonus: 35,  boost: 10, radius: 8,  rope: '#4a4a52', tip: '#c0c0cc', fx: 'metal' },
+  { name: 'Roi Điện',     cost: 18000, bonus: 90,  boost: 12, radius: 10, rope: '#2a3a6a', tip: '#8fe8ff', fx: 'elec' },
+  { name: 'Roi Rồng Lửa', cost: 80000, bonus: 240, boost: 15, radius: 13, rope: '#6a1a10', tip: '#ffb030', fx: 'fire' },
   // Premium (💎) whip: never sold for đ, unlocked by the "Roi Kim Cương" perk.
   { name: 'Roi Kim Cương', cost: Infinity, premium: true, bonus: 600, boost: 18, radius: 15, rope: '#4fb8e8', tip: '#e8fbff', fx: 'elec' },
 ];
 
 export const COFFEE = [
-  { cost: 300,  cooldown: 40, regen: 0.25 },
-  { cost: 1000, cooldown: 30, regen: 0.45 },
-  { cost: 3000, cooldown: 22, regen: 0.65 },
-  { cost: 8000, cooldown: 15, regen: 0.9 },
+  { cost: 400,   cooldown: 40, regen: 0.25 },
+  { cost: 2500,  cooldown: 30, regen: 0.45 },
+  { cost: 9000,  cooldown: 22, regen: 0.65 },
+  { cost: 30000, cooldown: 15, regen: 0.9 },
 ];
 
 export const ASSISTANT = [
-  { cost: 600,   interval: 10 },
-  { cost: 2500,  interval: 7 },
-  { cost: 7000,  interval: 5 },
-  { cost: 18000, interval: 3 },
+  { cost: 1200,  interval: 10 },
+  { cost: 6000,  interval: 7 },
+  { cost: 20000, interval: 5 },
+  { cost: 60000, interval: 3 },
 ];
 
 export const TUNING = {

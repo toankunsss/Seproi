@@ -1,7 +1,9 @@
-// Pixel-art pictures for the 💎 shop, so players see what they are buying.
-// Each item is drawn on a 24x24 grid (same procedural style as sprites.js) and cached as a
-// data URL for <img>. Add a drawer here when you add an item to PREMIUM_ITEMS (config.js).
+// Pixel-art pictures for the shops (💎 shop, Manage panel, furniture store), so players see
+// what they are buying. Each item is drawn on a 24x24 grid (same procedural style as
+// sprites.js) and cached as a data URL for <img>. Ids may carry a level: 'whip:3' calls
+// DRAW.whip(ctx, 3). Add a drawer here when you add an item to PREMIUM_ITEMS / DECOR_ITEMS.
 import { rect, px, line } from './pixel.js';
+import { WHIPS } from './config.js';
 
 const S = 24;
 
@@ -79,7 +81,108 @@ const DRAW = {
     rect(c, sx, sy - 3, 2, 2, '#ffd34d'); rect(c, sx - 3, sy - 1, 8, 2, '#ffd34d'); rect(c, sx - 2, sy + 1, 6, 2, '#ffd34d');
     rect(c, sx - 2, sy + 3, 2, 2, '#ffd34d'); rect(c, sx + 2, sy + 3, 2, 2, '#ffd34d'); px(c, sx, sy, '#fff3a0');
   },
-  // Gold trophy (project reward card)
+  // --- Manage panel ---------------------------------------------------------------------
+  // Whip of level n, in its own colours; metal spikes / electric sparks / flames by fx.
+  whip(c, n) {
+    const W = WHIPS[n] || WHIPS[0];
+    rect(c, 3, 17, 3, 3, '#6b3f1d'); rect(c, 5, 15, 3, 3, '#6b3f1d'); rect(c, 7, 13, 2, 3, '#8a5a2a'); // handle
+    rect(c, 2, 19, 2, 2, '#ffd34d'); px(c, 4, 16, '#8a5a2a');
+    const pts = [[9, 12], [10, 10], [11, 8], [12, 6], [14, 5], [16, 4], [18, 4], [19, 6], [20, 8], [20, 10]];
+    pts.forEach(([x, y], i) => rect(c, x, y, i < 4 ? 2 : 1 + (i < 7 ? 1 : 0), 2, W.rope));
+    rect(c, 20, 11, 2, 2, W.tip); px(c, 21, 13, W.tip);
+    if (W.fx === 'metal') for (const [x, y] of [[11, 7], [14, 4], [18, 3], [21, 8]]) px(c, x, y, '#e8e8f0');
+    if (W.fx === 'elec') { for (const [x, y] of [[22, 10], [19, 13], [23, 13], [17, 2]]) px(c, x, y, W.tip === '#e8fbff' ? '#e8fbff' : '#8fe8ff'); rect(c, 21, 14, 1, 2, '#fff'); }
+    if (W.fx === 'fire') { rect(c, 19, 12, 4, 3, '#ff6a20'); rect(c, 20, 10, 2, 2, '#ffb030'); px(c, 20, 13, '#fff3a0'); px(c, 18, 9, '#ff6a20'); px(c, 22, 8, '#ffb030'); }
+    if (W.premium) { rect(c, 16, 15, 5, 3, '#9ff4ff'); rect(c, 17, 14, 3, 5, '#9ff4ff'); px(c, 18, 15, '#ffffff'); }
+  },
+  // Coffee machine; the panel colour shows the level (same colours as in the office).
+  coffee(c, n) {
+    const cols = ['#4a4a55', '#8a2b2b', '#2b4a8a', '#c9a13a'];
+    rect(c, 5, 3, 14, 18, '#a9a4bf'); rect(c, 5, 3, 14, 2, '#d8d4e6'); rect(c, 5, 19, 14, 2, '#7a7690');
+    rect(c, 6, 6, 12, 5, cols[Math.max(0, n)] || cols[0]);
+    for (let i = 0; i <= Math.max(0, n); i++) px(c, 7 + i * 2, 8, '#ffd34d');
+    rect(c, 8, 12, 8, 6, '#2a2836'); rect(c, 11, 12, 2, 2, '#151515');
+    rect(c, 9, 15, 5, 3, '#f5f5f5'); rect(c, 14, 15, 1, 2, '#f5f5f5'); rect(c, 10, 15, 3, 1, '#6b3f1d');
+    px(c, 10, 13, '#d8f4ff'); px(c, 12, 11, '#d8f4ff'); px(c, 11, 1, '#d8f4ff'); px(c, 13, 2, '#d8f4ff');
+    px(c, 17, 4, '#5cff7a');
+  },
+  // Supervising assistant: suit, sunglasses, clipboard and a small whip; stars = level.
+  assistant(c, n) {
+    rect(c, 8, 3, 8, 7, '#f1c7a0'); rect(c, 8, 2, 8, 2, '#3a2a1a'); rect(c, 7, 3, 1, 3, '#3a2a1a');
+    rect(c, 8, 6, 8, 2, '#111'); px(c, 9, 6, '#9fd8ff'); px(c, 13, 6, '#9fd8ff');
+    rect(c, 10, 9, 4, 1, '#a0503a');
+    rect(c, 6, 11, 12, 10, '#2f3a5a'); rect(c, 11, 11, 2, 6, '#f4f4f4'); rect(c, 11, 12, 2, 4, '#d02030');
+    rect(c, 3, 13, 5, 7, '#8a6a3a'); rect(c, 4, 14, 3, 5, '#f4f1ea'); px(c, 5, 15, '#4a4560'); px(c, 5, 17, '#4a4560');
+    rect(c, 18, 12, 2, 6, '#6b3f1d'); rect(c, 19, 6, 1, 6, '#c89a5a'); rect(c, 20, 4, 2, 2, '#c89a5a');
+    for (let i = 0; i <= Math.max(0, n); i++) rect(c, 6 + i * 4, 21, 3, 2, '#ffd34d');
+  },
+  // Office building, bigger with each level.
+  office(c, n) {
+    rect(c, 0, 21, 24, 3, '#3a3550');
+    const lit = (x, y) => rect(c, x, y, 2, 2, (x * 7 + y * 3) % 5 ? '#ffd34d' : '#5a4a8a');
+    if (n <= 0) {
+      rect(c, 5, 11, 14, 10, '#c9774a'); rect(c, 4, 9, 16, 3, '#d65a3d'); rect(c, 4, 9, 16, 1, '#ff8a6a');
+      rect(c, 7, 15, 4, 6, '#3a2a1a'); lit(13, 14); lit(16, 14);
+    } else if (n === 1) {
+      rect(c, 3, 7, 18, 14, '#5a6ee0'); rect(c, 3, 7, 18, 1, '#8a9cff'); rect(c, 2, 5, 20, 2, '#3a4aa0');
+      for (const y of [9, 13]) for (const x of [5, 9, 13, 17]) lit(x, y);
+      rect(c, 10, 17, 4, 4, '#2a2340');
+    } else {
+      rect(c, 6, 2, 12, 19, '#2a2a3a'); rect(c, 6, 2, 12, 1, '#5a5a7a'); rect(c, 2, 10, 4, 11, '#3a3a50'); rect(c, 18, 12, 4, 9, '#3a3a50');
+      for (let y = 5; y < 18; y += 3) for (const x of [8, 11, 14]) lit(x, y);
+      rect(c, 8, 3, 8, 1, '#ffd34d'); rect(c, 10, 18, 4, 3, '#ffd34d'); rect(c, 11, 19, 2, 2, '#2a2340');
+      rect(c, 11, 0, 2, 2, '#ff3d4a');
+    }
+  },
+  // A CV on the desk with a photo and a gold star stamp.
+  hire(c) {
+    rect(c, 5, 2, 14, 20, '#f4f1ea'); rect(c, 5, 2, 14, 1, '#ffffff'); rect(c, 18, 3, 1, 19, '#c8c0a8');
+    rect(c, 7, 4, 5, 6, '#9ad'); rect(c, 8, 5, 3, 3, '#f1c7a0'); rect(c, 8, 4, 3, 1, '#3a2a1a'); rect(c, 7, 8, 5, 2, '#3d6fd6');
+    for (const y of [12, 14, 16, 18]) rect(c, 7, y, y === 18 ? 6 : 10, 1, '#8a86a0');
+    rect(c, 13, 5, 4, 1, '#4a4560'); rect(c, 13, 7, 3, 1, '#8a86a0');
+    rect(c, 15, 16, 5, 2, '#ffd34d'); rect(c, 16, 15, 3, 4, '#ffd34d'); px(c, 17, 14, '#ffd34d'); px(c, 17, 19, '#ffd34d'); px(c, 16, 16, '#fff3a0');
+  },
+  // Two employees and a heart (staff care).
+  staff(c) {
+    rect(c, 3, 8, 7, 7, '#f5d0b0'); rect(c, 3, 7, 7, 2, '#e8c35a'); rect(c, 2, 8, 1, 6, '#e8c35a'); rect(c, 2, 15, 9, 7, '#e0607e');
+    px(c, 5, 11, '#1d1826'); px(c, 8, 11, '#1d1826'); rect(c, 5, 13, 3, 1, '#a0503a');
+    rect(c, 13, 8, 7, 7, '#d9a57a'); rect(c, 13, 7, 7, 2, '#2b1d14'); rect(c, 12, 15, 9, 7, '#46b37a');
+    px(c, 15, 11, '#1d1826'); px(c, 18, 11, '#1d1826'); rect(c, 15, 13, 3, 1, '#a0503a');
+    const h = '#ff5a7a'; rect(c, 9, 1, 2, 1, h); rect(c, 13, 1, 2, 1, h); rect(c, 8, 2, 8, 2, h); rect(c, 9, 4, 6, 1, h); rect(c, 10, 5, 4, 1, h); rect(c, 11, 6, 2, 1, h); px(c, 9, 2, '#ffd0dc');
+  },
+
+  // --- Furniture store ------------------------------------------------------------------
+  rug(c) {
+    rect(c, 2, 8, 20, 10, '#a52d43'); rect(c, 3, 9, 18, 8, '#d89b38'); rect(c, 4, 10, 16, 6, '#8e2337');
+    rect(c, 9, 12, 6, 2, '#d89b38'); for (let x = 2; x < 22; x += 2) { px(c, x, 7, '#d89b38'); px(c, x, 18, '#d89b38'); }
+  },
+  lamp(c) {
+    rect(c, 7, 3, 10, 6, '#ffe9a8'); rect(c, 6, 8, 12, 2, '#e8cf86'); rect(c, 8, 4, 2, 4, '#fff7d0');
+    rect(c, 11, 10, 2, 9, '#4a4560'); rect(c, 8, 19, 8, 2, '#2a2836');
+    rect(c, 4, 11, 2, 1, '#fff3a0'); rect(c, 18, 11, 2, 1, '#fff3a0'); px(c, 3, 13, '#fff3a0'); px(c, 20, 13, '#fff3a0');
+  },
+  sofa(c) {
+    rect(c, 4, 7, 16, 8, '#ad7be9'); rect(c, 4, 7, 16, 1, '#c79cff'); rect(c, 2, 12, 20, 6, '#9a6bd8');
+    rect(c, 1, 11, 4, 8, '#704b9d'); rect(c, 19, 11, 4, 8, '#704b9d'); rect(c, 11, 8, 1, 6, '#8a5ac0');
+    rect(c, 2, 19, 2, 2, '#3a2a52'); rect(c, 20, 19, 2, 2, '#3a2a52');
+  },
+  shelf(c) {
+    rect(c, 4, 2, 16, 20, '#7c522f'); rect(c, 5, 3, 14, 18, '#5e3d22');
+    const books = ['#d65a3d', '#3d6fd6', '#46b37a', '#e3a33b', '#9a64d6', '#34a4c4'];
+    for (const y of [3, 9, 15]) {
+      rect(c, 5, y + 5, 14, 1, '#c08a58');
+      for (let i = 0; i < 6; i++) rect(c, 6 + i * 2, y + (i % 3 === 1 ? 1 : 0), 2, 5 - (i % 3 === 1 ? 1 : 0), books[(i + y) % 6]);
+    }
+  },
+  aquarium(c) {
+    rect(c, 2, 4, 20, 14, '#2c667d'); rect(c, 3, 5, 18, 12, '#45bad0'); rect(c, 3, 14, 18, 3, '#d8c48a');
+    rect(c, 5, 10, 1, 4, '#2f8a4a'); rect(c, 17, 8, 1, 6, '#2f8a4a'); rect(c, 18, 10, 1, 3, '#2f8a4a');
+    rect(c, 8, 8, 4, 2, '#ffd34d'); px(c, 7, 8, '#ffb030'); px(c, 7, 9, '#ffb030'); px(c, 11, 8, '#222');
+    rect(c, 13, 11, 3, 2, '#ef6f64'); px(c, 16, 11, '#d0504a'); px(c, 13, 11, '#222');
+    px(c, 10, 6, '#d8f4ff'); px(c, 15, 7, '#d8f4ff');
+    rect(c, 3, 18, 18, 3, '#6b4a30'); rect(c, 4, 21, 2, 2, '#3f2a20'); rect(c, 18, 21, 2, 2, '#3f2a20');
+  },
+  // Gold trophy (project reward card, furniture store)
   trophy(c) {
     rect(c, 6, 3, 12, 2, '#ffe38a'); rect(c, 6, 5, 12, 6, '#ffd34d'); rect(c, 7, 11, 10, 2, '#ffd34d'); rect(c, 9, 13, 6, 1, '#e0a030');
     rect(c, 3, 5, 3, 1, '#e0a030'); rect(c, 2, 6, 2, 3, '#e0a030'); rect(c, 3, 9, 3, 1, '#e0a030');   // handles
@@ -105,15 +208,16 @@ const cache = new Map();
 /** Data URL of the picture for premium item `id` ('' if there is no drawing). */
 export function itemArtUrl(id) {
   if (cache.has(id)) return cache.get(id);
-  const draw = DRAW[id];
+  const [name, arg] = String(id).split(':');
+  const draw = DRAW[name];
   if (!draw) return '';
   const canvas = document.createElement('canvas');
   canvas.width = S; canvas.height = S;
   const ctx = canvas.getContext('2d');
-  draw(ctx);
+  draw(ctx, arg === undefined ? undefined : Number(arg));
   const url = canvas.toDataURL();
   cache.set(id, url);
   return url;
 }
 
-export const hasArt = (id) => id in DRAW;
+export const hasArt = (id) => String(id).split(':')[0] in DRAW;
