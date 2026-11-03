@@ -7,6 +7,7 @@ import * as projects from './projects.js';
 import { claim } from './achievements.js';
 import { buyPremium } from './premium.js';
 import { showRewarded } from './ads.js';
+import { t as tr, setLang } from './i18n.js';
 import { createView } from './view.js';
 import { createWhip } from './whip.js';
 import { createUI, fmt } from './ui.js';
@@ -53,7 +54,7 @@ const act = {
   mode() { setMode(g.mode === 'office' ? 'mini' : 'office'); },
   mute() { g.muted = !g.muted; audio.setMuted(g.muted); },
   coffee() {
-    if (useCoffee(g)) { audio.coffee(); haptic('success'); ui.popup(innerWidth / 2, innerHeight * 0.3, 'CÀ PHÊ SỐC!', 'coffee'); }
+    if (useCoffee(g)) { audio.coffee(); haptic('success'); ui.popup(innerWidth / 2, innerHeight * 0.3, tr('CÀ PHÊ SỐC!'), 'coffee'); }
   },
   pip: () => togglePip(),
   quit() { save(g); shell && shell.quit(); },
@@ -92,14 +93,14 @@ const act = {
     const cv = g.candidates[Number(i)];
     if (!cv) return;
     const index = g.staff.length;
-    if (index >= MAX_STAFF || index >= OFFICE_LEVELS[g.officeLevel].capacity) { audio.deny(); return toast('Hết bàn trống, hãy mở rộng văn phòng!', 'wrong'); }
-    if (!pay(hirePrice(g, cv))) { audio.deny(); return toast('Quỹ chưa đủ tiền tuyển.', 'wrong'); }
+    if (index >= MAX_STAFF || index >= OFFICE_LEVELS[g.officeLevel].capacity) { audio.deny(); return toast(tr('Hết bàn trống, hãy mở rộng văn phòng!'), 'wrong'); }
+    if (!pay(hirePrice(g, cv))) { audio.deny(); return toast(tr('Quỹ chưa đủ tiền tuyển.'), 'wrong'); }
     g.staff.push(makeEmployee(index, cv));
     if (cv.star) g.records.starsHired++;
     g.candidates.splice(Number(i), 1);
     layout();
     audio.buy(); haptic('success');
-    toast(`ĐÃ TUYỂN ${cv.name.toUpperCase()}!`, 'money');
+    toast(tr('ĐÃ TUYỂN {name}!', { name: cv.name.toUpperCase() }), 'money');
     save(g); ui.screens.repaint();
   },
   cvReject(i) {
@@ -107,20 +108,20 @@ const act = {
     save(g); ui.screens.repaint();
   },
   async adCv() {
-    if (await watchAd('cv')) { refillCandidates(g); toast('3 CV MỚI!', 'money'); save(g); }
+    if (await watchAd('cv')) { refillCandidates(g); toast(tr('3 CV MỚI!'), 'money'); save(g); }
     ui.screens.repaint();
   },
   // --- Projects ---
   projAccept(i) {
-    if (projects.acceptOffer(g, Number(i))) { audio.buy(); haptic('success'); toast('NHẬN DỰ ÁN!', 'money'); save(g); }
+    if (projects.acceptOffer(g, Number(i))) { audio.buy(); haptic('success'); toast(tr('NHẬN DỰ ÁN!'), 'money'); save(g); }
     ui.screens.repaint();
   },
   projAbandon() {
-    if (!confirm('Huỷ dự án này? Dự án sẽ tính là thất bại.')) return;
+    if (!confirm(tr('Huỷ dự án này? Dự án sẽ tính là thất bại.'))) return;
     projects.abandon(g); save(g); ui.screens.repaint();
   },
   async adExtend() {
-    if (await watchAd('extend') && projects.extend(g)) { toast('GIA HẠN +1 NGÀY', 'money'); save(g); }
+    if (await watchAd('extend') && projects.extend(g)) { toast(tr('GIA HẠN +1 NGÀY'), 'money'); save(g); }
     ui.screens.repaint(); ui.refreshReport();
   },
   // --- 💎 ---
@@ -128,19 +129,19 @@ const act = {
     const name = buyPremium(g, id);
     if (!name) { audio.deny(); return; }
     audio.buy(); haptic('success');
-    toast(name.toUpperCase() + '!', 'coffee');
+    toast(tr(name).toUpperCase() + '!', 'coffee');
     if (id === 'starCv') { ui.screens.cv(); }
     save(g); ui.screens.repaint();
   },
   async adGems() {
     if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
     if (g.ads.gems >= ADS.gemAdsPerDay) return;
-    if (await watchAd('gems')) { g.ads.gems++; g.gems += ADS.gemsPerAd; toast(`+${ADS.gemsPerAd} KIM CƯƠNG`, 'coffee'); save(g); }
+    if (await watchAd('gems')) { g.ads.gems++; g.gems += ADS.gemsPerAd; toast(tr('+{n} KIM CƯƠNG', { n: ADS.gemsPerAd }), 'coffee'); save(g); }
     ui.screens.repaint();
   },
   achClaim(id) {
     const gems = claim(g, id);
-    if (gems) { audio.buy(); haptic('success'); toast(`+${gems} KIM CƯƠNG`, 'coffee'); save(g); }
+    if (gems) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n: gems }), 'coffee'); save(g); }
     ui.screens.repaint();
   },
   // --- end of day ---
@@ -161,8 +162,14 @@ const act = {
     save(g);
     return true;
   },
+  setLang(code) {
+    // Rebuild every screen in the new language: simplest and safest is a reload (state is saved).
+    setLang(code);
+    save(g);
+    location.reload();
+  },
   reset() {
-    if (!confirm('Xoá toàn bộ tiến trình và chơi lại từ đầu?')) return;
+    if (!confirm(tr('Xoá toàn bộ tiến trình và chơi lại từ đầu?'))) return;
     // pagehide normally persists the current game. Mark this navigation as a reset
     // first, otherwise pagehide immediately writes the old save back after wipe().
     resetting = true;
@@ -192,6 +199,13 @@ const ui = createUI(root, g, act, { mobile });
 const canPip = () => !shell && !mobile && pipSupported();
 ui.setPipAvailable(canPip() && g.mode === 'mini');
 $('btn-pip').hidden = !canPip();
+// Static text in index.html (desktop taskbar mode hint)
+{
+  const h = document.querySelector('#desktop .desk-hint');
+  h.querySelector('.desk-title').textContent = tr('Chế độ Taskbar');
+  h.querySelector('p').innerHTML = `${tr('Văn phòng đang chạy nền ở đáy màn hình.')}<br>${tr('Ai lười là thanh bar nháy đỏ, cứ bấm vào mà quất.')}`;
+  $('btn-pip').textContent = tr('Ghim nổi lên mọi cửa sổ');
+}
 $('btn-pip').addEventListener('click', () => togglePip());
 
 // --- Layout ------------------------------------------------------------------------
@@ -346,16 +360,16 @@ function resolveHit(hit, cx, cy) {
     ui.popup(at.x, at.y - 10, 'BACK TO WORK!', 'btw');
     ui.popup(at.x, at.y + 22, `+${fmt(res.reward)} đ`, 'money');
     if (g.combo > 1) ui.popup(at.x, at.y - 40, `COMBO x${g.combo}`, 'combo');
-    if (Math.random() < 0.5) ui.popup(at.x, at.y + 44, `"${res.excuse}"`, 'say');
+    if (Math.random() < 0.5) ui.popup(at.x, at.y + 44, `"${tr(res.excuse)}"`, 'say');
   } else if (res.kind === 'wrong') {
     haptic('wrong');
     audio.ouch(0.8);
     audio.grumble();
     ui.flash('wrong');
-    ui.popup(at.x, at.y - 10, 'OAN QUÁ SẾP ƠI!', 'wrong');
+    ui.popup(at.x, at.y - 10, tr('OAN QUÁ SẾP ƠI!'), 'wrong');
     if (res.reward) ui.popup(at.x, at.y + 22, `${fmt(res.reward)} đ`, 'loss');
   } else if (res.kind === 'strike') {
-    ui.popup(at.x, at.y - 10, 'Đang đình công!', 'wrong');
+    ui.popup(at.x, at.y - 10, tr('Đang đình công!'), 'wrong');
   }
 }
 
@@ -370,10 +384,10 @@ function onEvent(type, e) {
     case 'strike':
       audio.strike();
       haptic('heavy');
-      ui.popup(at.x, at.y - 20, `${e.name} ĐÌNH CÔNG!`, 'wrong');
+      ui.popup(at.x, at.y - 20, tr('{name} ĐÌNH CÔNG!', { name: e.name }), 'wrong');
       break;
     case 'strikeEnd':
-      ui.popup(at.x, at.y - 20, 'Quay lại làm...', 'say');
+      ui.popup(at.x, at.y - 20, tr('Quay lại làm...'), 'say');
       break;
     case 'assistant': {
       if (!hit) break;
@@ -382,7 +396,7 @@ function onEvent(type, e) {
       audio.whip(Math.min(g.whipLevel, 1), 0.02);
       const res = whipEmployee(g, e, { auto: true });
       audio.ouch(1.1);
-      ui.popup(at.x, at.y - 10, 'TRỢ LÝ: LÀM ĐI!', 'assist');
+      ui.popup(at.x, at.y - 10, tr('TRỢ LÝ: LÀM ĐI!'), 'assist');
       ui.popup(at.x, at.y + 18, `+${fmt(res.reward)} đ`, 'money');
       break;
     }
@@ -390,7 +404,7 @@ function onEvent(type, e) {
       const p = projects.complete(g);
       if (!p) break;
       audio.bell(); haptic('success');
-      toast(`XONG DỰ ÁN! +${fmt(p.money)} đ · +${p.gems} KIM CƯƠNG`, 'money');
+      toast(tr('XONG DỰ ÁN! +{m} đ · +{n} KIM CƯƠNG', { m: fmt(p.money), n: p.gems }), 'money');
       save(g);
       break;
     }
@@ -415,7 +429,7 @@ function endDay() {
     // an overdue project fails when the new day starts (unless an ad extended it)
     if (projects.overdue(g)) {
       const p = projects.fail(g);
-      toast(`DỰ ÁN THẤT BẠI: ${p.name}`, 'wrong');
+      toast(tr('DỰ ÁN THẤT BẠI: {name}', { name: tr(p.name) }), 'wrong');
     }
     g.day++;
     g.dayTime = 0;
@@ -428,7 +442,7 @@ function endDay() {
   // In the taskbar bar there is no room for a report card: roll straight into the next day.
   if (g.mode === 'mini') {
     const r = stage.getBoundingClientRect();
-    ui.popup(r.left + r.width / 2, r.top + 20, `Tan ca! +${fmt(t.revenue)} đ · KPI ${kpi}%`, 'money');
+    ui.popup(r.left + r.width / 2, r.top + 20, tr('Tan ca! +{m} đ · KPI {k}%', { m: fmt(t.revenue), k: kpi }), 'money');
     setTimeout(next, 1500);
   } else {
     ui.showReport(next);

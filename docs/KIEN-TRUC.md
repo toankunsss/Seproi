@@ -13,15 +13,23 @@ css/fonts.css, fonts/   font VT323 và Press Start 2P (tự host, chạy offline
 js/
 ├── main.js       khởi động, vòng lặp, xử lý input, nối các module với nhau, các "action" của nút
 ├── platform.js   phát hiện nền tảng (app mobile / PC), plugin Capacitor, rung, sao lưu save
-├── config.js     DỮ LIỆU GAME: roi, cà phê, trợ lý, nhân viên, văn phòng, nội thất, TUNING, cấp bậc
+├── config.js     DỮ LIỆU GAME: roi, cà phê, trợ lý, nhân viên, văn phòng, nội thất, TUNING, cấp bậc,
+│                 dữ liệu CV, loại dự án, khách hàng, vật phẩm 💎, giới hạn quảng cáo, thành tựu
 ├── state.js      tạo game mới, load/save localStorage, nâng cấp save cũ
-├── sim.js        mô phỏng: hành vi nhân viên, kinh tế, KPI, combo, trợ lý, cà phê
+├── sim.js        mô phỏng: hành vi nhân viên (theo chỉ số CV), kinh tế, KPI, combo, trợ lý, cà phê, tiến độ dự án
+├── cv.js         tuyển dụng: sinh ứng viên & CV, hệ số chỉ số (skill/lazy/grit), giá tuyển, ảnh chân dung pixel
+├── projects.js   dự án (nghiệp vụ): sinh hợp đồng theo đội hiện tại, cộng điểm, hoàn thành, gia hạn, thất bại
+├── achievements.js  danh sách thành tựu, đếm số chờ nhận, nhận thưởng 💎
+├── premium.js    cửa hàng 💎: điều kiện mua, hiệu ứng của đặc quyền & vật phẩm dùng ngay
+├── ads.js        quảng cáo có thưởng: showRewarded(); AdMob khi có, nếu không thì quảng cáo giả lập
+├── i18n.js       đa ngôn ngữ: t('câu tiếng Việt'), chọn/nhớ ngôn ngữ; từ điển trong js/lang/ (en.js…)
 ├── view.js       vẽ các chế độ (office isometric / văn phòng dọc / mini taskbar), tỷ lệ phóng, tọa độ, chọn đối tượng
 ├── portrait.js   văn phòng cho điện thoại cầm dọc: bức tường + lưới ô làm việc, bàn trống để tuyển
 ├── sprites.js    sprite thủ tục: phòng, bàn, màn hình, nhân viên, bong bóng, nội thất…
 ├── pixel.js      hàm vẽ cơ bản: rect, px, line, poly, iso, isoBox, glyphs, hash
 ├── whip.js       dây roi verlet, hiệu ứng (tia lửa, vòng sóng, sét, lửa), rung màn hình
-├── ui.js         HUD, cửa hàng, bảng áp lực, phỏng vấn, đặt biệt danh, báo cáo cuối ngày, chữ bay
+├── ui.js         HUD, bảng Quản lý, bảng áp lực, nội thất, đặt biệt danh, báo cáo cuối ngày, chữ bay
+├── screens.js    hộp thoại meta: CV ứng viên, Dự án, Cửa hàng 💎, Thành tựu, menu Thêm (chọn ngôn ngữ)
 ├── audio.js      hiệu ứng âm thanh tổng hợp (whip, ouch, coin, bell…)
 └── pip.js        Document Picture-in-Picture (ghim thanh mini nổi trên Chrome/Edge)
 desktop/                vỏ Electron (taskbar overlay); xem desktop/main.cjs
@@ -118,3 +126,26 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 
   `#hud` dùng `display: contents` nên hai nhóm này trở thành phần tử flex của `#stage`. Màn dọc xếp theo thứ tự thẻ thông tin → canvas → điều khiển. Màn ngang (chỉ là dự phòng) đưa hai nhóm thành hai cột bên cạnh canvas. `fitMobile()` trong `main.js` đo hai nhóm, giao phần còn lại cho canvas, và bật cảnh văn phòng dọc (`view.portrait`) khi màn dọc. Bảng Quản lý (`#panel`) hiện thành bottom sheet trượt lên từ đáy.
 - Cả hai bố cục dùng chung `data-k` (ô hiển thị) và `data-a` (hành động), nên `ui.update()` không cần biết đang ở bố cục nào.
+
+## Hệ thống meta (tuyển dụng, dự án, thành tựu, 💎, quảng cáo)
+
+| Hệ thống | Dữ liệu (`config.js`) | Logic | Giao diện | Trường trong save |
+|---|---|---|---|---|
+| Tuyển dụng bằng CV | `CV_*`, `CANDIDATES_PER_DAY` | `cv.js` | `screens.js → cvScreen` | `candidates`, `candidatesDay`, `staff[].cv` |
+| Dự án (nghiệp vụ) | `PROJECT_TYPES`, `CLIENTS`, `WORK_RATE` | `projects.js` + `sim.js` (`addWork`) | `screens.js → projectsScreen`, thanh dự án trên HUD | `projects { offers, offersDay, active, done, failed }` |
+| Thành tựu | `ACHIEVEMENTS` (mỗi cái có `stat(g)`, `goal`, `gems`) | `achievements.js` | `screens.js → achScreen` | `claimed`, các bộ đếm trong `records` |
+| Kim cương 💎 | `GEMS_START`, `PREMIUM_ITEMS` | `premium.js`, `sim.js` (`hasPerk`) | `screens.js → vipScreen` | `gems`, `perks`, `hotBonus` |
+| Quảng cáo có thưởng | `ADS` | `ads.js`, `main.js → watchAd()` | các nút ▶ màu xanh | `ads { day, gems }`, `records.adsWatched` |
+
+- **Mỗi sáng** (`main.js → newMorning`): CV mới, 3 hợp đồng mới, đặt lại lượt quảng cáo trong ngày.
+- **CV ảnh hưởng gameplay** (`cv.js`): Kỹ năng ×0,8–1,4 thu nhập và điểm dự án; Độ lười ×0,6–1,4 xác suất lười; Chịu áp lực ×1,4–0,6 áp lực mỗi lần bị quất; Sở thích quyết định 70% kiểu lười của người đó.
+- **Dự án**: yêu cầu = sản lượng của đội cho nghề đó × số ngày × độ khó (0,4–0,7). Vì vậy với KPI tốt luôn làm kịp, KPI kém thì trễ. Hạn là hết ngày `deadline`; sang ngày mới mà chưa xong thì thất bại (trừ khi đã gia hạn bằng quảng cáo, chỉ được 1 lần mỗi dự án).
+- **Quảng cáo**: lúc quảng cáo đang hiện, mô phỏng tạm dừng (`adOpen`) và tắt tiếng. Chỉ trao thưởng khi `showRewarded()` trả về `true` (xem hết). Chi tiết tích hợp AdMob ở `docs/QUANG-CAO.md`.
+
+## Đa ngôn ngữ
+
+- Tiếng Việt là ngôn ngữ gốc: mọi chữ trong code viết bằng tiếng Việt và bọc trong `t()` (`main.js` import dưới tên `tr` vì `t` đã dùng cho thời gian). Biến chèn bằng `{tên}`: `t('Ngày {n}', { n: 3 })`.
+- Từ điển các ngôn ngữ khác nằm trong `js/lang/<mã>.js` (hiện có `en.js`), dạng `{ 'câu tiếng Việt': 'bản dịch' }`. Thiếu câu nào thì hiện tiếng Việt.
+- Chữ trong `config.js` (tên roi, thành tựu, CV…) vẫn để tiếng Việt và được dịch **lúc hiển thị** (`t(item.name)`).
+- Lần mở đầu tiên tự chọn theo ngôn ngữ của máy (`vi` → Tiếng Việt, còn lại → English). Người chơi đổi trong **Thêm → Ngôn ngữ**; lựa chọn lưu ở `localStorage['seproi.lang']` (nằm ngoài save, nên "Chơi lại từ đầu" vẫn giữ ngôn ngữ). Đổi ngôn ngữ sẽ lưu game rồi tải lại trang để dựng lại toàn bộ giao diện.
+- **Không đặt tên biến cục bộ là `t`** trong file có dùng `t()`: biến sẽ che hàm dịch, gây lỗi "Cannot access 't' before initialization".

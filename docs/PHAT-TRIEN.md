@@ -62,6 +62,35 @@ Thêm vào `ROLES` (`label`, `income`, `screen`), rồi viết `case` trong `ren
 3. `main.js → act.buy(kind)`: xử lý `kind === 'key'`.
 4. Tác dụng của nâng cấp viết trong `sim.js`.
 
+### Thành tựu mới
+
+Thêm vào `ACHIEVEMENTS` trong `config.js`:
+
+```js
+{ id: 'coffee50', name: 'Nghiện cà phê', desc: 'Dùng Cà phê sốc 50 lần', goal: 50, gems: 10, stat: (g) => g.records.coffees },
+```
+
+Nếu cần bộ đếm mới (như `coffees`), thêm vào `freshRecords()` trong `state.js` (save cũ tự nhận giá trị 0), rồi tăng nó ở chỗ phù hợp (`useCoffee`…). Nhớ thêm bản dịch tên và mô tả vào `js/lang/en.js`.
+
+### Vật phẩm 💎 mới
+
+1. Thêm vào `PREMIUM_ITEMS` (`kind: 'perk'` mua 1 lần, `kind: 'boost'` mua nhiều lần).
+2. Điều kiện mua (nếu có): `premium.js → blockedReason`.
+3. Hiệu ứng: `premium.js → buyPremium` (dùng ngay), hoặc kiểm tra `hasPerk(g, 'id')` trong `sim.js` (vĩnh viễn).
+
+### Loại dự án, khách hàng, dữ liệu CV
+
+Thêm vào `PROJECT_TYPES` (`roles` = trọng số từng nghề), `CLIENTS`, `CV_NAMES`, `CV_HOBBIES`, `CV_LINES`, `CV_QUOTES`. Bộ sinh tự dùng dữ liệu mới. Chữ mới cần thêm bản dịch.
+
+### Đa ngôn ngữ
+
+- **Thêm chữ mới vào giao diện:** viết tiếng Việt trong `t('...')`, rồi thêm dòng tương ứng vào `js/lang/en.js`. Không ghép chuỗi kiểu `'Ngày ' + n`; hãy dùng `t('Ngày {n}', { n })` để người dịch đổi được thứ tự từ.
+- **Thêm ngôn ngữ mới** (ví dụ tiếng Nhật):
+  1. Chép `js/lang/en.js` thành `js/lang/ja.js` và dịch phần giá trị, giữ nguyên `{biến}`.
+  2. Trong `js/i18n.js`: `import ja from './lang/ja.js';` rồi thêm `ja: { name: '日本語', dict: ja, locale: 'ja-JP' }` vào `LANGS`. Nút chọn sẽ tự xuất hiện trong menu Thêm.
+  3. Kiểm tra font: VT323 và Press Start 2P chỉ có chữ Latin (có dấu tiếng Việt). Ngôn ngữ dùng chữ khác (Nhật, Hàn, Trung, Thái…) cần thêm font pixel hỗ trợ bộ chữ đó vào `fonts/` và `css/fonts.css`.
+- **Kiểm tra sót chữ:** mở game với trình duyệt đặt tiếng Anh, đi qua mọi màn hình, xem còn câu tiếng Việt nào không (tên người và tên thương hiệu được giữ nguyên).
+
 ## Cân bằng game
 
 Tất cả nằm trong `TUNING` (`config.js`): độ dài ngày, tốc độ mất năng lượng, xác suất lười, thời gian đình công, tiền phạt, thời gian giữ combo, hệ số tăng thu nhập theo ngày, `touchSlop` (vùng chạm rộng thêm trên mobile), `awayCap` (số giây tối đa được bù khi rời app).
@@ -79,6 +108,8 @@ Một số công thức đáng chú ý:
 - [ ] Hướng dẫn chơi lần đầu đầy đủ hơn. Hiện mới có dòng gợi ý dưới văn phòng (`hintText()` trong `ui.js`, hiện trong 8 roi đầu tiên); có thể thêm các bước giải thích KPI, đình công, cửa hàng.
 - [ ] Nhấn giữ vào nhân viên để xem thẻ thông tin (bản desktop có tooltip khi rê chuột, mobile chưa có).
 - [ ] Nút bật/tắt rung riêng (`platform.setHaptics` đã có, chỉ cần thêm nút và lưu vào `g`).
+- [ ] Nối AdMob thật (xem `docs/QUANG-CAO.md`); hiện quảng cáo đang giả lập.
+- [ ] Nhiệm vụ hằng ngày (3 nhiệm vụ nhỏ mỗi sáng, thưởng 💎), dùng chung cơ chế `stat(g)` của thành tựu.
 - [ ] Thu nhập offline: khi mở lại app sau nhiều giờ, trả một phần thu nhập (ví dụ 20%, tối đa 2 giờ) kèm hộp thoại "Trong lúc sếp vắng mặt…". Cần lưu `savedAt` trong `save()`.
 - [ ] Thông báo đẩy cục bộ (`@capacitor/local-notifications`), ví dụ "Nhân viên đang lười, KPI tụt!", để kéo người chơi quay lại.
 

@@ -517,3 +517,6 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .fake-ad-bar { height: 8px; background: #e8d8c0; margin: 14px 0; }
 .fake-ad-bar i { display: block; height: 100%; width: 0; background: #2f6a3f; }
 .fake-ad-box .px-btn { margin: 4px; }
+.lang-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
+.lang-row .px-btn { flex: 1; margin: 0; padding: 10px; }
+.lang-row .px-btn.on { background: #2f6a3f; }

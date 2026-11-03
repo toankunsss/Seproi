@@ -10,7 +10,7 @@ export function blockedReason(g, item) {
   if (item.id === 'secretary' && g.assistantLevel < ASSISTANT.length - 1) return item.needs;
   if (item.id === 'diamondWhip' && g.whipLevel < DIAMOND_WHIP - 1) return item.needs;
   if (item.id === 'cash' && !g.records.bestDays.length) return 'Cần hoàn thành 1 ngày';
-  if (g.gems < item.gems) return 'Chưa đủ 💎';
+  if (g.gems < item.gems) return 'gems'; // not enough 💎: the button just shows the price
   return '';
 }
 

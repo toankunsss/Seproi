@@ -3,12 +3,13 @@ import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, MAX_STAFF, OFFICE_LEVELS, DECOR_I
 import { incomeOf } from './sim.js';
 import { createScreens, projectSummary } from './screens.js';
 import { progressOf } from './projects.js';
+import { t, locale } from './i18n.js';
 
 export const fmt = (n) => {
   n = Math.floor(n);
   if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 1 : 2).replace(/\.?0+$/, '') + 'M';
   if (n >= 1e4) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
-  return n.toLocaleString('vi-VN');
+  return n.toLocaleString(locale());
 };
 
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
@@ -28,7 +29,7 @@ export function pressureScore(e) { return e.whips * 10 + e.wrong * 25 + Math.rou
 export function rankFor(kpi) {
   let r = RANKS[0];
   for (const x of RANKS) if (kpi * 100 >= x.min) r = x;
-  return r.title;
+  return t(r.title);
 }
 
 // Pixel icons for the mobile tab bar (12x12 grid, drawn in currentColor).
@@ -54,7 +55,7 @@ const ICON = {
 const MOBILE_HUD = `
     <div class="side info">
       <div class="stat money"><span class="coin"></span><b data-k="money">0</b><small data-k="rate"></small></div>
-      <div class="stat day"><span data-k="day">Ngày 1</span><b data-k="clock">09:00</b></div>
+      <div class="stat day"><span data-k="day"></span><b data-k="clock">09:00</b></div>
       <div class="stat kpi"><span>KPI</span><div class="meter"><i data-k="kpiBar"></i></div><b data-k="kpi">100%</b></div>
       <button class="stat gems" data-a="vip"><span class="gem"></span><b data-k="gems">0</b></button>
       <div class="whipname" data-k="whip"></div>
@@ -63,15 +64,15 @@ const MOBILE_HUD = `
     </div>
     <div class="side controls">
       <div class="hint" data-k="hint"></div>
-      <button class="projbar" data-a="projects"><span class="pj-name" data-k="projName">Chưa có dự án</span>
-        <span class="meter"><i data-k="projBar"></i></span><span class="pj-due" data-k="projDue">Chạm để nhận việc</span></button>
-      <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden>Cà phê sốc</button>
+      <button class="projbar" data-a="projects"><span class="pj-name" data-k="projName"></span>
+        <span class="meter"><i data-k="projBar"></i></span><span class="pj-due" data-k="projDue"></span></button>
+      <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden></button>
       <nav class="tabbar">
-        <button class="tab" data-a="shop">${ICON.shop}<span>Quản lý</span></button>
-        <button class="tab" data-a="projects">${ICON.projects}<span>Dự án</span><i class="dot" data-k="dotProjects" hidden></i></button>
-        <button class="tab" data-a="vip">${ICON.vip}<span>Kim cương</span></button>
-        <button class="tab" data-a="achievements">${ICON.achievements}<span>Thành tựu</span><i class="dot" data-k="dotAch" hidden></i></button>
-        <button class="tab" data-a="more">${ICON.more}<span>Thêm</span></button>
+        <button class="tab" data-a="shop">${ICON.shop}<span>${t('Quản lý')}</span></button>
+        <button class="tab" data-a="projects">${ICON.projects}<span>${t('Dự án')}</span><i class="dot" data-k="dotProjects" hidden></i></button>
+        <button class="tab" data-a="vip">${ICON.vip}<span>${t('Kim cương')}</span></button>
+        <button class="tab" data-a="achievements">${ICON.achievements}<span>${t('Thành tựu')}</span><i class="dot" data-k="dotAch" hidden></i></button>
+        <button class="tab" data-a="more">${ICON.more}<span>${t('Thêm')}</span></button>
       </nav>
     </div>
     <div class="tag" data-k="tag" hidden></div>`;
@@ -79,8 +80,8 @@ const MOBILE_HUD = `
 /** Short coaching line under the office for new players (mobile only). */
 function hintText(g) {
   const n = g.records.totalWhips;
-  if (n < 3) return 'Chạm vào người có bong bóng để quất!';
-  if (n < 8) return 'Đừng quất oan người đang làm việc!';
+  if (n < 3) return t('Chạm vào người có bong bóng để quất!');
+  if (n < 8) return t('Đừng quất oan người đang làm việc!');
   return '';
 }
 
@@ -91,28 +92,29 @@ export function createUI(root, g, act, { mobile = false } = {}) {
 
   hud.innerHTML = mobile ? MOBILE_HUD : `
     <div class="bar top">
-      <div class="grip" title="Giữ chuột và kéo để di chuyển game (thả gần taskbar sẽ tự hít vào)"></div>
+      <div class="grip" title="${t('Giữ chuột và kéo để di chuyển game (thả gần taskbar sẽ tự hít vào)')}"></div>
       <div class="stat money"><span class="coin"></span><b data-k="money">0</b><small data-k="rate"></small></div>
       <div class="stat kpi"><span>KPI</span><div class="meter"><i data-k="kpiBar"></i></div><b data-k="kpi">100%</b></div>
-      <div class="stat day"><span data-k="day">Ngày 1</span><b data-k="clock">09:00</b></div>
+      <div class="stat day"><span data-k="day"></span><b data-k="clock">09:00</b></div>
       <button class="stat gems" data-a="vip"><span class="gem"></span><b data-k="gems">0</b></button>
       <div class="spacer"></div>
-      <button class="px-btn" data-a="shop">Quản lý</button>
-      <button class="px-btn" data-a="projects">Dự án</button>
-      <button class="px-btn" data-a="achievements">Thành tựu <i class="dot" data-k="dotAch" hidden></i></button>
-      <button class="px-btn" data-a="decor">Nội thất</button>
-      <button class="px-btn" data-a="board">Áp lực</button>
-      <button class="px-btn" data-a="mode" data-k="modeBtn">Thu nhỏ</button>
-      <button class="px-btn" data-a="pip" data-k="pipBtn" hidden>Ghim nổi</button>
-      <button class="px-btn icon" data-a="mute" data-k="mute" title="Âm thanh">♪</button>
-      <button class="px-btn icon quit" data-a="quit" title="Thoát game">×</button>
+      <button class="px-btn" data-a="shop">${t('Quản lý')}</button>
+      <button class="px-btn" data-a="projects">${t('Dự án')}</button>
+      <button class="px-btn" data-a="achievements">${t('Thành tựu')} <i class="dot" data-k="dotAch" hidden></i></button>
+      <button class="px-btn" data-a="decor">${t('Nội thất')}</button>
+      <button class="px-btn" data-a="board">${t('Áp lực')}</button>
+      <button class="px-btn" data-a="more">${t('Thêm')}</button>
+      <button class="px-btn" data-a="mode" data-k="modeBtn"></button>
+      <button class="px-btn" data-a="pip" data-k="pipBtn" hidden>${t('Ghim nổi')}</button>
+      <button class="px-btn icon" data-a="mute" data-k="mute" title="${t('Âm thanh')}">♪</button>
+      <button class="px-btn icon quit" data-a="quit" title="${t('Thoát game')}">×</button>
     </div>
     <div class="bar bottom">
       <div class="whipname" data-k="whip"></div>
       <div class="combo" data-k="combo"></div>
       <div class="spacer"></div>
       <div class="assist" data-k="assist"></div>
-      <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden>Cà phê sốc</button>
+      <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden></button>
     </div>
     <div class="tag" data-k="tag" hidden></div>`;
 
@@ -147,26 +149,26 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       set(K.kpi, kpi + '%');
       K.kpiBar.style.width = kpi + '%';
       K.kpiBar.className = kpi >= 75 ? 'good' : kpi >= 50 ? 'mid' : 'bad';
-      set(K.day, `Ngày ${g.day}`);
+      set(K.day, t('Ngày {n}', { n: g.day }));
       set(K.clock, clockText(g));
-      set(K.whip, WHIPS[g.whipLevel].name);
+      set(K.whip, t(WHIPS[g.whipLevel].name));
       set(K.combo, g.combo > 1 ? `COMBO x${g.combo}` : '');
-      set(K.modeBtn, g.mode === 'office' ? 'Thu nhỏ' : 'Văn phòng');
-      set(K.mute, mobile ? (g.muted ? 'Âm: Tắt' : 'Âm: Bật') : g.muted ? '×' : '♪');
+      set(K.modeBtn, g.mode === 'office' ? t('Thu nhỏ') : t('Văn phòng'));
+      set(K.mute, g.muted ? '×' : '♪');
       if (mobile) { hud.classList.toggle('muted', g.muted); set(K.hint, hintText(g)); }
       if (g.coffeeLevel >= 0) {
         K.coffee.hidden = false;
         const ready = g.coffeeCd <= 0;
         K.coffee.disabled = !ready;
-        set(K.coffee, ready ? 'Cà phê sốc' : `Cà phê ${Math.ceil(g.coffeeCd)}s`);
+        set(K.coffee, ready ? t('Cà phê sốc') : t('Cà phê {s}s', { s: Math.ceil(g.coffeeCd) }));
       }
       const cd = Math.max(0, Math.ceil(g.assistantCd));
-      set(K.assist, g.assistantLevel < 0 ? '' : mobile ? `Trợ lý: ${cd}s` : `Trợ lý Lv${g.assistantLevel + 1} · ${cd}s`);
+      set(K.assist, g.assistantLevel < 0 ? '' : mobile ? t('Trợ lý: {s}s', { s: cd }) : t('Trợ lý Lv{lv} · {s}s', { lv: g.assistantLevel + 1, s: cd }));
       set(K.gems, String(g.gems));
       const pj = projectSummary(g);
       if (K.projName) {
-        set(K.projName, pj ? pj.name : 'Chưa có dự án');
-        set(K.projDue, pj ? `${Math.floor(pj.frac * 100)}% · ${pj.due}` : 'Chạm để nhận việc');
+        set(K.projName, pj ? t(pj.name) : t('Chưa có dự án'));
+        set(K.projDue, pj ? `${Math.floor(pj.frac * 100)}% · ${pj.due}` : t('Chạm để nhận việc'));
         K.projBar.style.width = pj ? Math.round(pj.frac * 100) + '%' : '0%';
         K.projName.parentElement.classList.toggle('idle', !pj);
       }
@@ -198,8 +200,8 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     tag(x, y, e) {
       if (!e) { K.tag.hidden = true; return; }
       K.tag.hidden = false;
-      const status = e.state === 'slack' ? SLACKS[e.slack].label : e.state === 'strike' ? 'Đình công!' : e.state === 'angry' ? 'Ức chế' : 'Đang làm';
-      K.tag.innerHTML = `<b>${esc(employeeName(e))}</b> · ${ROLES[e.role].label}<br><span class="${e.state === 'slack' ? 'bad' : ''}">${status}</span>`;
+      const status = e.state === 'slack' ? t(SLACKS[e.slack].label) : e.state === 'strike' ? t('Đình công!') : e.state === 'angry' ? t('Ức chế') : t('Đang làm');
+      K.tag.innerHTML = `<b>${esc(employeeName(e))}</b> · ${t(ROLES[e.role].label)}<br><span class="${e.state === 'slack' ? 'bad' : ''}">${status}</span>`;
       const r = root.stage.getBoundingClientRect();
       K.tag.style.left = x - r.left + 'px';
       K.tag.style.top = y - r.top + 'px';
@@ -219,34 +221,34 @@ export function createUI(root, g, act, { mobile = false } = {}) {
 
   let reportDone = null;
   function renderReport() {
-    const t = g.today;
-    const avg = t.kpiN ? t.kpiSum / t.kpiN : g.kpi;
+    const day = g.today;
+    const avg = day.kpiN ? day.kpiSum / day.kpiN : g.kpi;
     const title = rankFor(avg);
     const p = g.projects.active;
     let proj = '';
     if (p) {
       const pct = Math.floor(progressOf(p) * 100);
       proj = g.day >= p.deadline
-        ? `<div class="report-proj warn">Dự án <b>${esc(p.name)}</b> mới xong ${pct}% và hết hạn hôm nay!
-            ${p.extended ? '<br>Đã gia hạn 1 lần, sang ngày mới dự án sẽ thất bại.' : '<br><button class="px-btn ad" data-a="adExtend">▶ Xem quảng cáo: gia hạn +1 ngày</button>'}</div>`
-        : `<div class="report-proj">Dự án <b>${esc(p.name)}</b>: ${pct}% · hạn hết ngày ${p.deadline}</div>`;
+        ? `<div class="report-proj warn">${t('Dự án <b>{name}</b> mới xong {pct}% và hết hạn hôm nay!', { name: esc(t(p.name)), pct })}
+            ${p.extended ? '<br>' + t('Đã gia hạn 1 lần, sang ngày mới dự án sẽ thất bại.') : `<br><button class="px-btn ad" data-a="adExtend">▶ ${t('Xem quảng cáo: gia hạn +1 ngày')}</button>`}</div>`
+        : `<div class="report-proj">${t('Dự án <b>{name}</b>: {pct}% · hạn hết ngày {d}', { name: esc(t(p.name)), pct, d: p.deadline })}</div>`;
     }
     modal.hidden = false;
     modal.innerHTML = `
         <div class="card report">
-          <h2>Tan ca · Ngày ${g.day}</h2>
+          <h2>${t('Tan ca · Ngày {n}', { n: g.day })}</h2>
           <div class="rank">${title}</div>
           <table>
-            <tr><td>Doanh thu</td><td>${fmt(t.revenue)} đ</td></tr>
-            <tr><td>KPI trung bình</td><td>${Math.round(avg * 100)}%</td></tr>
-            <tr><td>Bắt quả tang</td><td>${t.catches}</td></tr>
-            <tr><td>Quất oan</td><td>${t.wrong}</td></tr>
-            <tr><td>Combo cao nhất</td><td>x${t.bestCombo}</td></tr>
+            <tr><td>${t('Doanh thu')}</td><td>${fmt(day.revenue)} đ</td></tr>
+            <tr><td>${t('KPI trung bình')}</td><td>${Math.round(avg * 100)}%</td></tr>
+            <tr><td>${t('Bắt quả tang')}</td><td>${day.catches}</td></tr>
+            <tr><td>${t('Quất oan')}</td><td>${day.wrong}</td></tr>
+            <tr><td>${t('Combo cao nhất')}</td><td>x${day.bestCombo}</td></tr>
           </table>
           ${proj}
-          ${t.doubled ? '<div class="report-bonus">Đã nhận thưởng quảng cáo ✓</div>'
-            : `<button class="px-btn ad wide" data-a="adDouble">▶ Xem quảng cáo: nhận thêm ${fmt(t.revenue)} đ</button>`}
-          <button class="px-btn big" data-a="nextDay">Ngày làm việc mới</button>
+          ${day.doubled ? `<div class="report-bonus">${t('Đã nhận thưởng quảng cáo ✓')}</div>`
+            : `<button class="px-btn ad wide" data-a="adDouble">▶ ${t('Xem quảng cáo: nhận thêm {m} đ', { m: fmt(day.revenue) })}</button>`}
+          <button class="px-btn big" data-a="nextDay">${t('Ngày làm việc mới')}</button>
         </div>`;
   }
 
@@ -257,7 +259,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     if (panelOpen) renderPanel();
   }
 
-  function item(key, title, desc, cost, owned, maxed, disabledLabel = 'Tối đa') {
+  function item(key, title, desc, cost, owned, maxed, disabledLabel = t('Tối đa')) {
     const can = !maxed && g.money >= cost;
     return `<div class="item ${maxed ? 'maxed' : ''}">
       <div class="info"><div class="title">${title}</div><div class="desc">${desc}</div></div>
@@ -285,32 +287,32 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       return;
     }
     const html = [
-      `<div class="panel-head"><h2>Nâng cấp & Quản lý</h2><button class="px-btn icon" data-a="shop">×</button></div>`,
-      `<div class="money-line">Quỹ: <b data-panel-money>${fmt(g.money)} đ</b></div>`,
+      `<div class="panel-head"><h2>${t('Nâng cấp & Quản lý')}</h2><button class="px-btn icon" data-a="shop">×</button></div>`,
+      `<div class="money-line">${t('Quỹ:')} <b data-panel-money>${fmt(g.money)} đ</b></div>`,
       item('office',
-        nextOffice ? `${office.name} → ${nextOffice.name}` : office.name,
+        nextOffice ? `${t(office.name)} → ${t(nextOffice.name)}` : t(office.name),
         nextOffice
-          ? (officeReady ? `Đã đạt mốc doanh thu · mở ${nextOffice.capacity} bàn làm việc.` : `Cần tổng doanh thu ${fmt(nextOffice.unlockRevenue)} đ · hiện có ${fmt(g.lifetimeEarnings || 0)} đ.`)
-          : `Trụ sở tối đa · ${office.capacity} bàn làm việc.`,
-        nextOffice ? nextOffice.cost : 0, true, !nextOffice || !officeReady, nextOffice ? 'Chưa đạt' : 'Tối đa'),
+          ? (officeReady ? t('Đã đạt mốc doanh thu · mở {n} bàn làm việc.', { n: nextOffice.capacity }) : t('Cần tổng doanh thu {need} đ · hiện có {have} đ.', { need: fmt(nextOffice.unlockRevenue), have: fmt(g.lifetimeEarnings || 0) }))
+          : t('Trụ sở tối đa · {n} bàn làm việc.', { n: office.capacity }),
+        nextOffice ? nextOffice.cost : 0, true, !nextOffice || !officeReady, nextOffice ? t('Chưa đạt') : t('Tối đa')),
       item('whip',
-        next ? `Roi: ${WHIPS[wl].name} → ${next.name}` : `Roi: ${WHIPS[wl].name}`,
-        next ? `Thưởng bắt quả tang ${WHIPS[wl].bonus} → ${next.bonus} đ · hăng say ${next.boost}s · tầm quất rộng hơn` : 'Cây roi tối thượng. Cả văn phòng run rẩy.',
+        next ? `${t('Roi:')} ${t(WHIPS[wl].name)} → ${t(next.name)}` : `${t('Roi:')} ${t(WHIPS[wl].name)}`,
+        next ? t('Thưởng bắt quả tang {a} → {b} đ · hăng say {s}s · tầm quất rộng hơn', { a: WHIPS[wl].bonus, b: next.bonus, s: next.boost }) : t('Cây roi tối thượng. Cả văn phòng run rẩy.'),
         next ? next.cost : 0, true, !next),
       hire ? `<div class="item">
-        <div class="info"><div class="title">Tuyển dụng · ${g.candidates.length} CV đang chờ</div>
-        <div class="desc">${n < office.capacity ? `${n}/${office.capacity} bàn đã có người. Đọc CV và chọn người phù hợp.` : `Hết bàn (${n}/${office.capacity}). Mở rộng văn phòng để tuyển thêm.`}</div></div>
-        <button class="px-btn buy" data-a="interview">Xem CV</button>
-      </div>` : item('hire', 'Văn phòng đã kín chỗ', `${MAX_STAFF}/${MAX_STAFF} bàn`, 0, false, true, 'Hết chỗ'),
+        <div class="info"><div class="title">${t('Tuyển dụng · {n} CV đang chờ', { n: g.candidates.length })}</div>
+        <div class="desc">${n < office.capacity ? t('{n}/{cap} bàn đã có người. Đọc CV và chọn người phù hợp.', { n, cap: office.capacity }) : t('Hết bàn ({n}/{cap}). Mở rộng văn phòng để tuyển thêm.', { n, cap: office.capacity })}</div></div>
+        <button class="px-btn buy" data-a="interview">${t('Xem CV')}</button>
+      </div>` : item('hire', t('Văn phòng đã kín chỗ'), t('{n}/{n} bàn', { n: MAX_STAFF }), 0, false, true, t('Hết chỗ')),
       item('coffee',
-        cl < 0 ? 'Mua máy pha cà phê' : COFFEE[cl + 1] ? `Máy cà phê Lv${cl + 1} → Lv${cl + 2}` : `Máy cà phê Lv${cl + 1}`,
-        COFFEE[cl + 1] ? `Nút "Cà phê sốc": +55 năng lượng, −30 áp lực, đánh thức kẻ ngủ gật. Hồi chiêu ${COFFEE[cl + 1].cooldown}s.` : 'Espresso cấp công nghiệp.',
+        cl < 0 ? t('Mua máy pha cà phê') : COFFEE[cl + 1] ? t('Máy cà phê Lv{a} → Lv{b}', { a: cl + 1, b: cl + 2 }) : t('Máy cà phê Lv{a}', { a: cl + 1 }),
+        COFFEE[cl + 1] ? t('Nút "Cà phê sốc": +55 năng lượng, −30 áp lực, đánh thức kẻ ngủ gật. Hồi chiêu {s}s.', { s: COFFEE[cl + 1].cooldown }) : t('Espresso cấp công nghiệp.'),
         COFFEE[cl + 1] ? COFFEE[cl + 1].cost : 0, cl >= 0, !COFFEE[cl + 1]),
       item('assistant',
-        al < 0 ? 'Thuê Trợ lý giám sát' : ASSISTANT[al + 1] ? `Trợ lý Lv${al + 1} → Lv${al + 2}` : `Trợ lý Lv${al + 1}`,
-        ASSISTANT[al + 1] ? `Tự quất kẻ lười mỗi ${ASSISTANT[al + 1].interval}s (nửa tiền thưởng). Chạy cả khi bạn bận.` : 'Mắt diều hâu, không bỏ sót ai.',
+        al < 0 ? t('Thuê Trợ lý giám sát') : ASSISTANT[al + 1] ? t('Trợ lý Lv{a} → Lv{b}', { a: al + 1, b: al + 2 }) : t('Trợ lý Lv{a}', { a: al + 1 }),
+        ASSISTANT[al + 1] ? t('Tự quất kẻ lười mỗi {s}s (nửa tiền thưởng). Chạy cả khi bạn bận.', { s: ASSISTANT[al + 1].interval }) : t('Mắt diều hâu, không bỏ sót ai.'),
         ASSISTANT[al + 1] ? ASSISTANT[al + 1].cost : 0, al >= 0, !ASSISTANT[al + 1]),
-      `<div class="panel-foot"><button class="px-btn danger" data-a="reset">Chơi lại từ đầu</button></div>`,
+      `<div class="panel-foot"><button class="px-btn danger" data-a="reset">${t('Chơi lại từ đầu')}</button></div>`,
     ].join('');
     panel.innerHTML = `<div class="panel">${html}</div>`;
     lastPanelSig = sig;
@@ -324,12 +326,12 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       const can = !owned && !locked && g.money >= item.cost;
       return `<div class="decor-row ${owned ? 'owned' : ''} ${locked ? 'locked' : ''}">
         <div class="decor-preview decor-${item.id}" aria-hidden="true"></div>
-        <div class="info"><div class="title">${item.name}</div><div class="desc">${locked ? `Cần văn phòng cấp ${item.level + 1}.` : item.desc}</div></div>
-        <button class="px-btn buy" data-a="buyDecor" data-arg="${item.id}" ${can ? '' : 'disabled'}>${owned ? 'Đã đặt' : fmt(item.cost) + ' đ'}</button>
+        <div class="info"><div class="title">${t(item.name)}</div><div class="desc">${locked ? t('Cần văn phòng cấp {n}.', { n: item.level + 1 }) : t(item.desc)}</div></div>
+        <button class="px-btn buy" data-a="buyDecor" data-arg="${item.id}" ${can ? '' : 'disabled'}>${owned ? t('Đã đặt') : fmt(item.cost) + ' đ'}</button>
       </div>`;
     }).join('');
     modal.innerHTML = `<div class="card decor-store">
-      <div class="panel-head"><div><h2>Cửa hàng nội thất</h2><small>${OFFICE_LEVELS[g.officeLevel].name} · Quỹ ${fmt(g.money)} đ</small></div><button class="px-btn icon" data-a="closeModal">×</button></div>
+      <div class="panel-head"><div><h2>${t('Cửa hàng nội thất')}</h2><small>${t(OFFICE_LEVELS[g.officeLevel].name)} · ${t('Quỹ')} ${fmt(g.money)} đ</small></div><button class="px-btn icon" data-a="closeModal">×</button></div>
       <div class="decor-list">${rows}</div>
     </div>`;
     act.closeModal = () => { modal.hidden = true; };
@@ -341,22 +343,22 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     modal.hidden = false;
     modal.innerHTML = `
       <div class="card board">
-        <div class="panel-head"><h2>Bảng xếp hạng áp lực</h2><button class="px-btn icon" data-a="closeModal">×</button></div>
+        <div class="panel-head"><h2>${t('Bảng xếp hạng áp lực')}</h2><button class="px-btn icon" data-a="closeModal">×</button></div>
         <table>
-          <tr class="th"><td>#</td><td>Nhân viên</td><td>Roi</td><td>Oan</td><td>Áp lực</td><td></td></tr>
+          <tr class="th"><td>#</td><td>${t('Nhân viên')}</td><td>${t('Roi')}</td><td>${t('Oan')}</td><td>${t('Áp lực')}</td><td></td></tr>
           ${rows.map((e, i) => `<tr>
             <td>${i + 1}</td>
-            <td><span class="dot" style="background:${e.look.shirt}"></span>${esc(employeeName(e))} <small>${ROLES[e.role].label}</small></td>
+            <td><span class="dot" style="background:${e.look.shirt}"></span>${esc(employeeName(e))} <small>${t(ROLES[e.role].label)}</small></td>
             <td>${e.whips}</td><td>${e.wrong}</td>
             <td><div class="meter small"><i class="${e.stress > 75 ? 'bad' : e.stress > 40 ? 'mid' : 'good'}" style="width:${Math.min(100, e.stress)}%"></i></div></td>
-            <td><button class="px-btn nick-btn" data-a="nickname" data-arg="${e.id}">Đặt tên</button></td>
+            <td><button class="px-btn nick-btn" data-a="nickname" data-arg="${e.id}">${t('Đặt tên')}</button></td>
           </tr>`).join('')}
         </table>
-        <h3>Kỷ lục của Sếp</h3>
+        <h3>${t('Kỷ lục của Sếp')}</h3>
         <table>
-          <tr><td>Tổng số roi đã quất</td><td>${r.totalWhips}</td></tr>
-          <tr><td>Combo cao nhất</td><td>x${r.bestCombo}</td></tr>
-          ${r.bestDays.map((d, i) => `<tr><td>Top ${i + 1}: Ngày ${d.day}</td><td>${fmt(d.revenue)} đ · KPI ${d.kpi}%</td></tr>`).join('')}
+          <tr><td>${t('Tổng số roi đã quất')}</td><td>${r.totalWhips}</td></tr>
+          <tr><td>${t('Combo cao nhất')}</td><td>x${r.bestCombo}</td></tr>
+          ${r.bestDays.map((d, i) => `<tr><td>${t('Top {i}: Ngày {d}', { i: i + 1, d: d.day })}</td><td>${fmt(d.revenue)} đ · KPI ${d.kpi}%</td></tr>`).join('')}
         </table>
       </div>`;
     act.closeModal = () => { modal.hidden = true; };
@@ -368,11 +370,11 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     modal.hidden = false;
     modal.innerHTML = `
       <div class="card nickname-card">
-        <div class="panel-head"><h2>Đặt biệt danh</h2><button class="px-btn icon" data-a="closeModal">×</button></div>
-        <p>Tên thật: <b>${esc(employee.name)}</b> · ${ROLES[employee.role].label}</p>
+        <div class="panel-head"><h2>${t('Đặt biệt danh')}</h2><button class="px-btn icon" data-a="closeModal">×</button></div>
+        <p>${t('Tên thật:')} <b>${esc(employee.name)}</b> · ${t(ROLES[employee.role].label)}</p>
         <form id="nickname-form">
-          <input name="nickname" maxlength="20" required value="${esc(employee.nickname)}" placeholder="Nhập biệt danh">
-          <button class="px-btn big" type="submit">Lưu biệt danh</button>
+          <input name="nickname" maxlength="20" required value="${esc(employee.nickname)}" placeholder="${t('Nhập biệt danh')}">
+          <button class="px-btn big" type="submit">${t('Lưu biệt danh')}</button>
         </form>
       </div>`;
     const form = modal.querySelector('#nickname-form');

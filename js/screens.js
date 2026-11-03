@@ -7,8 +7,9 @@ import { faceUrl, hirePrice, skillMult } from './cv.js';
 import { progressOf } from './projects.js';
 import { achievementList, claimableCount } from './achievements.js';
 import { blockedReason } from './premium.js';
+import { t, LANGS, getLang } from './i18n.js';
 
-const GEM = '<span class="gem" aria-label="kim cương"></span>';
+const GEM = '<span class="gem" aria-hidden="true"></span>';
 
 export function createScreens({ g, act, modal, fmt, esc }) {
   let current = null; // { name, render, sig, live }
@@ -39,37 +40,37 @@ export function createScreens({ g, act, modal, fmt, esc }) {
       return `<div class="cv ${cv.star ? 'star' : ''}">
         <div class="cv-top">
           <img class="face" src="${faceUrl(cv.look, cv.star)}" alt="">
-          <div class="cv-who"><b>${esc(cv.name)}</b>${cv.star ? ' <span class="badge-star">NGÔI SAO</span>' : ''}
-            <div>${ROLES[cv.role].label} · ${cv.age} tuổi · ${cv.exp} năm KN</div></div>
+          <div class="cv-who"><b>${esc(cv.name)}</b>${cv.star ? ` <span class="badge-star">${t('NGÔI SAO')}</span>` : ''}
+            <div>${t('{role} · {age} tuổi · {exp} năm KN', { role: t(ROLES[cv.role].label), age: cv.age, exp: cv.exp })}</div></div>
         </div>
         <div class="traits">
-          <div>Kỹ năng ${starRow(cv.skill, 'good')}</div>
-          <div>Độ lười ${starRow(cv.lazy, 'bad')}</div>
-          <div>Chịu áp lực ${starRow(cv.grit, 'calm')}</div>
+          <div>${t('Kỹ năng')} ${starRow(cv.skill, 'good')}</div>
+          <div>${t('Độ lười')} ${starRow(cv.lazy, 'bad')}</div>
+          <div>${t('Chịu áp lực')} ${starRow(cv.grit, 'calm')}</div>
         </div>
-        <ul class="cv-lines"><li>${esc(cv.line)}</li><li>Sở thích: ${esc(cv.hobby)}</li></ul>
-        <q>${esc(cv.quote)}</q>
+        <ul class="cv-lines"><li>${esc(t(cv.line))}</li><li>${t('Sở thích:')} ${esc(t(cv.hobby))}</li></ul>
+        <q>${esc(t(cv.quote))}</q>
         <div class="cv-actions">
-          <button class="px-btn danger" data-a="cvReject" data-arg="${i}">Loại</button>
-          <button class="px-btn big accept" data-a="cvHire" data-arg="${i}" ${can ? '' : 'disabled'}>Tuyển · ${fmt(price)} đ</button>
+          <button class="px-btn danger" data-a="cvReject" data-arg="${i}">${t('Loại')}</button>
+          <button class="px-btn big accept" data-a="cvHire" data-arg="${i}" ${can ? '' : 'disabled'}>${t('Tuyển')} · ${fmt(price)} đ</button>
         </div>
       </div>`;
     }).join('');
-    const note = full ? 'Công ty đã đủ 8 nhân viên.'
-      : free <= 0 ? 'Hết bàn trống. Mở rộng văn phòng (Quản lý) để tuyển thêm.'
-      : `Còn ${free} bàn trống.`;
+    const note = full ? t('Công ty đã đủ 8 nhân viên.')
+      : free <= 0 ? t('Hết bàn trống. Mở rộng văn phòng (Quản lý) để tuyển thêm.')
+      : t('Còn {n} bàn trống.', { n: free });
     return `<div class="card screen cv-screen">
-      ${head('Hồ sơ ứng viên', `${note} Quỹ ${fmt(g.money)} đ`)}
-      <div class="cv-list">${cards || '<p class="empty">Hết CV hôm nay. Sáng mai sẽ có ứng viên mới.</p>'}</div>
+      ${head(t('Hồ sơ ứng viên'), `${note} ${t('Quỹ')} ${fmt(g.money)} đ`)}
+      <div class="cv-list">${cards || `<p class="empty">${t('Hết CV hôm nay. Sáng mai sẽ có ứng viên mới.')}</p>`}</div>
       <div class="screen-foot">
-        <button class="px-btn ad" data-a="adCv">▶ Xem quảng cáo: 3 CV mới</button>
+        <button class="px-btn ad" data-a="adCv">▶ ${t('Xem quảng cáo: 3 CV mới')}</button>
       </div>
     </div>`;
   }
   const cvSig = () => [g.candidates.length, g.staff.length, g.officeLevel, ...g.candidates.map((cv) => g.money >= hirePrice(g, cv))].join('|');
 
   // --- Projects -------------------------------------------------------------------------
-  const roleBar = (p, r) => `<div class="req"><span>${ROLES[r].label}</span><div class="meter"><i data-prog="${r}"></i></div><b data-progtxt="${r}">${Math.floor(p.prog[r])}/${p.req[r]}</b></div>`;
+  const roleBar = (p, r) => `<div class="req"><span>${t(ROLES[r].label)}</span><div class="meter"><i data-prog="${r}"></i></div><b data-progtxt="${r}">${Math.floor(p.prog[r])}/${p.req[r]}</b></div>`;
   function projectsScreen() {
     const pr = g.projects, a = pr.active;
     const team = { dev: 0, acc: 0, des: 0 };
@@ -78,27 +79,27 @@ export function createScreens({ g, act, modal, fmt, esc }) {
     if (a) {
       const left = a.deadline - g.day;
       body = `<div class="proj active">
-        <div class="proj-name">${esc(a.name)}</div>
-        <small>Khách hàng: ${esc(a.client)} · Hạn: hết ngày ${a.deadline} (${left <= 0 ? '<b class="warn">hôm nay!</b>' : `còn ${left + 1} ngày`})</small>
+        <div class="proj-name">${esc(t(a.name))}</div>
+        <small>${t('Khách hàng: {c} · Hạn: hết ngày {d}', { c: esc(a.client), d: a.deadline })} (${left <= 0 ? `<b class="warn">${t('hôm nay!')}</b>` : t('còn {n} ngày', { n: left + 1 })})</small>
         ${Object.keys(a.req).map((r) => roleBar(a, r)).join('')}
-        <div class="reward">Thưởng: <b>${fmt(a.money)} đ</b> · <b>${a.gems}</b> ${GEM}</div>
-        <p class="tip">Nhân viên đang làm việc sẽ góp điểm theo nghề của họ. Giữ KPI cao để kịp hạn!</p>
+        <div class="reward">${t('Thưởng:')} <b>${fmt(a.money)} đ</b> · <b>${a.gems}</b> ${GEM}</div>
+        <p class="tip">${t('Nhân viên đang làm việc sẽ góp điểm theo nghề của họ. Giữ KPI cao để kịp hạn!')}</p>
         <div class="proj-actions">
-          ${a.extended ? '' : '<button class="px-btn ad" data-a="adExtend">▶ Quảng cáo: gia hạn +1 ngày</button>'}
-          <button class="px-btn danger" data-a="projAbandon">Huỷ dự án</button>
+          ${a.extended ? '' : `<button class="px-btn ad" data-a="adExtend">▶ ${t('Quảng cáo: gia hạn +1 ngày')}</button>`}
+          <button class="px-btn danger" data-a="projAbandon">${t('Huỷ dự án')}</button>
         </div>
       </div>`;
     } else {
-      body = `<p class="tip">Chọn 1 hợp đồng. Mỗi nghề cần đủ điểm trước khi hết hạn.</p>` + pr.offers.map((p, i) => `<div class="proj">
-        <div class="proj-name">${esc(p.name)}</div>
-        <small>${esc(p.client)} · ${p.days} ngày</small>
-        <div class="chips">${Object.entries(p.req).map(([r, n]) => `<span class="chip">${ROLES[r].label} ${fmt(n)} <i>(${team[r]} người)</i></span>`).join('')}</div>
+      body = `<p class="tip">${t('Chọn 1 hợp đồng. Mỗi nghề cần đủ điểm trước khi hết hạn.')}</p>` + pr.offers.map((p, i) => `<div class="proj">
+        <div class="proj-name">${esc(t(p.name))}</div>
+        <small>${esc(p.client)} · ${t('{n} ngày', { n: p.days })}</small>
+        <div class="chips">${Object.entries(p.req).map(([r, n]) => `<span class="chip">${t(ROLES[r].label)} ${fmt(n)} <i>(${t('{n} người', { n: team[r] })})</i></span>`).join('')}</div>
         <div class="proj-row"><span class="reward">${fmt(p.money)} đ · ${p.gems} ${GEM}</span>
-          <button class="px-btn big accept" data-a="projAccept" data-arg="${i}">Nhận</button></div>
+          <button class="px-btn big accept" data-a="projAccept" data-arg="${i}">${t('Nhận')}</button></div>
       </div>`).join('');
     }
     return `<div class="card screen proj-screen">
-      ${head('Dự án · Nghiệp vụ', `Hoàn thành ${pr.done} · Thất bại ${pr.failed}`)}
+      ${head(t('Dự án · Nghiệp vụ'), t('Hoàn thành {d} · Thất bại {f}', { d: pr.done, f: pr.failed }))}
       ${body}
     </div>`;
   }
@@ -119,17 +120,17 @@ export function createScreens({ g, act, modal, fmt, esc }) {
     const item = (it) => {
       const why = blockedReason(g, it);
       return `<div class="item vip ${it.kind}">
-        <div class="info"><div class="title">${it.name}</div><div class="desc">${it.desc}</div></div>
-        <button class="px-btn buy gem-btn" data-a="vipBuy" data-arg="${it.id}" ${why ? 'disabled' : ''}>${why && why !== 'Chưa đủ 💎' ? why : `${it.gems} ${GEM}`}</button>
+        <div class="info"><div class="title">${t(it.name)}</div><div class="desc">${t(it.desc)}</div></div>
+        <button class="px-btn buy gem-btn" data-a="vipBuy" data-arg="${it.id}" ${why ? 'disabled' : ''}>${why && why !== 'gems' ? t(why) : `${it.gems} ${GEM}`}</button>
       </div>`;
     };
     return `<div class="card screen vip-screen">
-      ${head('Cửa hàng Kim cương', 'Kim cương nhận từ thành tựu, dự án và quảng cáo')}
+      ${head(t('Cửa hàng Kim cương'), t('Kim cương nhận từ thành tựu, dự án và quảng cáo'))}
       <div class="gem-balance">${GEM} <b>${g.gems}</b></div>
-      <button class="px-btn ad wide" data-a="adGems" ${adsLeft > 0 ? '' : 'disabled'}>▶ Xem quảng cáo: +${ADS.gemsPerAd} ${GEM} <small>(còn ${Math.max(0, adsLeft)}/${ADS.gemAdsPerDay} lượt hôm nay)</small></button>
-      <h3>Đặc quyền vĩnh viễn</h3>
+      <button class="px-btn ad wide" data-a="adGems" ${adsLeft > 0 ? '' : 'disabled'}>▶ ${t('Xem quảng cáo:')} +${ADS.gemsPerAd} ${GEM} <small>(${t('còn {n}/{max} lượt hôm nay', { n: Math.max(0, adsLeft), max: ADS.gemAdsPerDay })})</small></button>
+      <h3>${t('Đặc quyền vĩnh viễn')}</h3>
       ${PREMIUM_ITEMS.filter((x) => x.kind === 'perk').map(item).join('')}
-      <h3>Dùng ngay</h3>
+      <h3>${t('Dùng ngay')}</h3>
       ${PREMIUM_ITEMS.filter((x) => x.kind === 'boost').map(item).join('')}
     </div>`;
   }
@@ -140,9 +141,9 @@ export function createScreens({ g, act, modal, fmt, esc }) {
     const list = achievementList(g);
     const done = list.filter((a) => a.claimed).length;
     return `<div class="card screen ach-screen">
-      ${head('Thành tựu', `Đã nhận ${done}/${list.length}`)}
+      ${head(t('Thành tựu'), t('Đã nhận {d}/{n}', { d: done, n: list.length }))}
       ${list.map((a) => `<div class="ach ${a.claimed ? 'claimed' : a.done ? 'ready' : ''}">
-        <div class="info"><div class="title">${a.name}</div><div class="desc">${a.desc}</div>
+        <div class="info"><div class="title">${t(a.name)}</div><div class="desc">${t(a.desc)}</div>
           <div class="meter"><i style="width:${Math.round((a.value / a.goal) * 100)}%"></i></div></div>
         ${a.claimed ? '<span class="done">✓</span>'
           : `<button class="px-btn buy gem-btn" data-a="achClaim" data-arg="${a.id}" ${a.done ? '' : 'disabled'}>+${a.gems} ${GEM}</button>`}
@@ -153,11 +154,11 @@ export function createScreens({ g, act, modal, fmt, esc }) {
 
   // --- More menu -------------------------------------------------------------------------
   const moreScreen = () => `<div class="card screen more-screen">
-      ${head('Thêm')}
-      <button class="px-btn wide" data-a="decor">Nội thất văn phòng</button>
-      <button class="px-btn wide" data-a="board">Nhân sự & áp lực</button>
-      <button class="px-btn wide" data-a="mute">${g.muted ? 'Bật âm thanh' : 'Tắt âm thanh'}</button>
-      <button class="px-btn wide danger" data-a="reset">Chơi lại từ đầu</button>
+      ${head(t('Thêm'))}
+      <button class="px-btn wide" data-a="decor">${t('Nội thất văn phòng')}</button>
+      <button class="px-btn wide" data-a="board">${t('Nhân sự & áp lực')}</button>
+      <button class="px-btn wide" data-a="mute">${g.muted ? t('Bật âm thanh') : t('Tắt âm thanh')}</button>
+      <h3>${t('Ngôn ngữ')}${getLang() === 'en' ? '' : ' · Language'}</h3><div class="lang-row">${Object.entries(LANGS).map(([code, l]) => `<button class="px-btn ${code === getLang() ? 'on' : ''}" data-a="setLang" data-arg="${code}">${l.name}</button>`).join('')}</div><button class="px-btn wide danger" data-a="reset">${t('Chơi lại từ đầu')}</button>
     </div>`;
 
   const screens = {
@@ -187,6 +188,6 @@ export function projectSummary(g) {
   const a = g.projects.active;
   if (!a) return null;
   const left = a.deadline - g.day;
-  return { name: a.name, frac: progressOf(a), due: left <= 0 ? 'hạn hôm nay' : `còn ${left + 1} ngày` };
+  return { name: a.name, frac: progressOf(a), due: left <= 0 ? t('hạn hôm nay') : t('còn {n} ngày', { n: left + 1 }) };
 }
 

@@ -3,6 +3,7 @@
 //   - AdMob (native app with @capacitor-community/admob installed): see docs/QUANG-CAO.md
 //   - simulated: a 5-second fake ad overlay, used until AdMob is set up (and in the browser)
 import { native } from './platform.js';
+import { t } from './i18n.js';
 
 // Fill these in from your AdMob account (docs/QUANG-CAO.md). The values below are Google's
 // public TEST unit ids: they always serve test ads and are safe while developing.
@@ -48,22 +49,22 @@ function showSimulated(placement) {
     const el = document.createElement('div');
     el.className = 'fake-ad';
     el.innerHTML = `<div class="fake-ad-box">
-      <small>QUẢNG CÁO (GIẢ LẬP)</small>
+      <small>${t('QUẢNG CÁO (GIẢ LẬP)')}</small>
       <div class="fake-ad-title">Trà sữa Mây</div>
-      <p>Uống là tỉnh, làm là xong deadline!</p>
+      <p>${t('Uống là tỉnh, làm là xong deadline!')}</p>
       <div class="fake-ad-bar"><i></i></div>
-      <button class="px-btn" data-skip>Đóng (không nhận thưởng)</button>
-      <button class="px-btn big" data-claim hidden>Nhận thưởng</button>
+      <button class="px-btn" data-skip>${t('Đóng (không nhận thưởng)')}</button>
+      <button class="px-btn big" data-claim hidden>${t('Nhận thưởng')}</button>
     </div>`;
     document.body.appendChild(el);
     el.dataset.placement = placement;
     const bar = el.querySelector('.fake-ad-bar i');
     const claim = el.querySelector('[data-claim]');
-    let t = 0;
+    let elapsed = 0;
     const tick = setInterval(() => {
-      t += 0.1;
-      bar.style.width = Math.min(100, (t / 5) * 100) + '%';
-      if (t >= 5) { clearInterval(tick); claim.hidden = false; }
+      elapsed += 0.1;
+      bar.style.width = Math.min(100, (elapsed / 5) * 100) + '%';
+      if (elapsed >= 5) { clearInterval(tick); claim.hidden = false; }
     }, 100);
     const finish = (ok) => { clearInterval(tick); el.remove(); done(ok); };
     el.querySelector('[data-skip]').addEventListener('click', () => finish(false));
