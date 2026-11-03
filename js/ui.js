@@ -127,7 +127,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     const a = b.dataset.a;
     if (a === 'shop') togglePanel();
     else if (a === 'board') showBoard();
-    else if (screens[a] && ['projects', 'vip', 'achievements', 'more'].includes(a)) { ui.closePanel(); screens[a](); }
+    else if (screens[a] && ['projects', 'vip', 'achievements', 'more', 'staff'].includes(a)) { ui.closePanel(); screens[a](); }
     else act[a] && act[a](b.dataset.arg);
   };
   hud.addEventListener('click', onClick);
@@ -304,6 +304,11 @@ export function createUI(root, g, act, { mobile = false } = {}) {
         <div class="desc">${n < office.capacity ? t('{n}/{cap} bàn đã có người. Đọc CV và chọn người phù hợp.', { n, cap: office.capacity }) : t('Hết bàn ({n}/{cap}). Mở rộng văn phòng để tuyển thêm.', { n, cap: office.capacity })}</div></div>
         <button class="px-btn buy" data-a="interview">${t('Xem CV')}</button>
       </div>` : item('hire', t('Văn phòng đã kín chỗ'), t('{n}/{n} bàn', { n: MAX_STAFF }), 0, false, true, t('Hết chỗ')),
+      `<div class="item">
+        <div class="info"><div class="title">${t('Nhân sự · {n} người', { n })}</div>
+        <div class="desc">${t('Khen thưởng, tăng lương, liên hoan hoặc sa thải nhân viên.')}</div></div>
+        <button class="px-btn buy" data-a="staff">${t('Mở')}</button>
+      </div>`,
       item('coffee',
         cl < 0 ? t('Mua máy pha cà phê') : COFFEE[cl + 1] ? t('Máy cà phê Lv{a} → Lv{b}', { a: cl + 1, b: cl + 2 }) : t('Máy cà phê Lv{a}', { a: cl + 1 }),
         COFFEE[cl + 1] ? t('Nút "Cà phê sốc": +55 năng lượng, −30 áp lực, đánh thức kẻ ngủ gật. Hồi chiêu {s}s.', { s: COFFEE[cl + 1].cooldown }) : t('Espresso cấp công nghiệp.'),
@@ -364,7 +369,10 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     act.closeModal = () => { modal.hidden = true; };
   }
 
+  let nickFrom = 'board';
   function showNickname(id) {
+    nickFrom = screens.open === 'staff' ? 'staff' : 'board';
+    screens.close();
     const employee = g.staff.find((e) => e.id === Number(id));
     if (!employee) return;
     modal.hidden = false;
@@ -381,7 +389,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       if (!form.reportValidity()) return;
-      if (act.setNickname(employee.id, new FormData(form).get('nickname'))) showBoard();
+      if (act.setNickname(employee.id, new FormData(form).get('nickname'))) (nickFrom === 'staff' ? screens.staff() : showBoard());
     });
     form.elements.nickname.focus();
   }

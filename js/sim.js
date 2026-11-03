@@ -1,8 +1,9 @@
 // Simulation: employee behaviour, economy, day cycle, coffee & assistant.
 // Pure-ish: mutates the game object and reports what happened through `emit`.
-import { ROLES, SLACKS, SLACK_KINDS, WHIPS, COFFEE, ASSISTANT, WORK_RATE, TUNING as T } from './config.js';
+import { ROLES, SLACKS, SLACK_KINDS, WHIPS, COFFEE, ASSISTANT, WORK_RATE, MOTIVATION, TUNING as T } from './config.js';
 import { skillMult, lazyMult, stressMult } from './cv.js';
 import { addWork } from './projects.js';
+import { motivFactor, motivBaseline } from './staff.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -35,6 +36,9 @@ export function update(g, dt, emit) {
     e.flash = Math.max(0, e.flash - dt);
     e.boost = Math.max(0, e.boost - dt);
     e.stress = Math.max(0, e.stress - decay * dt);
+    // motivation slowly settles back to its baseline (rewards wear off, salary raises stick)
+    const base = motivBaseline(e), m = e.motiv ?? MOTIVATION.start, step = MOTIVATION.drift * dt;
+    e.motiv = m > base ? Math.max(base, m - step) : Math.min(base, m + step);
     if (coffee) e.energy = Math.min(100, e.energy + coffee.regen * dt);
 
     switch (e.state) {
@@ -42,7 +46,7 @@ export function update(g, dt, emit) {
         e.energy = Math.max(0, e.energy - T.energyDrain * dt * (e.boost > 0 ? 0.5 : 1));
         if (e.boost <= 0) {
           const tired = 1 - e.energy / 100;
-          const p = (T.slackBase + T.slackTired * tired * tired) * lazyMult(e.cv) * dt;
+          const p = (T.slackBase + T.slackTired * tired * tired) * lazyMult(e.cv) * motivFactor(e) * dt;
           if (Math.random() < p) {
             e.state = 'slack'; e.t = 0; e.dur = rand(T.slackMin, T.slackMax);
             // the hobby on their CV gives their favourite way to slack away
@@ -63,7 +67,7 @@ export function update(g, dt, emit) {
         if (e.t >= 1.6) toWork(e);
         break;
       case 'strike':
-        if (e.t >= T.strikeTime) { toWork(e); e.stress = 40; emit('strikeEnd', e); }
+        if (e.t >= T.strikeTime) { toWork(e); e.stress = 40; e.motiv = Math.min(e.motiv, MOTIVATION.afterStrike); emit('strikeEnd', e); }
         break;
     }
     if (e.state !== 'strike' && e.stress >= 100) {
@@ -139,6 +143,7 @@ export function whipEmployee(g, e, { auto = false } = {}) {
     e.stress += T.stressCatch * stressMult(e.cv);
     e.whips++;
     g.records.catches++;
+    e.motiv = Math.max(0, (e.motiv ?? MOTIVATION.start) + MOTIVATION.catch);
     let reward;
     if (auto) {
       reward = Math.round(w.bonus * 0.5);
@@ -159,6 +164,7 @@ export function whipEmployee(g, e, { auto = false } = {}) {
   // Innocent (working, already hurt, or angry): unfair!
   e.state = 'angry'; e.t = 0;
   e.stress += T.stressWrong * stressMult(e.cv);
+  e.motiv = Math.max(0, (e.motiv ?? MOTIVATION.start) + MOTIVATION.wrong);
   e.wrong++;
   e.whips++;
   g.combo = 0; g.comboT = 0;

@@ -6,6 +6,7 @@ import { hirePrice, refillCandidates } from './cv.js';
 import * as projects from './projects.js';
 import { claim, addGems } from './achievements.js';
 import { buyPremium } from './premium.js';
+import * as staffCare from './staff.js';
 import { showRewarded } from './ads.js';
 import { t as tr, setLang } from './i18n.js';
 import { createView } from './view.js';
@@ -95,7 +96,7 @@ const act = {
     const index = g.staff.length;
     if (index >= MAX_STAFF || index >= OFFICE_LEVELS[g.officeLevel].capacity) { audio.deny(); return toast(tr('Hết bàn trống, hãy mở rộng văn phòng!'), 'wrong'); }
     if (!pay(hirePrice(g, cv))) { audio.deny(); return toast(tr('Quỹ chưa đủ tiền tuyển.'), 'wrong'); }
-    g.staff.push(makeEmployee(index, cv));
+    g.staff.push(makeEmployee(staffCare.nextStaffId(g), cv));
     if (cv.star) g.records.starsHired++;
     g.candidates.splice(Number(i), 1);
     layout();
@@ -110,6 +111,27 @@ const act = {
   async adCv() {
     if (await watchAd('cv')) { refillCandidates(g); toast(tr('3 CV MỚI!'), 'money'); save(g); }
     ui.screens.repaint();
+  },
+  // --- Staff care: rewards & firing (screens.js → staff screen) ---
+  staffDo(arg) {
+    const [kind, id] = String(arg).split(':');
+    const e = g.staff.find((x) => x.id === Number(id));
+    if (kind !== 'party' && !e) return;
+    if (!staffCare.reward(g, kind, e)) { audio.deny(); return; }
+    audio.buy(); haptic('success');
+    const msg = { praise: 'ĐƯỢC KHEN!', bonus: 'THƯỞNG NÓNG!', gift: 'TRÀ SỮA!', raise: 'TĂNG LƯƠNG!', party: 'LIÊN HOAN!' }[kind];
+    toast(kind === 'party' ? tr(msg) : `${e.nickname || e.name}: ${tr(msg)}`, 'money');
+    save(g); ui.screens.repaint();
+  },
+  staffFire(id) {
+    const e = g.staff.find((x) => x.id === Number(id));
+    if (!e) return;
+    if (!confirm(tr('Sa thải {name}? Những người còn lại sẽ lo lắng (−động lực, +áp lực).', { name: e.nickname || e.name }))) return;
+    if (!staffCare.fire(g, e)) { audio.deny(); return; }
+    audio.strike(); haptic('heavy');
+    toast(tr('ĐÃ SA THẢI {name}', { name: e.name.toUpperCase() }), 'wrong');
+    layout();
+    save(g); ui.screens.repaint();
   },
   // --- Projects ---
   projAccept(i) {

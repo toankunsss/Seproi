@@ -94,6 +94,10 @@ Thêm vào `PROJECT_TYPES` (`roles` = trọng số từng nghề), `CLIENTS`, `C
   3. Kiểm tra font: VT323 và Press Start 2P chỉ có chữ Latin (có dấu tiếng Việt). Ngôn ngữ dùng chữ khác (Nhật, Hàn, Trung, Thái…) cần thêm font pixel hỗ trợ bộ chữ đó vào `fonts/` và `css/fonts.css`.
 - **Kiểm tra sót chữ:** mở game với trình duyệt đặt tiếng Anh, đi qua mọi màn hình, xem còn câu tiếng Việt nào không (tên người và tên thương hiệu được giữ nguyên).
 
+### Hành động chăm sóc nhân viên mới
+
+Thêm vào `STAFF_ACTIONS` (`config.js`) với các hiệu ứng `motiv`/`stress`/`energy`/`boost`, xử lý điều kiện riêng trong `staff.js → blocked`, rồi thêm một nút `staffBtn('tên', e, 'Nhãn')` trong `screens.js → staffScreen` và câu chúc mừng trong `main.js → staffDo`. Giá nhân với hệ số ngày (`1 + 0,12 × (ngày − 1)`), nên luôn tương xứng với thu nhập.
+
 ## Cân bằng game
 
 Tất cả nằm trong `TUNING` (`config.js`): độ dài ngày, tốc độ mất năng lượng, xác suất lười, thời gian đình công, tiền phạt, thời gian giữ combo, hệ số tăng thu nhập theo ngày, `touchSlop` (vùng chạm rộng thêm trên mobile), `awayCap` (số giây tối đa được bù khi rời app).

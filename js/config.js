@@ -240,3 +240,17 @@ export const ACHIEVEMENTS = [
   { id: 'perks4', name: 'Hoàng gia', desc: 'Sở hữu cả 4 đặc quyền vĩnh viễn', goal: 4, gems: 50, stat: (g) => g.perks.length },
   { id: 'boost10', name: 'Chơi lớn', desc: 'Dùng 10 vật phẩm kim cương', goal: 10, gems: 15, stat: (g) => g.records.boostsUsed },
 ];
+
+// --- Staff care: rewards & firing (staff.js) --------------------------------------------------
+// Motivation (động lực, 0..100, 50 = neutral) scales slacking: 100 → x0.6, 0 → x1.4.
+// It drifts back to a baseline (50 + 10 per salary level) at MOTIVATION.drift points/second.
+export const MOTIVATION = { start: 50, drift: 0.08, catch: -2, wrong: -15, afterStrike: 20 };
+// cost is in đ before the day multiplier (costs grow with the company like income does)
+export const STAFF_ACTIONS = {
+  praise: { cost: 0, motiv: 10, stress: -10 },                    // once per employee per day
+  bonus: { cost: 120, motiv: 25, stress: -25, boost: 20 },
+  gift: { cost: 60, motiv: 15, energy: 40 },
+  raise: { cost: 600, motiv: 30, maxLevel: 3, slackCut: 0.12 },  // cost x (level + 1); -12% slacking per level
+  party: { cost: 80, motiv: 20, stress: -40, energy: 30 },        // per employee, once per day
+  fire: { motiv: -8, stress: 10 },                                // effect on everyone who stays
+};

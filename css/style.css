@@ -536,3 +536,24 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
   .item-art { width: 52px; height: 52px; }
   .item.vip .buy { grid-column: 2; justify-self: start; }
 }
+
+/* staff care screen */
+.staff-list { display: grid; gap: 12px; margin-top: 8px; }
+.staff-card { background: var(--panel-2); padding: 10px; box-shadow: 0 0 0 3px var(--edge); }
+.staff-card.star { box-shadow: 0 0 0 3px #8a6a1a; }
+.staff-card .face { width: 56px; height: 56px; }
+.staff-card .cv-who b { font-size: 24px; }
+.staff-card .cv-who small { color: var(--muted); }
+.mini-stars { font-size: 16px; color: var(--muted); }
+.staff-bars { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; align-items: center; margin: 8px 0; }
+.staff-bars .meter { width: auto; }
+.staff-bars i.motiv { background: #ff5a7a; }
+.staff-bars i.stress { background: var(--orange); }
+.staff-bars i.energy { background: var(--green); }
+.staff-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.staff-actions .px-btn, .px-btn.party { margin: 0; padding: 6px 2px; font-size: 17px; line-height: 1.05; white-space: normal; background: #2f5a4a; min-height: 50px; }
+.staff-actions .px-btn small, .px-btn.party small { display: block; color: #cfe; font-size: 15px; }
+.px-btn.party { background: #6a3fb8; margin: 6px 0; }
+.staff-foot { display: flex; justify-content: space-between; margin-top: 8px; }
+.staff-foot .px-btn { margin: 0; }
+@media (max-width: 380px) { .staff-actions { grid-template-columns: repeat(2, 1fr); } }

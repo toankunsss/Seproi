@@ -1,6 +1,6 @@
 // Game state + persistence. Only durable fields are saved; transient ones
 // (animation timers, current slack) are rebuilt on load.
-import { STARTING_STAFF, GEMS_START } from './config.js';
+import { STARTING_STAFF, GEMS_START, MOTIVATION } from './config.js';
 import { cvFromPool } from './cv.js';
 import { backup } from './platform.js';
 
@@ -13,6 +13,7 @@ export function makeEmployee(i, cv = cvFromPool(i), extra = {}) {
     state: 'work', slack: null, t: 0, dur: 0,
     energy: 70 + Math.random() * 30, stress: 0, boost: 0,
     whips: 0, wrong: 0, flash: 0,
+    motiv: MOTIVATION.start, wage: 0, praisedDay: 0, // staff care (staff.js)
   };
 }
 
@@ -42,6 +43,7 @@ export function newGame() {
     projects: { offers: [], offersDay: 0, active: null, done: 0, failed: 0 },
     claimed: [],             // achievement ids already rewarded
     perks: [],               // premium perks owned (config PREMIUM_ITEMS)
+    partyDay: 0,             // last day of a team party (staff.js)
     hotBonus: 0,             // seconds of x2 income left (premium boost)
     ads: { day: 0, gems: 0 },// rewarded-ad counters for daily caps
     muted: false, mode: 'office',
@@ -73,6 +75,7 @@ export function load() {
     g.staff = s.staff.map((e, i) => ({
       ...makeEmployee(e.id ?? i, e.cv || cvFromPool(e.id ?? i), { nickname: e.nickname }),
       energy: e.energy, stress: e.stress, whips: e.whips, wrong: e.wrong,
+      motiv: e.motiv ?? MOTIVATION.start, wage: e.wage || 0, praisedDay: e.praisedDay || 0,
     }));
     if (g.staff.length > 6) g.officeLevel = Math.max(g.officeLevel, 2);
     else if (g.staff.length > 4) g.officeLevel = Math.max(g.officeLevel, 1);
@@ -92,6 +95,7 @@ export function save(g) {
       staff: g.staff.map((e) => ({
         id: e.id, nickname: e.nickname || '', cv: e.cv,
         energy: e.energy, stress: e.stress, whips: e.whips, wrong: e.wrong,
+        motiv: e.motiv, wage: e.wage, praisedDay: e.praisedDay,
       })),
     };
     const json = JSON.stringify(data);

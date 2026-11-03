@@ -8,6 +8,8 @@ import { progressOf } from './projects.js';
 import { achievementList, claimableCount } from './achievements.js';
 import { blockedReason } from './premium.js';
 import { itemArtUrl } from './item-art.js';
+import { actionCost, blocked as staffBlocked } from './staff.js';
+import { STAFF_ACTIONS } from './config.js';
 import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
@@ -69,6 +71,59 @@ export function createScreens({ g, act, modal, fmt, esc }) {
     </div>`;
   }
   const cvSig = () => [g.candidates.length, g.staff.length, g.officeLevel, ...g.candidates.map((cv) => g.money >= hirePrice(g, cv))].join('|');
+
+  // --- Staff care: rewards & firing ------------------------------------------------------
+  const bar = (k, id, cls) => `<div class="meter"><i class="${cls}" data-bar="${k}:${id}"></i></div>`;
+  const STATE = { work: 'Đang làm', slack: 'Đang lười', hurt: 'Vừa bị quất', angry: 'Ức chế', strike: 'Đình công!' };
+  function staffBtn(kind, e, label, cls = '') {
+    const why = staffBlocked(g, kind, e);
+    const cost = actionCost(g, kind, e);
+    const price = why && why !== 'money' ? t(why) : cost ? `${fmt(cost)} đ` : t('Miễn phí');
+    return `<button class="px-btn ${cls}" data-a="staffDo" data-arg="${kind}:${e ? e.id : ''}" ${why ? 'disabled' : ''}>${t(label)}<small>${price}</small></button>`;
+  }
+  function staffScreen() {
+    const cap = OFFICE_LEVELS[g.officeLevel].capacity;
+    const cards = g.staff.map((e) => `<div class="staff-card ${e.cv.star ? 'star' : ''}">
+        <div class="cv-top">
+          <img class="face" src="${faceUrl(e.look, e.cv.star)}" alt="">
+          <div class="cv-who"><b>${esc(e.nickname || e.name)}</b>${e.nickname ? ` <small>(${esc(e.name)})</small>` : ''}
+            <div>${t(ROLES[e.role].label)} · ${t('Lương bậc {n}', { n: (e.wage || 0) + 1 })} · <span data-state="${e.id}">${t(STATE[e.state] || 'Đang làm')}</span></div>
+            <div class="mini-stars">★${e.cv.skill} ${t('Kỹ năng')} · ★${e.cv.lazy} ${t('Độ lười')} · ★${e.cv.grit} ${t('Chịu áp lực')}</div></div>
+        </div>
+        <div class="staff-bars">
+          <span>${t('Động lực')}</span>${bar('motiv', e.id, 'motiv')}
+          <span>${t('Áp lực')}</span>${bar('stress', e.id, 'stress')}
+          <span>${t('Năng lượng')}</span>${bar('energy', e.id, 'energy')}
+        </div>
+        <div class="staff-actions">
+          ${staffBtn('praise', e, 'Khen ngợi')}
+          ${staffBtn('bonus', e, 'Thưởng nóng')}
+          ${staffBtn('gift', e, 'Tặng trà sữa')}
+          ${staffBtn('raise', e, 'Tăng lương')}
+        </div>
+        <div class="staff-foot">
+          <button class="px-btn" data-a="nickname" data-arg="${e.id}">${t('Đặt tên')}</button>
+          <button class="px-btn danger" data-a="staffFire" data-arg="${e.id}" ${g.staff.length <= 1 ? 'disabled' : ''}>${t('Sa thải')}</button>
+        </div>
+      </div>`).join('');
+    return `<div class="card screen staff-screen">
+      ${head(t('Nhân sự'), t('{n}/{cap} nhân viên · Quỹ {m} đ', { n: g.staff.length, cap, m: fmt(g.money) }))}
+      <p class="tip">${t('Động lực cao → ít lười hơn. Khen thưởng để tăng động lực; quất oan làm động lực tụt mạnh.')}</p>
+      ${staffBtn('party', null, 'Liên hoan cả công ty', 'wide party')}
+      <div class="staff-list">${cards}</div>
+    </div>`;
+  }
+  const staffSig = () => [g.staff.length, g.day, g.partyDay, ...g.staff.map((e) => `${e.id}:${e.wage}:${e.praisedDay}:${e.nickname}:${['praise', 'bonus', 'gift', 'raise'].map((k) => staffBlocked(g, k, e)).join('')}`), staffBlocked(g, 'party')].join('|');
+  function staffLive() {
+    for (const e of g.staff) {
+      for (const k of ['motiv', 'stress', 'energy']) {
+        const el = modal.querySelector(`[data-bar="${k}:${e.id}"]`);
+        if (el) el.style.width = Math.round(Math.min(100, Math.max(0, e[k] ?? 0))) + '%';
+      }
+      const st = modal.querySelector(`[data-state="${e.id}"]`);
+      if (st) st.textContent = t(STATE[e.state] || 'Đang làm');
+    }
+  }
 
   // --- Projects -------------------------------------------------------------------------
   const roleBar = (p, r) => `<div class="req"><span>${t(ROLES[r].label)}</span><div class="meter"><i data-prog="${r}"></i></div><b data-progtxt="${r}">${Math.floor(p.prog[r])}/${p.req[r]}</b></div>`;
@@ -159,7 +214,8 @@ export function createScreens({ g, act, modal, fmt, esc }) {
   const moreScreen = () => `<div class="card screen more-screen">
       ${head(t('Thêm'))}
       <button class="px-btn wide" data-a="decor">${t('Nội thất văn phòng')}</button>
-      <button class="px-btn wide" data-a="board">${t('Nhân sự & áp lực')}</button>
+      <button class="px-btn wide" data-a="staff">${t('Nhân sự: khen thưởng & sa thải')}</button>
+<button class="px-btn wide" data-a="board">${t('Bảng xếp hạng áp lực')}</button>
       <button class="px-btn wide" data-a="mute">${g.muted ? t('Bật âm thanh') : t('Tắt âm thanh')}</button>
       <h3>${t('Ngôn ngữ')}${getLang() === 'en' ? '' : ' · Language'}</h3><div class="lang-row">${Object.entries(LANGS).map(([code, l]) => `<button class="px-btn ${code === getLang() ? 'on' : ''}" data-a="setLang" data-arg="${code}">${l.name}</button>`).join('')}</div><button class="px-btn wide danger" data-a="reset">${t('Chơi lại từ đầu')}</button>
     </div>`;
@@ -168,6 +224,7 @@ export function createScreens({ g, act, modal, fmt, esc }) {
     cv: () => open('cv', cvScreen, cvSig),
     projects: () => open('projects', projectsScreen, projSig, projLive),
     vip: () => open('vip', vipScreen, vipSig),
+    staff: () => open('staff', staffScreen, staffSig, staffLive),
     achievements: () => open('achievements', achScreen, achSig),
     more: () => open('more', moreScreen, () => String(g.muted)),
     /** Called ~10x/s by ui.update. */
