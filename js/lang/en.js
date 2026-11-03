@@ -399,4 +399,10 @@ export default {
   "Tạm dừng": "Paused",
   "Văn phòng đang tạm nghỉ, không ai lười được đâu.": "The office is on hold. Nobody can slack while you are away.",
   "Tiếp tục": "Continue",
+  "Thất bại / huỷ: phạt hợp đồng {m} đ": "Fail / cancel: contract fine {m} đ",
+  "Trễ hạn phạt {m} đ": "Late fine {m} đ",
+  "Nếu thất bại: phạt hợp đồng {m} đ": "If it fails: contract fine {m} đ",
+  "Huỷ dự án này? Dự án sẽ tính là thất bại và bị phạt hợp đồng {m} đ.": "Cancel this project? It counts as a failure and costs a {m} đ contract fine.",
+  "HUỶ DỰ ÁN · PHẠT {m} đ": "PROJECT CANCELLED · FINE {m} đ",
+  "DỰ ÁN THẤT BẠI: {name} · PHẠT {m} đ": "PROJECT FAILED: {name} · FINE {m} đ",
 };

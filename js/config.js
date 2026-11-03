@@ -157,6 +157,7 @@ export const CLIENTS = [
   'Nhà sách Tri Thức', 'Trà sữa Mây', 'Xe ôm Siêu Tốc', 'Gym Cơ Bắp', 'Homestay Đà Lạt Mộng',
 ];
 export const PROJECT_OFFERS = 3;
+export const PROJECT_PENALTY = 0.4; // failing (late or cancelled) costs 40% of the contract value
 export const WORK_RATE = 1; // work points per second per working employee (x skill, x boost)
 
 // --- Premium items (💎) ------------------------------------------------------------------------

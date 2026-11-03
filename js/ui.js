@@ -2,7 +2,7 @@
 import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, MAX_STAFF, OFFICE_LEVELS, DECOR_ITEMS, ROLES, RANKS, SLACKS, hireCost, TUNING } from './config.js';
 import { incomeOf } from './sim.js';
 import { createScreens, projectSummary } from './screens.js';
-import { progressOf } from './projects.js';
+import { progressOf, penaltyOf } from './projects.js';
 import { VISITS } from './config.js';
 import { t, locale } from './i18n.js';
 
@@ -265,6 +265,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       const pct = Math.floor(progressOf(p) * 100);
       proj = g.day >= p.deadline
         ? `<div class="report-proj warn">${t('Dự án <b>{name}</b> mới xong {pct}% và hết hạn hôm nay!', { name: esc(t(p.name)), pct })}
+            <br><b class="penalty">${t('Nếu thất bại: phạt hợp đồng {m} đ', { m: fmt(Math.min(g.money, penaltyOf(p))) })}</b>
             ${p.extended ? '<br>' + t('Đã gia hạn 1 lần, sang ngày mới dự án sẽ thất bại.') : `<br><button class="px-btn ad" data-a="adExtend">▶ ${t('Xem quảng cáo: gia hạn +1 ngày')}</button>`}</div>`
         : `<div class="report-proj">${t('Dự án <b>{name}</b>: {pct}% · hạn hết ngày {d}', { name: esc(t(p.name)), pct, d: p.deadline })}</div>`;
     }

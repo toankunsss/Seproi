@@ -143,8 +143,12 @@ const act = {
     ui.screens.repaint();
   },
   projAbandon() {
-    if (!confirm(tr('Huỷ dự án này? Dự án sẽ tính là thất bại.'))) return;
-    projects.abandon(g); save(g); ui.screens.repaint();
+    const p = g.projects.active;
+    if (!p || !confirm(tr('Huỷ dự án này? Dự án sẽ tính là thất bại và bị phạt hợp đồng {m} đ.', { m: fmt(projects.penaltyOf(p)) }))) return;
+    const r = projects.abandon(g);
+    audio.deny(); haptic('wrong');
+    toast(tr('HUỶ DỰ ÁN · PHẠT {m} đ', { m: fmt(r.fine) }), 'wrong');
+    save(g); ui.screens.repaint();
   },
   async adExtend() {
     if (await watchAd('extend') && projects.extend(g)) { toast(tr('GIA HẠN +1 NGÀY'), 'money'); save(g); }
@@ -489,8 +493,9 @@ function endDay() {
   const next = () => {
     // an overdue project fails when the new day starts (unless an ad extended it)
     if (projects.overdue(g)) {
-      const p = projects.fail(g);
-      toast(tr('DỰ ÁN THẤT BẠI: {name}', { name: tr(p.name) }), 'wrong');
+      const { p, fine } = projects.fail(g);
+      audio.deny(); haptic('wrong');
+      toast(tr('DỰ ÁN THẤT BẠI: {name} · PHẠT {m} đ', { name: tr(p.name), m: fmt(fine) }), 'wrong');
     }
     g.day++;
     g.dayTime = 0;

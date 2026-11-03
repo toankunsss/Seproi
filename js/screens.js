@@ -4,7 +4,7 @@
 // so a re-render never swallows a tap.
 import { ROLES, OFFICE_LEVELS, PREMIUM_ITEMS, ADS, MAX_STAFF } from './config.js';
 import { faceUrl, hirePrice, skillMult } from './cv.js';
-import { progressOf } from './projects.js';
+import { progressOf, penaltyOf } from './projects.js';
 import { achievementList, claimableCount } from './achievements.js';
 import { blockedReason } from './premium.js';
 import { itemArtUrl } from './item-art.js';
@@ -140,6 +140,7 @@ export function createScreens({ g, act, modal, fmt, esc }) {
         <small>${t('Khách hàng: {c} · Hạn: hết ngày {d}', { c: esc(a.client), d: a.deadline })} (${left <= 0 ? `<b class="warn">${t('hôm nay!')}</b>` : t('còn {n} ngày', { n: left + 1 })})</small>
         ${Object.keys(a.req).map((r) => roleBar(a, r)).join('')}
         <div class="reward">${t('Thưởng:')} <b>${fmt(a.money)} đ</b> · <b>${a.gems}</b> ${GEM}</div>
+        <div class="penalty">${t('Thất bại / huỷ: phạt hợp đồng {m} đ', { m: fmt(penaltyOf(a)) })}</div>
         <p class="tip">${t('Nhân viên đang làm việc sẽ góp điểm theo nghề của họ. Giữ KPI cao để kịp hạn!')}</p>
         <div class="proj-actions">
           ${a.extended ? '' : `<button class="px-btn ad" data-a="adExtend">▶ ${t('Quảng cáo: gia hạn +1 ngày')}</button>`}
@@ -151,6 +152,7 @@ export function createScreens({ g, act, modal, fmt, esc }) {
         <div class="proj-name">${esc(t(p.name))}</div>
         <small>${esc(p.client)} · ${t('{n} ngày', { n: p.days })}</small>
         <div class="chips">${Object.entries(p.req).map(([r, n]) => `<span class="chip">${t(ROLES[r].label)} ${fmt(n)} <i>(${t('{n} người', { n: team[r] })})</i></span>`).join('')}</div>
+        <div class="penalty">${t('Trễ hạn phạt {m} đ', { m: fmt(penaltyOf(p)) })}</div>
         <div class="proj-row"><span class="reward">${fmt(p.money)} đ · ${p.gems} ${GEM}</span>
           <button class="px-btn big accept" data-a="projAccept" data-arg="${i}">${t('Nhận')}</button></div>
       </div>`).join('');
