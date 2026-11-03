@@ -231,6 +231,26 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     refreshReport() { if (reportDone && !modal.hidden) renderReport(); },
 
     closePanel() { panelOpen = false; panel.hidden = true; },
+
+    /** Pause card over everything (own layer, so an open dialog underneath is kept). */
+    showPause(onResume) {
+      let el = document.getElementById('pause');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'pause';
+        document.body.appendChild(el);
+        el.addEventListener('pointerdown', (e) => e.stopPropagation());
+      }
+      el.innerHTML = `<div class="pause-card">
+          <div class="pause-icon"><i></i><i></i></div>
+          <h2>${t('Tạm dừng')}</h2>
+          <p>${t('Văn phòng đang tạm nghỉ, không ai lười được đâu.')}</p>
+          <div class="pause-stats">${t('Ngày {n}', { n: g.day })} · ${clockText(g)} · ${fmt(g.money)} đ</div>
+          <button class="px-btn big" data-resume>${t('Tiếp tục')}</button>
+        </div>`;
+      el.hidden = false;
+      el.querySelector('[data-resume]').addEventListener('click', () => { el.hidden = true; onResume(); }, { once: true });
+    },
     openShop() { if (!panelOpen) togglePanel(); },
   };
 

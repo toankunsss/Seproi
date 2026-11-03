@@ -27,8 +27,9 @@ mobile/
 | Tai thỏ / viền | Có padding theo vùng an toàn: iOS dùng `env(safe-area-inset-*)`, Android dùng biến `--safe-area-inset-*` do Capacitor 8 bơm vào. Cả hai được gộp vào `--sa-*` trong `style.css`. |
 | Toàn màn hình | Android: chế độ immersive (ẩn status bar và thanh điều hướng, vuốt từ mép để hiện tạm). iOS: ẩn status bar. |
 | Hướng màn hình | Khóa dọc (`portrait` trên Android, Portrait trên iOS). Riêng Android 16 trở lên, trên máy tính bảng và máy gập, hệ điều hành bỏ qua khóa xoay; khi máy nằm ngang, game tự chuyển sang bố cục ngang dự phòng (hai nhóm điều khiển thành hai cột bên cạnh văn phòng). |
-| Nút Back Android | Đóng hộp thoại hoặc panel đang mở. Nếu không có gì mở thì đưa app xuống nền (không thoát). |
-| Ra/vào app | Lưu game khi app xuống nền. Khi quay lại, mô phỏng bù tối đa `TUNING.awayCap` (300 giây) thời gian đã vắng. |
+| Nút Back Android | Đóng hộp thoại hoặc panel đang mở. Nếu không có gì mở thì hiện ô **Tạm dừng**; bấm Back thêm lần nữa trên ô đó thì đưa app xuống nền (không thoát). |
+| Ra/vào app | Khi app xuống nền (về màn hình chính, chuyển app, tắt màn hình), game **đứng yên hoàn toàn** và được lưu lại. Khi quay lại sẽ thấy ô **Tạm dừng** (ngày, giờ, quỹ); bấm **Tiếp tục** thì chạy lại. Ô Tạm dừng nằm ở lớp riêng, nên bảng đang mở bên dưới vẫn được giữ. (Bản PC không tạm dừng mà bù tối đa `TUNING.awayCap` = 300 giây thời gian vắng, vì chế độ taskbar cần chạy nền.) |
+| Hộp thoại dài | Tiêu đề và nút × được cố định (`position: sticky`); chỉ phần nội dung bên dưới cuộn. Cửa hàng Kim cương hiện số 💎 trên tiêu đề. |
 | Lưu game | Vẫn dùng `localStorage`, có thêm bản sao trong **Capacitor Preferences** (SharedPreferences / UserDefaults). Nếu hệ điều hành xóa dữ liệu WebView, game tự khôi phục từ bản sao. |
 
 ## Yêu cầu

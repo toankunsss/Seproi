@@ -567,3 +567,34 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .visitbar[hidden] { display: none; }
 @keyframes visit-pulse { 50% { background: #b02a3e; } }
 .bar.bottom .visitbar { flex: 1; }
+
+/* pause card (main.js → pauseGame) */
+#pause {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(8, 6, 14, 0.82); backdrop-filter: blur(2px);
+}
+#pause[hidden] { display: none; }
+.pause-card { width: min(340px, 100%); background: var(--panel); padding: 22px 18px; text-align: center; box-shadow: 0 0 0 4px var(--edge), 10px 10px 0 4px rgba(0,0,0,.4); }
+.pause-card h2 { font-family: var(--font-big); font-size: 22px; color: var(--gold); margin: 12px 0 8px; }
+.pause-card p { color: var(--muted); margin: 0 0 10px; line-height: 1.15; }
+.pause-stats { margin-bottom: 16px; }
+.pause-card .px-btn.big { width: 100%; min-height: 56px; font-size: 26px; background: #2f6a3f; }
+.pause-icon { display: flex; justify-content: center; gap: 10px; }
+.pause-icon i { width: 14px; height: 40px; background: var(--gold); box-shadow: 0 0 0 3px var(--edge); }
+
+/* Sticky dialog headers: the title and × stay put, only the content below scrolls. */
+.card .panel-head {
+  position: sticky; top: -16px; z-index: 3;
+  margin: -16px -20px 8px; padding: 14px 20px 8px;
+  background: var(--panel); box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+}
+.mobile .card .panel-head { top: -14px; margin: -14px -14px 8px; padding: 12px 14px 8px; }
+.card .panel-head h2 { margin-top: 0; }
+#panel .panel-head {
+  position: sticky; top: 0; z-index: 3; margin: -12px -14px 8px; padding: 12px 14px 8px;
+  background: var(--panel); box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+}
+.panel-head .gem-balance { margin: 0 10px 0 auto; font-size: 24px; align-self: center; white-space: nowrap; }
+.panel-head .gem-balance .gem { width: 18px; height: 16px; }
+.pause-card h2 { font-family: var(--font); font-size: 42px; letter-spacing: 1px; }
+.item.vip .buy { max-width: 132px; white-space: normal; line-height: 1.05; }

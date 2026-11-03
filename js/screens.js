@@ -29,7 +29,8 @@ export function createScreens({ g, act, modal, fmt, esc }) {
     modal.innerHTML = current.render();
     if (current.live) current.live();
   }
-  const head = (title, sub = '') => `<div class="panel-head"><div><h2>${title}</h2>${sub ? `<small>${sub}</small>` : ''}</div><button class="px-btn icon" data-a="closeScreen">×</button></div>`;
+  // Sticky header (CSS): title, subtitle, optional right-side chip, close button.
+  const head = (title, sub = '', right = '') => `<div class="panel-head"><div><h2>${title}</h2>${sub ? `<small>${sub}</small>` : ''}</div>${right}<button class="px-btn icon" data-a="closeScreen">×</button></div>`;
   const starRow = (n, cls) => `<span class="stars ${cls}">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`;
 
   // --- CV recruitment -------------------------------------------------------------------
@@ -183,8 +184,7 @@ export function createScreens({ g, act, modal, fmt, esc }) {
       </div>`;
     };
     return `<div class="card screen vip-screen">
-      ${head(t('Cửa hàng Kim cương'), t('Kim cương nhận từ thành tựu, dự án và quảng cáo'))}
-      <div class="gem-balance">${GEM} <b>${g.gems}</b></div>
+      ${head(t('Cửa hàng Kim cương'), t('Kim cương nhận từ thành tựu, dự án và quảng cáo'), `<div class="gem-balance">${GEM} <b>${g.gems}</b></div>`)}
       <button class="px-btn ad wide" data-a="adGems" ${adsLeft > 0 ? '' : 'disabled'}>▶ ${t('Xem quảng cáo:')} +${ADS.gemsPerAd} ${GEM} <small>(${t('còn {n}/{max} lượt hôm nay', { n: Math.max(0, adsLeft), max: ADS.gemAdsPerDay })})</small></button>
       <h3>${t('Đặc quyền vĩnh viễn')}</h3>
       ${PREMIUM_ITEMS.filter((x) => x.kind === 'perk').map(item).join('')}

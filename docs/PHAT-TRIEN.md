@@ -107,7 +107,7 @@ Thêm vào `STAFF_ACTIONS` (`config.js`) với các hiệu ứng `motiv`/`stress
 
 ## Cân bằng game
 
-Tất cả nằm trong `TUNING` (`config.js`): độ dài ngày, tốc độ mất năng lượng, xác suất lười, thời gian đình công, tiền phạt, thời gian giữ combo, hệ số tăng thu nhập theo ngày, `touchSlop` (vùng chạm rộng thêm trên mobile), `awayCap` (số giây tối đa được bù khi rời app).
+Tất cả nằm trong `TUNING` (`config.js`): độ dài ngày, tốc độ mất năng lượng, xác suất lười, thời gian đình công, tiền phạt, thời gian giữ combo, hệ số tăng thu nhập theo ngày, `touchSlop` (vùng chạm rộng thêm trên mobile), `awayCap` (số giây tối đa được bù khi rời app, chỉ áp dụng cho bản PC; bản điện thoại tạm dừng khi rời app).
 
 Một số công thức đáng chú ý:
 
@@ -145,7 +145,7 @@ Một số công thức đáng chú ý:
 - [ ] Ngày 1 → tan ca → báo cáo → ngày 2 (trên cả desktop và mobile).
 - [ ] Mua roi, cà phê, trợ lý, nâng văn phòng, mua nội thất; phỏng vấn và tuyển người; đặt biệt danh.
 - [ ] Quất oan nhiều lần để thấy đình công.
-- [ ] Mobile: xoay màn hình, mở/đóng panel, nút Back Android ở từng hộp thoại, đưa app xuống nền 1 phút rồi mở lại (thời gian và tiền phải được bù).
+- [ ] Mobile: xoay màn hình, mở/đóng panel, nút Back Android ở từng hộp thoại, đưa app xuống nền 1 phút rồi mở lại (game phải đứng yên và hiện ô Tạm dừng; bấm Tiếp tục thì chạy lại), bấm Back khi không có gì mở (hiện ô Tạm dừng), cuộn các bảng dài (tiêu đề và nút × phải đứng yên).
 - [ ] Đóng hẳn app rồi mở lại: save còn nguyên. "Chơi lại từ đầu" xóa sạch, kể cả bản sao trong Preferences.
 - [ ] Màn hình có tai thỏ / Dynamic Island và thanh Home: thẻ thông tin và thanh tab không bị che.
 - [ ] Máy nhỏ (iPhone SE 320×568) và máy lớn: chữ không xuống dòng sai, văn phòng không quá nhỏ.

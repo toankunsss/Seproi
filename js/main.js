@@ -42,6 +42,7 @@ const whip = createWhip();
 let pipWin = null;
 let paused = false;
 let adOpen = false; // the simulation waits while a rewarded ad is on screen
+let userPaused = false; // phone: frozen while away / until the player taps "Tiếp tục"
 let resetting = false;
 
 // Morning routine (also on first launch / old saves): fresh CVs, client offers, ad caps.
@@ -524,7 +525,7 @@ function frame(now) {
 
 function step(dt) {
   t += dt;
-  if (!paused && !adOpen) simUpdate(g, dt, onEvent);
+  if (!paused && !adOpen && !userPaused) simUpdate(g, dt, onEvent);
   whip.update(dt);
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
   view.render(g, whip, t);
@@ -538,16 +539,25 @@ function schedule() {
   win.requestAnimationFrame((now) => { if (token === loopToken) frame(now); });
 }
 
-// Catch up on time spent in a hidden tab / backgrounded app (rAF pauses there).
-// Wall-clock time is used because performance.now() stops while a phone app is suspended.
-// Both visibilitychange and the native pause/resume events land here; the calls are idempotent.
+// Leaving the game. Both visibilitychange and the native pause/resume events land here; the
+// calls are idempotent.
+//  - phone: the game freezes and shows the pause card; nothing happens while the player is away
+//  - desktop: it keeps running (taskbar mode); hidden time is caught up on return (wall clock,
+//    since performance.now() stops while hidden), capped at TUNING.awayCap seconds
 let hiddenAt = 0;
+function pauseGame() {
+  if (userPaused || resetting) return;
+  userPaused = true;
+  ui.showPause(() => { userPaused = false; last = performance.now(); });
+}
 function goAway() {
-  if (!hiddenAt) hiddenAt = Date.now();
+  if (mobile) pauseGame();
+  else if (!hiddenAt) hiddenAt = Date.now();
   // A reset reloads the page, which also fires visibilitychange → don't write the old save back.
   if (!resetting) save(g);
 }
 function comeBack() {
+  if (mobile) { last = performance.now(); fitMobile(true); return; } // stays paused until "Tiếp tục"
   if (!hiddenAt) return;
   let away = Math.min(TUNING.awayCap, Math.max(0, (Date.now() - hiddenAt) / 1000));
   hiddenAt = 0;
@@ -583,8 +593,13 @@ async function togglePip() {
 }
 
 // --- Boot -------------------------------------------------------------------------------
-/** Android back button: close the top-most dialog; returns false when nothing was open. */
+/**
+ * Android back button: close the top-most dialog, else pause the game; on the pause card it
+ * returns false so the app goes to the background.
+ */
 function handleBack() {
+  if (userPaused) return false;
+  if (document.querySelector('.fake-ad')) return true; // finish or close the ad first
   if (!root.modal.hidden) {
     if (act.nextDay) act.nextDay();
     else if (act.closeInterview) act.closeInterview();
@@ -592,6 +607,7 @@ function handleBack() {
     return true;
   }
   if (!root.panel.hidden) { ui.closePanel(); return true; }
+  if (mobile) { pauseGame(); return true; }
   return false;
 }
 await initPlatform({ onBack: handleBack, onPause: goAway, onResume: comeBack });

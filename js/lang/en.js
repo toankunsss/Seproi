@@ -396,4 +396,7 @@ export default {
   "Đang lướt điện thoại, quất nhanh!": "On their phone, whip now!",
   "{n} hợp đồng đang chờ": "{n} contracts waiting",
   "Hết hợp đồng hôm nay": "No contracts left today",
+  "Tạm dừng": "Paused",
+  "Văn phòng đang tạm nghỉ, không ai lười được đâu.": "The office is on hold. Nobody can slack while you are away.",
+  "Tiếp tục": "Continue",
 };
