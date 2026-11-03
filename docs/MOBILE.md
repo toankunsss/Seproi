@@ -152,7 +152,17 @@ Sửa logo: chỉnh `drawLogo()` trong `js/brand.js` rồi chạy lại `npm run
    npm run aab
    ```
 
-Muốn GitHub Actions ký luôn: thêm các secret `ANDROID_KEYSTORE_BASE64` (giá trị là output của `base64 -w0 whipboss-upload.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Workflow sẽ tạo thêm artifact `sep-roi-release`.
+**Cách không cần cài Android Studio (đang dùng):** mỗi lần push, GitHub Actions build sẵn file `WhipBoss-release-unsigned.aab` và gắn vào release `apk-latest` (cạnh file APK). Bạn chỉ cần ký nó bằng upload key trên máy mình (cần Java/JDK, có sẵn lệnh `jarsigner`):
+
+```bash
+jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore whipboss-upload.jks WhipBoss-release-unsigned.aab whipboss
+```
+
+Rồi đổi tên (ví dụ `WhipBoss-1.0.1.aab`) và upload lên Play Console. Trước mỗi lần upload bản mới, nhớ tăng `versionCode` (và `versionName`) trong `android/app/build.gradle` rồi push, đợi Actions build xong mới tải file `.aab`.
+
+Muốn GitHub Actions ký luôn: thêm các secret `ANDROID_KEYSTORE_BASE64` (giá trị là output của `base64 -w0 whipboss-upload.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Khi đó release sẽ có sẵn `WhipBoss-release.aab` đã ký.
+
+Google Play bắt buộc **Play App Signing** cho app mới: Google giữ khóa ký thật, còn khóa của bạn chỉ là *upload key*. Nếu lỡ mất upload key, có thể xin Google đặt lại trong Play Console (Cài đặt → Tính toàn vẹn của ứng dụng), nhưng mất vài ngày.
 
 ### iOS: TestFlight / App Store
 
@@ -162,7 +172,7 @@ Trong Xcode chọn thiết bị *Any iOS Device* → Product → **Archive** →
 
 - Nội dung game là hài hước châm biếm nhưng có cảnh "quất" nhân viên. Khi khai báo phân loại độ tuổi (IARC trên Google Play, Age Rating trên App Store), hãy chọn đúng mục bạo lực hoạt hình/hài hước để tránh bị từ chối.
 - Game không thu thập dữ liệu, không có quảng cáo, không gọi mạng: phần khai báo Data safety / Privacy Nutrition Label chọn "Không thu thập dữ liệu". Nếu sau này thêm analytics hoặc quảng cáo thì phải khai báo lại.
-- `appId` là `com.whipboss.game` (trùng với bản desktop). Muốn đổi thì phải đổi **trước** lần phát hành đầu tiên: sửa `capacitor.config.json`, `android/app/build.gradle` (`namespace`, `applicationId`), thư mục package Java của `MainActivity`, và Bundle Identifier trong Xcode.
+- `appId` là `com.whipboss.game` (trùng với bản desktop). Sau lần upload đầu tiên lên Google Play thì **không đổi được nữa**.
 
 ## Thêm plugin native mới
 
