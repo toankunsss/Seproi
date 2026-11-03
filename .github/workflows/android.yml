@@ -1,5 +1,8 @@
 # Builds the Android app on every push / PR that touches the game or the mobile project.
-# Download the APK from the run's "Artifacts" section (Actions tab → the run → sep-roi-debug-apk).
+# Download the APK:
+#   - easiest: the "apk-latest" release (repo → Releases → "Sếp Roi – bản APK mới nhất"),
+#     updated on every push; the .apk installs straight from a phone browser
+#   - or the run's "Artifacts" section (Actions tab → the run → sep-roi-debug-apk, a .zip)
 #
 # Optional signed release (.aab for Google Play): add these repository secrets
 #   ANDROID_KEYSTORE_BASE64   base64 of your .jks file   (base64 -w0 my-release.jks)
@@ -16,6 +19,8 @@ on:
 jobs:
   android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # publish the APK to the "apk-latest" release
     defaults:
       run:
         working-directory: mobile
@@ -50,6 +55,19 @@ jobs:
         with:
           name: sep-roi-debug-apk
           path: mobile/android/app/build/outputs/apk/debug/*.apk
+
+      # Replace the "apk-latest" pre-release with this build so the newest APK is always one tap away.
+      - name: Publish APK to the apk-latest release
+        if: github.event_name != 'pull_request'
+        working-directory: mobile/android/app/build/outputs/apk/debug
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app-debug.apk SepRoi-debug.apk
+          gh release delete apk-latest --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+          gh release create apk-latest SepRoi-debug.apk --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "Sếp Roi – bản APK mới nhất" \
+            --notes "Bản debug build tự động từ nhánh ${GITHUB_REF_NAME} (commit ${GITHUB_SHA::7}). Tải SepRoi-debug.apk về điện thoại Android rồi mở để cài (cho phép cài ứng dụng từ nguồn không xác định)."
 
       - name: Build signed release bundle
         if: env.ANDROID_KEYSTORE_BASE64 != ''
