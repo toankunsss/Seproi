@@ -420,4 +420,7 @@ export default {
   "Xong sớm {n} ngày!": "{n} day(s) early!",
   "Xem quảng cáo: nhận x2 tiền (+{m} đ)": "Watch an ad: x2 money (+{m} đ)",
   "+{m} đ · +{n} KIM CƯƠNG": "+{m} đ · +{n} DIAMONDS",
+  // privacy policy link
+  "Chính sách quyền riêng tư": "Privacy policy",
+  "Quyền riêng tư": "Privacy",
 };

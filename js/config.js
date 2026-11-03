@@ -101,6 +101,9 @@ export const RANKS = [
 // Kim cương (💎): earned from achievements, projects and rewarded ads; spent on premium items.
 export const GEMS_START = 10;
 
+// Privacy policy (docs/privacy.html on GitHub Pages). Google Play requires a link in the app too.
+export const PRIVACY_URL = 'https://toankunsss.github.io/Seproi/privacy.html';
+
 // --- Recruitment (CV) -----------------------------------------------------------------------
 // Every day a few candidates send in a CV. Traits are 1..5 stars and change the simulation:
 //   skill → income & project work, lazy → how often they slack, grit → stress they take per whip.

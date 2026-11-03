@@ -2,7 +2,7 @@
 // (pixel art on a 32x32 grid). No design files or canvas library needed: drawLogo only
 // uses fillRect, so a tiny fake 2D context rasterises it straight into an RGBA buffer.
 //
-//   icon.svg                         favicon (web / desktop)
+//   icon.svg, docs/icon.svg          favicon (web / desktop) + privacy policy page
 //   desktop/build/icon.ico, icon.png Windows / macOS app icon
 //   mobile/assets/*.png              sources for `capacitor-assets generate` (Android + iOS)
 //   tools/brand/out/icon-512.png     Google Play store icon (512x512, gitignored)
@@ -86,7 +86,9 @@ function write(rel, data) {
     const { ctx, rects } = makeCtx(32, 32, null);
     drawLogo(ctx, 0, 0, 32);
     const body = rects.map(([x, y, w, h, c]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`).join('');
-    write('icon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges">${body}</svg>\n`);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges">${body}</svg>\n`;
+    write('icon.svg', svg);
+    write('docs/icon.svg', svg); // privacy policy page (GitHub Pages serves docs/)
   }
   // desktop
   write('desktop/build/icon.ico', ico([16, 32, 48, 64, 128, 256].map((s) => ({ size: s, data: render(s) }))));

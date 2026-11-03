@@ -2,7 +2,7 @@
 // Each screen renders into #modal. While it is open, tick() (called from ui.update every 0.1s)
 // re-renders it when its signature changes, and live() updates fast-moving numbers in place
 // so a re-render never swallows a tap.
-import { ROLES, OFFICE_LEVELS, PREMIUM_ITEMS, ADS, MAX_STAFF } from './config.js';
+import { ROLES, OFFICE_LEVELS, PREMIUM_ITEMS, ADS, MAX_STAFF, PRIVACY_URL } from './config.js';
 import { faceUrl, hirePrice, skillMult } from './cv.js';
 import { progressOf, penaltyOf } from './projects.js';
 import { achievementList, claimableCount } from './achievements.js';
@@ -221,6 +221,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       <button class="px-btn wide" data-a="mute">${g.muted ? t('Bật âm thanh') : t('Tắt âm thanh')}</button>
       ${mobile ? `<button class="px-btn wide" data-a="music">${g.musicOff ? t('Bật nhạc nền') : t('Tắt nhạc nền')}</button>` : ''}
       <h3>${t('Ngôn ngữ')}${getLang() === 'en' ? '' : ' · Language'}</h3><div class="lang-row">${Object.entries(LANGS).map(([code, l]) => `<button class="px-btn ${code === getLang() ? 'on' : ''}" data-a="setLang" data-arg="${code}">${l.name}</button>`).join('')}</div><button class="px-btn wide danger" data-a="reset">${t('Chơi lại từ đầu')}</button>
+      <a class="px-btn wide link" href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Chính sách quyền riêng tư')}</a>
     </div>`;
 
   const screens = {

@@ -172,6 +172,7 @@ Trong Xcode chọn thiết bị *Any iOS Device* → Product → **Archive** →
 
 - Nội dung game là hài hước châm biếm nhưng có cảnh "quất" nhân viên. Khi khai báo phân loại độ tuổi (IARC trên Google Play, Age Rating trên App Store), hãy chọn đúng mục bạo lực hoạt hình/hài hước để tránh bị từ chối.
 - Game không thu thập dữ liệu, không có quảng cáo, không gọi mạng: phần khai báo Data safety / Privacy Nutrition Label chọn "Không thu thập dữ liệu". Nếu sau này thêm analytics hoặc quảng cáo thì phải khai báo lại.
+- **Chính sách quyền riêng tư** (bắt buộc): trang `docs/privacy.html`, đăng bằng GitHub Pages tại https://toankunsss.github.io/Seproi/privacy.html (bật một lần: repo → Settings → Pages → Source *Deploy from a branch* → chọn nhánh chứa code, thư mục `/docs` → Save). Trong game có link ở menu **Thêm** và cuối màn tiêu đề (`PRIVACY_URL` trong `config.js`). Khi thêm quảng cáo thật hay analytics phải sửa lại trang này.
 - `appId` là `com.whipboss.game` (trùng với bản desktop). Sau lần upload đầu tiên lên Google Play thì **không đổi được nữa**.
 
 ## Thêm plugin native mới

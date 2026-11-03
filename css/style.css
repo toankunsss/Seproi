@@ -679,3 +679,5 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
   .item.has-art, .decor-row { grid-template-columns: 52px 1fr; }
   .item.has-art .buy, .decor-row .buy { grid-column: 2; justify-self: start; }
 }
+.px-btn.link { text-align: center; text-decoration: none; font-size: 18px; color: var(--muted); background: transparent; box-shadow: none; }
+.title-foot a { color: #b4a6e8; }
