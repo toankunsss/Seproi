@@ -9,7 +9,7 @@ import { buyPremium } from './premium.js';
 import * as staffCare from './staff.js';
 import { planVisit, whipWitnessed, endVisit } from './events.js';
 import { VISITS } from './config.js';
-import { showRewarded } from './ads.js';
+import { showRewarded, initAds, lastAdFailure } from './ads.js';
 import { t as tr, setLang } from './i18n.js';
 import { createView } from './view.js';
 import { createWhip } from './whip.js';
@@ -230,6 +230,7 @@ async function watchAd(placement) {
   try {
     const ok = await showRewarded(placement);
     if (ok) g.records.adsWatched++;
+    else if (lastAdFailure === 'unavailable') toast(tr('Chưa có quảng cáo, thử lại sau ít phút.'), 'wrong');
     return ok;
   } finally {
     adOpen = false;
@@ -649,6 +650,7 @@ function handleBack() {
   return false;
 }
 await initPlatform({ onBack: handleBack, onPause: goAway, onResume: comeBack });
+initAds(); // AdMob (phone app only): consent form where required, then preload a rewarded ad
 
 setMode(g.mode);
 schedule();

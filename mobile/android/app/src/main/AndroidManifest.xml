@@ -21,6 +21,11 @@
             </intent-filter>
         </activity>
 
+        <!-- AdMob app id (Whip Boss). Ad unit ids are in js/ads.js. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-2932189263098274~2788968291" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

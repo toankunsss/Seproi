@@ -423,4 +423,6 @@ export default {
   // privacy policy link
   "Chính sách quyền riêng tư": "Privacy policy",
   "Quyền riêng tư": "Privacy",
+  // ads
+  "Chưa có quảng cáo, thử lại sau ít phút.": "No ad available right now, try again in a few minutes.",
 };

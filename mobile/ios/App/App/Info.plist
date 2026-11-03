@@ -6,6 +6,10 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>vi</string>
+	<!-- AdMob: Google's public SAMPLE iOS app id (test ads only). Replace it with your iOS AdMob app id
+	     before publishing on the App Store (docs/QUANG-CAO.md). Required, or the app crashes at launch. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
 	<key>CFBundleDisplayName</key>
         <string>Whip Boss</string>
 	<key>CFBundleExecutable</key>

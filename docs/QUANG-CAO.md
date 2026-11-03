@@ -1,6 +1,11 @@
 # Quảng cáo có thưởng (AdMob)
 
-Game chỉ gọi đúng một hàm: `showRewarded(placement)` trong `js/ads.js`. Hàm trả về `true` khi người chơi đã xem hết quảng cáo, và chỉ khi đó game mới trao thưởng. Hiện tại, khi app chưa cài AdMob, hàm hiện một **quảng cáo giả lập** 5 giây để bạn chơi thử và test toàn bộ luồng thưởng.
+Game chỉ gọi đúng một hàm: `showRewarded(placement)` trong `js/ads.js`. Hàm trả về `true` khi người chơi đã xem hết quảng cáo, và chỉ khi đó game mới trao thưởng.
+
+- **App điện thoại (từ bản 1.0.2):** dùng **Google AdMob** thật qua plugin `@capacitor-community/admob` 8.2.1.
+  - App ID `ca-app-pub-2932189263098274~2788968291` (khai trong `AndroidManifest.xml`).
+  - Đơn vị quảng cáo *Có tặng thưởng* `reward_main` = `ca-app-pub-2932189263098274/9932749113` (`AD_UNITS` trong `js/ads.js`).
+- **Trình duyệt / bản PC:** không có AdMob, nên hiện **quảng cáo giả lập** 5 giây để chơi thử và test luồng thưởng.
 
 ## Các điểm đặt quảng cáo
 
@@ -10,38 +15,36 @@ Game chỉ gọi đúng một hàm: `showRewarded(placement)` trong `js/ads.js`.
 | `double` | Báo cáo tan ca | Nhận thêm đúng bằng doanh thu ngày | 1 lần/ngày |
 | `extend` | Báo cáo tan ca / màn Dự án | Gia hạn dự án +1 ngày | 1 lần/dự án |
 | `cv` | Màn Hồ sơ ứng viên | 3 CV mới | Không giới hạn |
+| `projectDouble` | Popup hoàn thành dự án | x2 tiền dự án (💎 không nhân) | 1 lần/dự án |
 
 Trong lúc quảng cáo hiện, game tạm dừng và tắt tiếng (`main.js → watchAd`). Đổi phần thưởng hay giới hạn thì sửa `ADS` trong `config.js` và các hàm `ad*` trong `main.js`.
 
-## Nối AdMob thật
+## AdMob hoạt động thế nào (`js/ads.js`)
 
-1. Tạo tài khoản AdMob, thêm app Android (và iOS nếu có), rồi tạo **ad unit dạng Rewarded**. Bạn sẽ có *App ID* (`ca-app-pub-…~…`) và *Ad unit ID* (`ca-app-pub-…/…`).
-2. Cài plugin (bản 8 dành cho Capacitor 8):
+1. Mở app → `initAds()`:
+   - Hỏi plugin nội bộ `BuildInfo` (`BuildInfoPlugin.java`) xem đây là bản debug hay bản phát hành.
+   - Hiện biểu mẫu đồng ý của Google (UMP) nếu luật yêu cầu (EEA/UK/Thuỵ Sĩ).
+   - Khởi tạo AdMob và tải sẵn 1 quảng cáo.
+2. **Bản debug** (APK thử nghiệm ở release `apk-latest`) luôn xin **quảng cáo thử** (`isTesting: true`), nên bạn bấm thoải mái. Chỉ **bản phát hành** (.aab lên CH Play) mới dùng đơn vị quảng cáo thật.
+3. Người chơi bấm nút ▶: hiện quảng cáo đã tải sẵn. Thưởng được quyết định bằng sự kiện `onRewardedVideoAdReward` / `onRewardedVideoAdDismissed`. Lý do: `showRewardVideoAd()` của plugin không bao giờ kết thúc nếu người chơi đóng sớm. Đóng sớm thì không có thưởng. Xem xong thì tải sẵn quảng cáo tiếp theo.
+4. Không có quảng cáo (mất mạng, hết quảng cáo) thì game báo "Chưa có quảng cáo, thử lại sau ít phút." và không trừ gì.
 
-   ```bash
-   cd mobile
-   ```
+iOS chưa có app AdMob: `Info.plist` đang để App ID mẫu của Google (`GADApplicationIdentifier`) và `AD_UNITS.ios` là đơn vị thử. Nhớ thay trước khi lên App Store.
 
-   ```bash
-   npm install @capacitor-community/admob@8
-   ```
+## Sau khi phát hành chính thức
 
-   ```bash
-   npx cap sync
-   ```
-
-3. Khai báo App ID:
-   - Android, trong `mobile/android/app/src/main/AndroidManifest.xml`, bên trong `<application>`:
-     ```xml
-     <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-xxxxxxxx~yyyyyyyy"/>
-     ```
-   - iOS: thêm `GADApplicationIdentifier` (cùng giá trị) vào `mobile/ios/App/App/Info.plist`.
-4. Điền Ad unit ID thật vào `AD_UNITS` trong `js/ads.js`. Các giá trị đang có sẵn là **ID test công khai của Google**: luôn hiện quảng cáo thử, an toàn khi phát triển.
-5. `npm run sync`, cài lên máy thật và thử từng nút ▶. Khi có plugin, `ads.js` tự dùng AdMob (`AdMob.initialize → prepareRewardVideoAd → showRewardVideoAd`). Hãy kiểm tra trên máy thật rằng đóng quảng cáo giữa chừng thì **không** được thưởng; cách plugin báo việc này có thể khác giữa các phiên bản, nên chỉnh `showAdMob()` nếu cần.
+- Vào AdMob → app Whip Boss → **Liên kết với cửa hàng** (chọn app trên Google Play). AdMob duyệt app (vài ngày), sau đó quảng cáo thật mới chạy đầy đủ. Trước đó bản phát hành có thể ít hoặc không có quảng cáo.
+- Nên thêm file `app-ads.txt` trên website nhà phát triển (khai ở trang cửa hàng Play) để tăng doanh thu.
+- Thanh toán khi số dư đạt 100 USD; khai thông tin thuế và nhận mã PIN qua thư khi số dư đạt 10 USD.
 
 ## Bắt buộc trước khi phát hành
 
 - **Không bao giờ bấm quảng cáo thật của chính mình.** Khi test, dùng ID test hoặc thêm máy của bạn làm *test device* trong AdMob.
-- Có trang **chính sách quyền riêng tư** (privacy policy) và khai mục **Data safety** trên Google Play: AdMob thu thập mã quảng cáo (advertising ID).
+- Có trang **chính sách quyền riêng tư** (`docs/privacy.html`, đã nêu AdMob) và khai mục **An toàn dữ liệu** trên Google Play. Các mục cần khai:
+  - **Có** thu thập dữ liệu, có chia sẻ dữ liệu.
+  - *Mã thiết bị hoặc mã khác* (Device or other IDs), *Vị trí gần đúng*, *Hoạt động trong ứng dụng / Tương tác*, *Hiệu suất ứng dụng / Chẩn đoán*.
+  - Mục đích: Quảng cáo hoặc tiếp thị, Phân tích, Chống gian lận.
+  - Dữ liệu được mã hoá khi truyền, không bắt buộc.
+- Mục **Quảng cáo** trong Play Console: chọn **"Có, ứng dụng của tôi có chứa quảng cáo"**.
 - Hỏi đồng ý (consent) với người dùng châu Âu/Anh: AdMob có công cụ UMP, plugin hỗ trợ `requestConsentInfo` / `showConsentForm`.
 - Khai báo phân loại độ tuổi đúng (có bạo lực hoạt hình), và không chọn đối tượng trẻ em.
