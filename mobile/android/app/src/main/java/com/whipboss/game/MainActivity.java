@@ -1,4 +1,4 @@
-package vn.seproi.game;
+package com.whipboss.game;
 
 import android.os.Bundle;
 

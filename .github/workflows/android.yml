@@ -2,10 +2,12 @@
 # Download the APK:
 #   - easiest: the "apk-latest" release (repo → Releases → "Whip Boss – bản APK mới nhất"),
 #     updated on every push; the .apk installs straight from a phone browser
-#   - or the run's "Artifacts" section (Actions tab → the run → sep-roi-debug-apk, a .zip)
+#   - or the run's "Artifacts" section (Actions tab → the run → whipboss-debug-apk, a .zip)
 #
-# Optional signed release (.aab for Google Play): add these repository secrets
-#   ANDROID_KEYSTORE_BASE64   base64 of your .jks file   (base64 -w0 my-release.jks)
+# Google Play bundle: every run also builds the release .aab and attaches it to the same
+# release (WhipBoss-release-unsigned.aab → sign it with your upload key, see docs/MOBILE.md).
+# To get it signed here instead, add these repository secrets:
+#   ANDROID_KEYSTORE_BASE64   base64 of your .jks file   (base64 -w0 whipboss-upload.jks)
 #   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 name: Android build
 
@@ -53,7 +55,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: sep-roi-debug-apk
+          name: whipboss-debug-apk
           path: mobile/android/app/build/outputs/apk/debug/*.apk
 
       # Replace the "apk-latest" pre-release with this build so the newest APK is always one tap away.
@@ -69,23 +71,33 @@ jobs:
             --title "Whip Boss – bản APK mới nhất" \
             --notes "Bản debug build tự động từ nhánh ${GITHUB_REF_NAME} (commit ${GITHUB_SHA::7}). Tải WhipBoss-debug.apk về điện thoại Android rồi mở để cài (cho phép cài ứng dụng từ nguồn không xác định)."
 
-      - name: Build signed release bundle
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
+      # Google Play bundle (.aab). Signed when the keystore secrets below exist; otherwise built
+      # unsigned and signed afterwards on your own machine with jarsigner (docs/MOBILE.md), so the
+      # upload key never has to leave your computer.
+      - name: Build release bundle
         working-directory: mobile/android
+        env:
+          KS_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KS_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.jks
-          cat > keystore.properties <<PROPS
-          storeFile=../release.jks
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          PROPS
-          ./gradlew bundleRelease assembleRelease --no-daemon
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.jks
+            printf 'storeFile=../release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KS_PASSWORD" "$KS_ALIAS" "$KS_KEY_PASSWORD" > keystore.properties
+          fi
+          ./gradlew bundleRelease --no-daemon
+          cd app/build/outputs/bundle/release
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then mv app-release.aab WhipBoss-release.aab; else mv app-release.aab WhipBoss-release-unsigned.aab; fi
+          ls -la
 
       - uses: actions/upload-artifact@v4
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
         with:
-          name: sep-roi-release
-          path: |
-            mobile/android/app/build/outputs/bundle/release/*.aab
-            mobile/android/app/build/outputs/apk/release/*.apk
+          name: whipboss-release-bundle
+          path: mobile/android/app/build/outputs/bundle/release/*.aab
+
+      - name: Attach the bundle to the apk-latest release
+        if: github.event_name != 'pull_request'
+        working-directory: mobile/android/app/build/outputs/bundle/release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload apk-latest *.aab --repo "$GITHUB_REPOSITORY" --clobber

@@ -134,15 +134,15 @@ Sửa logo: chỉnh `drawLogo()` trong `js/brand.js` rồi chạy lại `npm run
 1. Tạo keystore một lần duy nhất. **Giữ kỹ file này và mật khẩu**: mất nó thì không cập nhật được app trên Play nữa.
 
    ```bash
-   keytool -genkey -v -keystore mobile/android/seproi-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias seproi
+   keytool -genkey -v -keystore mobile/android/whipboss-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias whipboss
    ```
 
 2. Tạo `mobile/android/keystore.properties` (đã nằm trong `.gitignore`, không commit):
 
    ```properties
-   storeFile=../seproi-release.jks
+   storeFile=../whipboss-upload.jks
    storePassword=MẬT_KHẨU
-   keyAlias=seproi
+   keyAlias=whipboss
    keyPassword=MẬT_KHẨU
    ```
 
@@ -152,7 +152,7 @@ Sửa logo: chỉnh `drawLogo()` trong `js/brand.js` rồi chạy lại `npm run
    npm run aab
    ```
 
-Muốn GitHub Actions ký luôn: thêm các secret `ANDROID_KEYSTORE_BASE64` (giá trị là output của `base64 -w0 seproi-release.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Workflow sẽ tạo thêm artifact `sep-roi-release`.
+Muốn GitHub Actions ký luôn: thêm các secret `ANDROID_KEYSTORE_BASE64` (giá trị là output của `base64 -w0 whipboss-upload.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Workflow sẽ tạo thêm artifact `sep-roi-release`.
 
 ### iOS: TestFlight / App Store
 
@@ -162,7 +162,7 @@ Trong Xcode chọn thiết bị *Any iOS Device* → Product → **Archive** →
 
 - Nội dung game là hài hước châm biếm nhưng có cảnh "quất" nhân viên. Khi khai báo phân loại độ tuổi (IARC trên Google Play, Age Rating trên App Store), hãy chọn đúng mục bạo lực hoạt hình/hài hước để tránh bị từ chối.
 - Game không thu thập dữ liệu, không có quảng cáo, không gọi mạng: phần khai báo Data safety / Privacy Nutrition Label chọn "Không thu thập dữ liệu". Nếu sau này thêm analytics hoặc quảng cáo thì phải khai báo lại.
-- `appId` là `vn.seproi.game` (trùng với bản desktop). Muốn đổi thì phải đổi **trước** lần phát hành đầu tiên: sửa `capacitor.config.json`, `android/app/build.gradle` (`namespace`, `applicationId`), thư mục package Java của `MainActivity`, và Bundle Identifier trong Xcode.
+- `appId` là `com.whipboss.game` (trùng với bản desktop). Muốn đổi thì phải đổi **trước** lần phát hành đầu tiên: sửa `capacitor.config.json`, `android/app/build.gradle` (`namespace`, `applicationId`), thư mục package Java của `MainActivity`, và Bundle Identifier trong Xcode.
 
 ## Thêm plugin native mới
 

@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 // Release signing: create android/keystore.properties (never commit it) with
 //   storeFile=../my-release.jks
 //   storePassword=...
-//   keyAlias=seproi
+//   keyAlias=whipboss
 //   keyPassword=...
 // See docs/MOBILE.md. Without it, release builds are unsigned and debug builds work as usual.
 def keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -13,10 +13,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "vn.seproi.game"
+    namespace = "com.whipboss.game"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "vn.seproi.game"
+        applicationId "com.whipboss.game"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Bump both for every store upload (versionCode must always increase).

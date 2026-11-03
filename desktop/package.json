@@ -19,7 +19,7 @@
     "electron-builder": "^26.15.3"
   },
   "build": {
-    "appId": "vn.seproi.game",
+    "appId": "com.whipboss.game",
     "productName": "Whip Boss",
     "directories": { "output": "dist", "buildResources": "build" },
     "files": ["main.cjs", "preload.cjs", "package.json"],

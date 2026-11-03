@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Whip Boss</string>
     <string name="title_activity_main">Whip Boss</string>
-    <string name="package_name">vn.seproi.game</string>
-    <string name="custom_url_scheme">vn.seproi.game</string>
+    <string name="package_name">com.whipboss.game</string>
+    <string name="custom_url_scheme">com.whipboss.game</string>
 </resources>
