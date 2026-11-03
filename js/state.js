@@ -14,6 +14,7 @@ export function makeEmployee(i, cv = cvFromPool(i), extra = {}) {
     energy: 70 + Math.random() * 30, stress: 0, boost: 0,
     whips: 0, wrong: 0, flash: 0,
     motiv: MOTIVATION.start, wage: 0, praisedDay: 0, // staff care (staff.js)
+    hiredDay: extra.hiredDay || 0,  // payroll: first month paid pro rata (payroll.js)
   };
 }
 
@@ -49,11 +50,12 @@ export function newGame() {
     ads: { day: 0, gems: 0 },// rewarded-ad counters for daily caps
     muted: false, musicOff: false, mode: 'office',
     tutorial: 0,             // first-time tutorial step (tutorial.js; 99 = done)
+    shares: 0, sold: 0, bestRun: 0, // selling the company (prestige.js)
   };
 }
 
 export function freshDay() {
-  return { revenue: 0, catches: 0, wrong: 0, bestCombo: 0, kpiSum: 0, kpiN: 0, doubled: false };
+  return { revenue: 0, project: 0, catches: 0, wrong: 0, bestCombo: 0, kpiSum: 0, kpiN: 0, doubled: false };
 }
 
 export function load() {
@@ -79,7 +81,7 @@ export function load() {
     g.staff = s.staff.map((e, i) => ({
       ...makeEmployee(e.id ?? i, e.cv || cvFromPool(e.id ?? i), { nickname: e.nickname }),
       energy: e.energy, stress: e.stress, whips: e.whips, wrong: e.wrong,
-      motiv: e.motiv ?? MOTIVATION.start, wage: e.wage || 0, praisedDay: e.praisedDay || 0,
+      motiv: e.motiv ?? MOTIVATION.start, wage: e.wage || 0, praisedDay: e.praisedDay || 0, hiredDay: e.hiredDay || 0,
     }));
     if (g.staff.length > 6) g.officeLevel = Math.max(g.officeLevel, 2);
     else if (g.staff.length > 4) g.officeLevel = Math.max(g.officeLevel, 1);
@@ -99,7 +101,7 @@ export function save(g) {
       staff: g.staff.map((e) => ({
         id: e.id, nickname: e.nickname || '', cv: e.cv,
         energy: e.energy, stress: e.stress, whips: e.whips, wrong: e.wrong,
-        motiv: e.motiv, wage: e.wage, praisedDay: e.praisedDay,
+        motiv: e.motiv, wage: e.wage, praisedDay: e.praisedDay, hiredDay: e.hiredDay || 0,
       })),
     };
     const json = JSON.stringify(data);

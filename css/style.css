@@ -499,7 +499,6 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .ach .meter { width: 100%; height: 6px; margin-top: 4px; }
 .ach.ready .title { color: var(--gold); }
 .ach.ready .buy { background: #1f5a7a; animation: pulse 1.2s infinite; }
-.ach.claimed { opacity: 0.55; }
 .ach .done { color: var(--green); font-size: 26px; width: 96px; text-align: center; }
 
 /* day report extras */
@@ -715,10 +714,69 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 
 /* "DAY N" banner at the start of a work day */
 .day-banner {
-  position: fixed; left: 0; right: 0; top: 34%; z-index: 25; pointer-events: none; text-align: center;
+  position: fixed; left: 0; right: 0; top: 34%; z-index: 8; pointer-events: none; text-align: center;
   padding: 10px 0 12px; background: rgba(15, 12, 24, .88); box-shadow: 0 4px 0 var(--gold), 0 -4px 0 var(--gold);
   animation: day-in 2.2s steps(10) forwards;
 }
-.day-banner b { display: block; font-family: var(--font-big); font-weight: normal; font-size: 30px; color: var(--gold); text-shadow: 3px 3px 0 var(--edge); }
+.day-banner b { display: block; font-family: var(--font); font-weight: normal; font-size: 58px; line-height: 1; color: var(--gold); text-shadow: 3px 3px 0 var(--edge); }
 .day-banner span { display: block; margin-top: 8px; font-size: 22px; color: #e8deff; }
 @keyframes day-in { 0% { transform: translateX(-100%); } 18%, 82% { transform: translateX(0); } 100% { transform: translateX(100%); } }
+/* report: pay day */
+.report-pay { text-align: left; margin: 4px 0 10px; padding: 8px; background: var(--panel-2); line-height: 1.2; }
+.report-pay b { color: var(--gold); font-weight: normal; }
+.report-pay span { float: right; color: #ff8a8a; }
+.report-pay .ok { color: var(--green); margin-top: 2px; }
+.report-pay.warn { box-shadow: 0 0 0 2px var(--red); }
+.cv-lines .cv-salary { color: #ffd34d; list-style: "₫ "; }
+
+/* achievement badges (item-art.js → badge) */
+.ach-badge { position: relative; flex: none; width: 56px; height: 56px; background: #1d1830; box-shadow: 0 0 0 3px var(--edge), inset 0 0 0 2px #342b50; }
+.ach-badge img { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+.ach-badge i { position: absolute; right: -5px; bottom: -5px; font-style: normal; width: 20px; height: 20px; line-height: 20px; text-align: center; background: var(--green); color: #12301a; box-shadow: 0 0 0 2px var(--edge); }
+.ach.locked .ach-badge img { filter: grayscale(1) brightness(.45); }
+.ach.ready .ach-badge { animation: badge-glow 1s steps(2) infinite; }
+@keyframes badge-glow { 50% { box-shadow: 0 0 0 3px var(--edge), inset 0 0 0 2px var(--gold), 0 0 14px 2px rgba(255, 211, 77, .6); } }
+.ach.claimed { opacity: 0.8; }
+.ach.claimed .ach-badge { box-shadow: 0 0 0 3px var(--edge), inset 0 0 0 2px #6a5a2a; }
+
+/* daily popups (ui.showOffline / showLogin) */
+#daily { position: fixed; inset: 0; z-index: 44; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(8, 6, 14, 0.8); }
+#daily[hidden] { display: none; }
+.daily-card .reward-art { width: 80px; height: 80px; }
+.daily-card h2 { font-size: 32px; }
+.login-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 4px 0 14px; }
+.login-cell { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; font-size: 18px; background: var(--panel-2); box-shadow: 0 0 0 3px var(--edge); }
+.login-cell:last-child { grid-column: span 2; background: #4a3a7a; }
+.login-cell small { font-size: 15px; color: var(--muted); }
+.login-cell b { font-weight: normal; color: var(--gold); }
+.login-cell .coin { width: 16px; height: 16px; }
+.login-cell .gem { width: 18px; height: 16px; }
+.login-cell.today { box-shadow: 0 0 0 3px var(--edge), 0 0 0 6px var(--gold); animation: badge-glow 1s steps(2) infinite; }
+.login-cell.past { opacity: .55; }
+.login-cell.future { opacity: .85; }
+.login-check { position: absolute; right: -4px; top: -6px; font-style: normal; width: 18px; height: 18px; line-height: 18px; text-align: center; background: var(--green); color: #12301a; box-shadow: 0 0 0 2px var(--edge); }
+.login-extra { font-style: normal; font-size: 14px; color: #ff8a6a; }
+/* daily quests (top of the Achievements screen) */
+.ach-h { margin: 10px 0 4px; font-size: 22px; color: var(--gold); font-weight: normal; }
+.ach-h small { font-size: 16px; color: var(--muted); margin-left: 6px; }
+.quests { margin-bottom: 6px; padding: 4px 10px 8px; background: #241d38; box-shadow: 0 0 0 2px #4a3f70; }
+.quest { display: flex; gap: 10px; align-items: center; padding: 6px 0; border-top: 2px dashed #4a3f70; }
+.quest .info { flex: 1; }
+.quest .title { font-size: 20px; }
+.quest .desc { font-size: 15px; color: var(--muted); }
+.quest .meter { width: 100%; height: 6px; margin-top: 3px; }
+.quest.ready .title { color: var(--gold); }
+.quest.ready .buy { background: #1f5a7a; animation: pulse 1.2s infinite; }
+.quest.claimed { opacity: .6; }
+.quest.bonus .title { color: #9ff4ff; }
+.quest .done { color: var(--green); font-size: 24px; width: 96px; text-align: center; }
+/* selling the company (prestige) */
+.sell-btn { background: #6a3f18; }
+.sell-now { font-size: 22px; color: #9ff4ff; margin: 4px 0 8px; }
+.sell-offer { padding: 10px; margin-bottom: 10px; background: #2f5a3a; box-shadow: 0 0 0 3px var(--edge); line-height: 1.2; }
+.sell-offer b { color: var(--gold); font-weight: normal; font-size: 24px; }
+.sell-need { padding: 8px; margin-bottom: 10px; background: var(--panel-2); color: var(--muted); line-height: 1.15; }
+.sell-need .meter { margin-top: 6px; height: 8px; }
+.sell-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.sell-cols h3 { margin: 0 0 2px; font-size: 20px; color: var(--gold); font-weight: normal; }
+.sell-cols ul { margin: 0; padding-left: 18px; font-size: 17px; color: #d8d0f0; line-height: 1.15; }

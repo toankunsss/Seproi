@@ -1,6 +1,6 @@
 {
   "name": "sep-roi-mobile",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Whip Boss — bản mobile (Android/iOS) đóng gói bằng Capacitor",
   "private": true,
   "scripts": {

@@ -128,9 +128,17 @@ Một số công thức đáng chú ý:
 - Thưởng bắt quả tang = `bonus × (1 + 0.5 × (combo − 1))`. Trợ lý chỉ nhận 50% và không cộng combo.
 - Phí tuyển người thứ n = `300 × 1.85^(n − 3)` (rồi nhân theo chất lượng CV, `cv.js → hirePrice`).
 
+### Kinh tế (bản 1.0.4)
+
+- **Lương tháng** (`PAYROLL`, `payroll.js`): 1 tháng = 5 ngày. Tan ca ngày 5, 10, 15… trả lương cả tháng + tiền thuê văn phòng. Lương/ngày = `daily[nghề] × kỹ năng × (1 + 0,2 × bậc lương) × hệ số ngày`; thuê văn phòng 60 / 300 / 900 đ/ngày. Người mới tuyển chỉ tính lương từ ngày vào làm; sa thải phải trả lương các ngày đã làm trong tháng (không lách được kỳ lương). Không đủ tiền: trả hết số đang có, nhân viên −35 động lực, +35 áp lực (dễ đình công). Báo cáo tan ca hiện kỳ lương hoặc số ngày còn lại; CV hiện lương/ngày; mục Nhân sự trong Quản lý hiện tổng lương tháng.
+- **Đã vá các lỗ hổng** (đo bằng `tools/balance/econ.cjs`): thu nhập thụ động không còn "miễn phí" (đã có lương); thưởng bắt quả tang tăng theo hệ số ngày (trước chỉ chiếm 4% thu nhập, giờ cùng trợ lý khoảng 25%); combo tối đa x4 (`comboCap`); dự án chỉ trả tiền (bỏ 💎) và giảm còn hệ số 3,5; quảng cáo cuối ngày chỉ +50% doanh thu, không tính tiền dự án (`adDayBonus`); "Rút quỹ đầu tư" chỉ trả nửa doanh thu ngày tốt nhất và không tính vào tổng doanh thu; thu nhập khi vắng mặt quy đổi theo ngày làm việc (8 giờ = 1,5 ngày).
+- **Giá cửa hàng 💎**: Máy chấm công AI 250, Ghế massage 200, Thư ký riêng 450, **Roi Kim Cương 999**, Thưởng nóng 30, Cà phê thượng hạng 25, Săn đầu người 60, Rút quỹ đầu tư 80.
+- **Nguồn 💎**: thành tựu, nhiệm vụ hằng ngày (5–8 💎/nhiệm vụ + 10 khi xong cả 3), quà đăng nhập, quảng cáo (+5, 6 lần/ngày), thanh tra, quà hướng dẫn.
+- **Bán công ty** (`PRESTIGE`): cần tổng doanh thu 300.000 đ; cổ phần = ⌊√(doanh thu / 75.000)⌋; mỗi cổ phần +10% thu nhập (làm việc, bắt quả tang, khi vắng mặt) vĩnh viễn. Giữ 💎, đặc quyền (Roi Kim Cương vẫn còn), thành tựu, kỷ lục.
+
 ### Nhịp tiến triển (đã cân lại giá)
 
-Giá roi, cà phê, trợ lý, văn phòng, nội thất và phí tuyển được chỉnh để người chơi giỏi (không xem quảng cáo) có tiến trình như sau: văn phòng 6 bàn khoảng ngày 2–4, **Trụ sở 8 bàn ngày 12–13**, cà phê tối đa ngày 15–16, Cúp Sếp xuất sắc ngày 17–18, trợ lý tối đa ngày 19–20, **Roi Rồng Lửa ngày 23–24**. Người chơi xem quảng cáo (x2 doanh thu cuối ngày, x2 tiền dự án) nhanh gấp khoảng 2 lần (Trụ sở khoảng ngày 7), tạo động lực xem quảng cáo.
+Với lương tháng và các bản vá trên, người chơi giỏi biết để dành tiền trả lương (không xem quảng cáo) có tiến trình: văn phòng 6 bàn ngày 3–6, **Trụ sở 8 bàn ngày 16–17**, cà phê tối đa ngày 20–21, Cúp Sếp xuất sắc ngày 21–22, trợ lý tối đa ngày 23–25, **Roi Rồng Lửa ngày 27–28**. Người xem quảng cáo nhanh hơn khoảng 1,5 lần (Trụ sở ngày 10–12).
 
 Các con số này đo bằng `tools/balance/econ.cjs` (cần `node serve.cjs` đang chạy): một "bot" chạy đúng code mô phỏng (`sim.js`): quất kẻ lười sau 1,2 giây, dùng cà phê ngay khi sẵn, luôn nhận dự án, mua đồ ngay khi đủ tiền (ưu tiên tuyển → văn phòng → roi → trợ lý → cà phê → nội thất). Khi đổi giá hay thu nhập, nên chạy lại bot để xem ngày mua từng món thay đổi thế nào.
 

@@ -83,6 +83,8 @@ export const TUNING = {
   strikeTime: 15,
   wrongPenalty: 25,        // money lost when whipping an innocent
   comboWindow: 2.5,
+  comboCap: 4,             // catch reward multiplier tops out at x4 (combo 7+)
+  adDayBonus: 0.5,         // end-of-day ad: +50% of the day's revenue without project money
   kpiTau: 20,              // seconds for the KPI moving average
   dayMult: 0.12,           // income growth per day
   touchSlop: 7,            // extra whip reach (buffer px) for fingers on touch screens
@@ -167,14 +169,14 @@ export const WORK_RATE = 1; // work points per second per working employee (x sk
 //   perk  — permanent, bought once
 //   boost — consumable, buy as often as you like
 export const PREMIUM_ITEMS = [
-  { id: 'aiClock', kind: 'perk', gems: 60, name: 'Máy chấm công AI', desc: '+15% thu nhập vĩnh viễn.' },
-  { id: 'massage', kind: 'perk', gems: 50, name: 'Ghế massage', desc: 'Áp lực của nhân viên giảm nhanh gấp đôi.' },
-  { id: 'secretary', kind: 'perk', gems: 120, name: 'Thư ký riêng', desc: 'Trợ lý quất kẻ lười mỗi 2 giây.', needs: 'Cần Trợ lý Lv4' },
-  { id: 'diamondWhip', kind: 'perk', gems: 200, name: 'Roi Kim Cương', desc: 'Thưởng bắt quả tang 600 đ, tầm quất rộng nhất.', needs: 'Cần Roi Rồng Lửa' },
-  { id: 'hotBonus', kind: 'boost', gems: 10, name: 'Thưởng nóng', desc: 'x2 thu nhập trong 60 giây.' },
-  { id: 'espresso', kind: 'boost', gems: 8, name: 'Cà phê thượng hạng', desc: 'Cả công ty hăng say 30 giây, hết sạch áp lực.' },
-  { id: 'starCv', kind: 'boost', gems: 25, name: 'Săn đầu người', desc: 'Làm mới CV, chắc chắn có 1 ứng viên ngôi sao.' },
-  { id: 'cash', kind: 'boost', gems: 20, name: 'Rút quỹ đầu tư', desc: 'Nhận ngay số tiền bằng doanh thu ngày tốt nhất.' },
+  { id: 'aiClock', kind: 'perk', gems: 250, name: 'Máy chấm công AI', desc: '+15% thu nhập vĩnh viễn.' },
+  { id: 'massage', kind: 'perk', gems: 200, name: 'Ghế massage', desc: 'Áp lực của nhân viên giảm nhanh gấp đôi.' },
+  { id: 'secretary', kind: 'perk', gems: 450, name: 'Thư ký riêng', desc: 'Trợ lý quất kẻ lười mỗi 2 giây.', needs: 'Cần Trợ lý Lv4' },
+  { id: 'diamondWhip', kind: 'perk', gems: 999, name: 'Roi Kim Cương', desc: 'Thưởng bắt quả tang 600 đ, tầm quất rộng nhất.', needs: 'Cần Roi Rồng Lửa' },
+  { id: 'hotBonus', kind: 'boost', gems: 30, name: 'Thưởng nóng', desc: 'x2 thu nhập trong 60 giây.' },
+  { id: 'espresso', kind: 'boost', gems: 25, name: 'Cà phê thượng hạng', desc: 'Cả công ty hăng say 30 giây, hết sạch áp lực.' },
+  { id: 'starCv', kind: 'boost', gems: 60, name: 'Săn đầu người', desc: 'Làm mới CV, chắc chắn có 1 ứng viên ngôi sao.' },
+  { id: 'cash', kind: 'boost', gems: 80, name: 'Rút quỹ đầu tư', desc: 'Nhận ngay một nửa doanh thu của ngày tốt nhất.' },
 ];
 
 // --- Rewarded ads ------------------------------------------------------------------------------
@@ -248,6 +250,47 @@ export const ACHIEVEMENTS = [
 // --- Staff care: rewards & firing (staff.js) --------------------------------------------------
 // Motivation (động lực, 0..100, 50 = neutral) scales slacking: 100 → x0.6, 0 → x1.4.
 // It drifts back to a baseline (50 + 10 per salary level) at MOTIVATION.drift points/second.
+// --- Selling the company (prestige.js) --------------------------------------------------------
+export const PRESTIGE = {
+  minRevenue: 300000,      // total revenue needed before an investor makes an offer
+  revenuePerShare: 75000,  // shares = floor(sqrt(total revenue / this)): 300k → 2, 1.2M → 4, 7.5M → 10
+  perShare: 0.1,           // +10% income per share, forever
+};
+
+// --- Daily features (daily.js) ---------------------------------------------------------------
+// Everything runs offline on the phone's clock (clock moved back = no reward).
+export const DAILY = {
+  // away from the app: a full capHours away pays `days` work days of normal income (pro rata below)
+  offline: { days: 1.5, capHours: 8, minMinutes: 5 },
+  loginMoney: 400,                                     // money unit for login gifts (x day multiplier)
+  // 7-day login calendar; missing a day starts again from day 1, day 7 loops back to day 1
+  login: [{ money: 1 }, { gems: 5 }, { money: 2 }, { gems: 10 }, { money: 3 }, { gems: 15 }, { gems: 30, boost: 'hotBonus' }],
+  questCount: 3,
+  questBonus: 10,                                      // 💎 for finishing all of today's quests
+  // n = target choices (one is picked), stat = counter that must grow by n since the quest started
+  quests: [
+    { id: 'catch', text: 'Bắt quả tang {n} kẻ lười', n: [25, 40, 60], gems: 5, stat: (g) => g.records.catches },
+    { id: 'gamer', text: 'Bắt {n} người đang chơi game', n: [8, 12], gems: 5, stat: (g) => g.records.caught.game },
+    { id: 'sleep', text: 'Đánh thức {n} người ngủ gật', n: [6, 10], gems: 5, stat: (g) => g.records.caught.sleep },
+    { id: 'assist', text: 'Trợ lý bắt {n} kẻ lười', n: [10, 20], gems: 5, stat: (g) => g.records.assistCatches, need: (g) => g.assistantLevel >= 0 },
+    { id: 'coffee', text: 'Dùng cà phê sốc {n} lần', n: [3, 5], gems: 5, stat: (g) => g.records.coffees, need: (g) => g.coffeeLevel >= 0 },
+    { id: 'project', text: 'Hoàn thành {n} dự án', n: [1, 2], gems: 8, stat: (g) => g.projects.done },
+    { id: 'reward', text: 'Khen thưởng nhân viên {n} lần', n: [3, 5], gems: 5, stat: (g) => g.records.rewardsGiven || 0 },
+    { id: 'days', text: 'Làm xong {n} ngày làm việc', n: [2, 3], gems: 6, stat: (g) => g.day },
+    { id: 'combo', text: 'Đạt combo x{n} trong một ngày', n: [5, 7], gems: 6, stat: (g) => g.today.bestCombo, best: true },
+  ],
+};
+
+// --- Payroll (payroll.js) ---------------------------------------------------------------------
+// Salaries are paid every monthDays days at clock-out, together with the office rent.
+export const PAYROLL = {
+  monthDays: 5,                            // one game "month" = 5 work days
+  daily: { dev: 260, acc: 190, des: 225 }, // salary per day before skill / raises / day multiplier
+  raiseStep: 0.2,                          // +20% salary per raise level (staff care → "Tăng lương")
+  rent: [60, 300, 900],                   // office rent per day by office level
+  unpaidMotiv: -35, unpaidStress: 35,      // what unpaid staff do to morale
+};
+
 export const MOTIVATION = { start: 50, drift: 0.08, catch: -2, wrong: -15, afterStrike: 20 };
 // cost is in đ before the day multiplier (costs grow with the company like income does)
 export const STAFF_ACTIONS = {

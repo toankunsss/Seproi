@@ -12,10 +12,12 @@ Game chỉ gọi đúng một hàm: `showRewarded(placement)` trong `js/ads.js`.
 | Placement | Ở đâu | Thưởng | Giới hạn |
 |---|---|---|---|
 | `gems` | Cửa hàng Kim cương | +5 💎 (`ADS.gemsPerAd`) | 6 lượt/ngày (`ADS.gemAdsPerDay`) |
-| `double` | Báo cáo tan ca | Nhận thêm đúng bằng doanh thu ngày | 1 lần/ngày |
+| `double` | Báo cáo tan ca | +50% doanh thu ngày (không tính tiền dự án) | 1 lần/ngày |
 | `extend` | Báo cáo tan ca / màn Dự án | Gia hạn dự án +1 ngày | 1 lần/dự án |
 | `cv` | Màn Hồ sơ ứng viên | 3 CV mới | Không giới hạn |
-| `projectDouble` | Popup hoàn thành dự án | x2 tiền dự án (💎 không nhân) | 1 lần/dự án |
+| `projectDouble` | Popup hoàn thành dự án | x2 tiền dự án | 1 lần/dự án |
+| `offlineDouble` | Popup "Trong lúc Sếp vắng mặt" | x2 thu nhập khi vắng mặt | 1 lần/lần quay lại |
+| `loginDouble` | Quà đăng nhập hằng ngày | x2 quà hôm nay | 1 lần/ngày |
 
 Trong lúc quảng cáo hiện, game tạm dừng và tắt tiếng (`main.js → watchAd`). Đổi phần thưởng hay giới hạn thì sửa `ADS` trong `config.js` và các hàm `ad*` trong `main.js`.
 

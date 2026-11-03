@@ -1,7 +1,8 @@
 // Boot, game loop and glue between simulation, view, whip and UI.
 import { WHIPS, COFFEE, ASSISTANT, OFFICE_LEVELS, DECOR_ITEMS, MAX_STAFF, ADS, TUNING } from './config.js';
 import { load, save, wipe, makeEmployee, freshDay, SAVE_KEY } from './state.js';
-import { update as simUpdate, whipEmployee, useCoffee, assistantInterval } from './sim.js';
+import { update as simUpdate, whipEmployee, useCoffee, assistantInterval, dayAdBonus } from './sim.js';
+import { payMonth, isPayday, severanceOf } from './payroll.js';
 import { hirePrice, refillCandidates } from './cv.js';
 import * as projects from './projects.js';
 import { claim, addGems } from './achievements.js';
@@ -19,6 +20,8 @@ import * as audio from './audio.js';
 import * as music from './music.js';
 import { showTitle } from './title.js';
 import { createTutorial, needsTutorial } from './tutorial.js';
+import * as daily from './daily.js';
+import { sellCompany, sharesFor } from './prestige.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 
 const $ = (id) => document.getElementById(id);
@@ -28,6 +31,10 @@ const root = { stage, hud: $('hud'), fx: $('fx'), panel: $('panel'), modal: $('m
 // Native app: bring back the save from the native backup if the WebView storage was wiped.
 await restoreBackup(SAVE_KEY);
 const g = load();
+// Offline earnings are measured from the last time the player was here, before anything saves.
+let pendingOffline = daily.offlineEarnings(g, Date.now());
+daily.touch(g, Date.now());
+daily.refreshQuests(g, Date.now());
 const params = new URLSearchParams(location.search);
 if (params.get('mode') === 'mini') g.mode = 'mini';
 // Phones/tablets have no taskbar: always play the full office.
@@ -48,6 +55,9 @@ let paused = false;
 let adOpen = false; // the simulation waits while a rewarded ad is on screen
 let rewardOpen = false; // …and while the project reward card waits to be collected
 let tutorial = null;     // first-time tutorial (tutorial.js) while it runs
+let dailyOpen = false;   // offline-earnings / login-gift popup on screen (daily.js)
+let dailyAfterTutorial = false;
+let dailyQueue = [];
 let userPaused = false; // phone: frozen while away / until the player taps "Tiếp tục"
 let resetting = false;
 // Phone: the title screen is up and the office waits behind it (?title=0 skips it, for tests).
@@ -109,7 +119,7 @@ const act = {
     const index = g.staff.length;
     if (index >= MAX_STAFF || index >= OFFICE_LEVELS[g.officeLevel].capacity) { audio.deny(); return toast(tr('Hết bàn trống, hãy mở rộng văn phòng!'), 'wrong'); }
     if (!pay(hirePrice(g, cv))) { audio.deny(); return toast(tr('Quỹ chưa đủ tiền tuyển.'), 'wrong'); }
-    g.staff.push(makeEmployee(staffCare.nextStaffId(g), cv));
+    g.staff.push(makeEmployee(staffCare.nextStaffId(g), cv, { hiredDay: g.day }));
     if (cv.star) g.records.starsHired++;
     g.candidates.splice(Number(i), 1);
     layout();
@@ -139,10 +149,11 @@ const act = {
   staffFire(id) {
     const e = g.staff.find((x) => x.id === Number(id));
     if (!e) return;
-    if (!confirm(tr('Sa thải {name}? Những người còn lại sẽ lo lắng (−động lực, +áp lực).', { name: e.nickname || e.name }))) return;
-    if (!staffCare.fire(g, e)) { audio.deny(); return; }
+    if (!confirm(tr('Sa thải {name}? Phải trả {m} đ lương cho những ngày đã làm trong tháng. Những người còn lại sẽ lo lắng (−động lực, +áp lực).', { name: e.nickname || e.name, m: fmt(severanceOf(g, e)) }))) return;
+    const r = staffCare.fire(g, e);
+    if (!r) { audio.deny(); return; }
     audio.strike(); haptic('heavy');
-    toast(tr('ĐÃ SA THẢI {name}', { name: e.name.toUpperCase() }), 'wrong');
+    toast(tr('ĐÃ SA THẢI {name} · −{m} đ', { name: e.name.toUpperCase(), m: fmt(r.severance) }), 'wrong');
     layout();
     save(g); ui.screens.repaint();
   },
@@ -183,6 +194,33 @@ const act = {
     if (gems) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n: gems }), 'coffee'); save(g); }
     ui.screens.repaint();
   },
+  // --- selling the company (prestige.js) ---
+  sellScreen() { ui.screens.sell(); },
+  sellCompany() {
+    const n = sharesFor(g);
+    if (!confirm(tr('Bán công ty cho nhà đầu tư? Bạn nhận {n} cổ phần nhưng tiền, nhân viên, văn phòng và các nâng cấp sẽ làm lại từ đầu.', { n }))) return;
+    const gained = sellCompany(g);
+    if (!gained) return;
+    resetting = true; // the page reloads into the new run; don't let pagehide write the old state
+    g.justSold = gained;
+    save(g);
+    location.reload();
+  },
+  // --- daily popups + quests (daily.js) ---
+  offlineCollect: () => finishDaily(1),
+  offlineDouble: () => finishDaily(2),
+  loginClaim: () => finishDaily(1),
+  loginDouble: () => finishDaily(2),
+  questClaim(i) {
+    const n = daily.claimQuest(g, Number(i));
+    if (n) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); save(g); }
+    ui.screens.repaint();
+  },
+  questBonus() {
+    const n = daily.claimQuestBonus(g);
+    if (n) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); save(g); }
+    ui.screens.repaint();
+  },
   // --- project reward card ---
   projCollect() { collectProject(1); },
   async projDouble() {
@@ -193,7 +231,7 @@ const act = {
   async adDouble() {
     if (g.today.doubled) return;
     if (await watchAd('double')) {
-      const bonus = Math.floor(g.today.revenue);
+      const bonus = dayAdBonus(g);
       g.money += bonus; g.lifetimeEarnings += bonus; g.today.doubled = true;
       toast(`+${fmt(bonus)} đ`, 'money'); save(g);
     }
@@ -490,10 +528,56 @@ function startDay() {
       slackFor: (e, kind) => Object.assign(e, { state: 'slack', slack: kind, t: 0, dur: 999 }),
     });
     tutorial.start();
+    dailyAfterTutorial = true; // the login gift waits until the tutorial is over
   } else {
     if (g.tutorial === undefined) needsTutorial(g);
     ui.dayBanner(g.day);
+    if (g.justSold) { setTimeout(() => toast(tr('ĐÃ BÁN CÔNG TY · +{n} CỔ PHẦN', { n: g.justSold }), 'money'), 2300); delete g.justSold; }
+    runDailyFlow();
   }
+}
+
+/** Offline earnings, then today's login gift, one popup after the other (daily.js). */
+function runDailyFlow() {
+  if (params.get('daily') === '0') return; // automated tests
+  const now = Date.now();
+  daily.refreshQuests(g, now);
+  const queue = [];
+  if (pendingOffline) queue.push(['offline', pendingOffline]);
+  pendingOffline = null;
+  const day = daily.checkLogin(g, now);
+  if (day) queue.push(['login', day]);
+  save(g);
+  if (g.mode === 'mini') { // no room for cards in the taskbar strip: collect quietly
+    for (const [kind, data] of queue) kind === 'offline' ? daily.collectOffline(g, data) : daily.claimLogin(g);
+    save(g);
+    return;
+  }
+  dailyQueue = queue;
+  nextDaily();
+}
+let currentDaily = null;
+function nextDaily() {
+  currentDaily = dailyQueue.shift() || null;
+  dailyOpen = !!currentDaily;
+  if (!currentDaily) { ui.hideDaily(); last = performance.now(); return; }
+  const [kind, data] = currentDaily;
+  kind === 'offline' ? ui.showOffline(data) : ui.showLogin(data);
+}
+async function finishDaily(mult) {
+  if (!currentDaily) return;
+  if (mult === 2 && !(await watchAd(currentDaily[0] === 'offline' ? 'offlineDouble' : 'loginDouble'))) return;
+  const [kind, data] = currentDaily;
+  if (kind === 'offline') {
+    const m = daily.collectOffline(g, data, mult);
+    toast(`+${fmt(m)} đ`, 'money');
+  } else {
+    const gift = daily.claimLogin(g, mult);
+    if (gift) toast([gift.money ? `+${fmt(gift.money)} đ` : '', gift.gems ? tr('+{n} KIM CƯƠNG', { n: gift.gems }) : ''].filter(Boolean).join(' · '), 'coffee');
+  }
+  audio.buy(); haptic('success');
+  save(g);
+  nextDaily();
 }
 
 /** Show the reward card for a finished project (the taskbar strip has no room: pay at once). */
@@ -510,7 +594,7 @@ function collectProject(mult) {
   last = performance.now();
   if (!r) return;
   audio.buy(); audio.coin(8); haptic('success');
-  toast(tr('+{m} đ · +{n} KIM CƯƠNG', { m: fmt(r.money), n: r.gems }), 'money');
+  toast(`+${fmt(r.money)} đ`, 'money');
   save(g);
   ui.screens.repaint();
 }
@@ -539,6 +623,11 @@ function endDay() {
   if (t.catches >= 15 && t.wrong === 0) g.records.fairDays++;
   g.records.bestDays = [...g.records.bestDays, { day: g.day, revenue: Math.floor(t.revenue), kpi }]
     .sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  // pay day: salaries + rent for the month (payroll.js), shown on the report card
+  if (isPayday(g)) {
+    t.payroll = payMonth(g);
+    if (t.payroll.short > 0) { audio.deny(); haptic('wrong'); }
+  }
   save(g);
   const next = () => {
     // an overdue project fails when the new day starts (unless an ad extended it)
@@ -560,6 +649,7 @@ function endDay() {
   if (g.mode === 'mini') {
     const r = stage.getBoundingClientRect();
     ui.popup(r.left + r.width / 2, r.top + 20, tr('Tan ca! +{m} đ · KPI {k}%', { m: fmt(t.revenue), k: kpi }), 'money');
+    if (t.payroll) setTimeout(() => ui.popup(r.left + r.width / 2, r.top + 20, tr('Trả lương: −{m} đ', { m: fmt(t.payroll.paid) }), t.payroll.short ? 'wrong' : 'money'), 700);
     setTimeout(next, 1500);
   } else {
     ui.showReport(next);
@@ -581,12 +671,12 @@ function frame(now) {
 
 function step(dt) {
   t += dt;
-  if (!paused && !adOpen && !rewardOpen && !userPaused && !onTitle && !(tutorial && tutorial.blocking)) simUpdate(g, dt, onEvent);
+  if (!paused && !adOpen && !rewardOpen && !dailyOpen && !userPaused && !onTitle && !(tutorial && tutorial.blocking)) simUpdate(g, dt, onEvent);
   whip.update(dt);
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
   view.render(g, whip, t);
   uiAcc += dt;
-  if (uiAcc > 0.1) { uiAcc = 0; ui.update(); fitShell(); fitMobile(); if (tutorial) { tutorial.update(); if (!tutorial.active) tutorial = null; } }
+  if (uiAcc > 0.1) { uiAcc = 0; ui.update(); fitShell(); fitMobile(); if (tutorial) { tutorial.update(); if (!tutorial.active) { tutorial = null; if (dailyAfterTutorial) { dailyAfterTutorial = false; runDailyFlow(); } } } }
 }
 
 function schedule() {
@@ -605,16 +695,22 @@ function pauseGame() {
   music.pause();
   if (onTitle || userPaused || resetting) return;
   userPaused = true;
-  ui.showPause(() => { userPaused = false; last = performance.now(); audio.unlock(); music.resume(); });
+  ui.showPause(() => { userPaused = false; last = performance.now(); audio.unlock(); music.resume(); if (!tutorial) runDailyFlow(); });
 }
 function goAway() {
   if (mobile) pauseGame();
   else if (!hiddenAt) hiddenAt = Date.now();
   // A reset reloads the page, which also fires visibilitychange → don't write the old save back.
-  if (!resetting) save(g);
+  if (!resetting) { daily.touch(g, Date.now()); save(g); }
 }
 function comeBack() {
-  if (mobile) { last = performance.now(); fitMobile(true); if (onTitle) music.resume(); return; } // stays paused until "Tiếp tục"
+  if (mobile) {
+    // what the assistant earned while away is offered after "Tiếp tục" (or after Start on the title)
+    pendingOffline = daily.offlineEarnings(g, Date.now()) || pendingOffline;
+    daily.touch(g, Date.now());
+    last = performance.now(); fitMobile(true); if (onTitle) music.resume();
+    return; // stays paused until "Tiếp tục"
+  }
   if (!hiddenAt) return;
   let away = Math.min(TUNING.awayCap, Math.max(0, (Date.now() - hiddenAt) / 1000));
   hiddenAt = 0;
@@ -624,7 +720,7 @@ function comeBack() {
 }
 document.addEventListener('visibilitychange', () => (document.hidden ? goAway() : comeBack()));
 addEventListener('pagehide', () => { if (!resetting) save(g); });
-setInterval(() => { if (!resetting) save(g); }, 5000);
+setInterval(() => { if (resetting) return; if (!document.hidden) daily.touch(g, Date.now()); save(g); }, 5000);
 
 // --- Picture-in-Picture ----------------------------------------------------------------
 async function togglePip() {
@@ -658,6 +754,7 @@ function handleBack() {
   if (userPaused || onTitle) return false;
   if (document.querySelector('.fake-ad')) return true; // finish or close the ad first
   if (rewardOpen) { collectProject(1); return true; } // Back = take the normal reward
+  if (dailyOpen) { finishDaily(1); return true; }
   if (!root.modal.hidden) {
     if (act.nextDay) act.nextDay();
     else if (act.closeInterview) act.closeInterview();
@@ -692,5 +789,5 @@ if (onTitle) {
       startDay();
     },
   });
-} else { music.play('office'); showProjectReward(); if (mobile) startDay(); }
+} else { music.play('office'); showProjectReward(); if (mobile) startDay(); else runDailyFlow(); }
 window.__game = { g, view, whip, act, ui, projects }; // debugging + automated play tests (console only)

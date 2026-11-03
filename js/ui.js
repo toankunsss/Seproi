@@ -1,6 +1,9 @@
 // DOM UI: HUD, shop, pressure leaderboard, day report and floating combat text.
 import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, MAX_STAFF, OFFICE_LEVELS, DECOR_ITEMS, ROLES, RANKS, SLACKS, hireCost, TUNING } from './config.js';
-import { incomeOf } from './sim.js';
+import { incomeOf, dayAdBonus } from './sim.js';
+import { monthBill, daysToPayday, monthOf } from './payroll.js';
+import { loginGift } from './daily.js';
+import { DAILY } from './config.js';
 import { createScreens, projectSummary } from './screens.js';
 import { progressOf, penaltyOf } from './projects.js';
 import { VISITS } from './config.js';
@@ -278,7 +281,6 @@ export function createUI(root, g, act, { mobile = false } = {}) {
             ${early > 0 ? `<br><span class="reward-early">${t('Xong sớm {n} ngày!', { n: early })}</span>` : ''}</div>
           <div class="reward-list">
             <div class="reward-item"><span class="coin"></span><b data-count="${p.money}">+0 đ</b></div>
-            <div class="reward-item"><span class="gem"></span><b>+${p.gems}</b></div>
           </div>
           <button class="px-btn ad wide" data-a="projDouble">▶ ${t('Xem quảng cáo: nhận x2 tiền (+{m} đ)', { m: fmt(p.money) })}</button>
           <button class="px-btn big" data-a="projCollect">${t('Nhận thưởng')}</button>
@@ -303,6 +305,41 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 2200);
     },
+    /** Daily popups (offline earnings / login calendar) share one layer above the office. */
+    showOffline(r) {
+      const h = Math.floor(r.seconds / 3600), m = Math.floor((r.seconds % 3600) / 60);
+      const time = h ? t('{h} giờ {m} phút', { h, m }) : t('{m} phút', { m });
+      dailyLayer(`<div class="reward-card daily-card">
+          <div class="reward-rays"></div>
+          <img class="reward-art" src="${itemArtUrl('assistant:0')}" alt="">
+          <h2>${t('TRONG LÚC SẾP VẮNG MẶT')}</h2>
+          <div class="reward-proj">${t('Trợ lý Hạnh đã giữ công ty chạy suốt {time}.', { time })}
+            ${r.capped ? `<br><small>${t('(tính tối đa {n} giờ)', { n: DAILY.offline.capHours })}</small>` : ''}</div>
+          <div class="reward-list"><div class="reward-item"><span class="coin"></span><b>+${fmt(r.money)} đ</b></div></div>
+          <button class="px-btn ad wide" data-a="offlineDouble">▶ ${t('Xem quảng cáo: nhận x2 (+{m} đ)', { m: fmt(r.money) })}</button>
+          <button class="px-btn big" data-a="offlineCollect">${t('Nhận tiền')}</button>
+        </div>`);
+    },
+    showLogin(day) {
+      const cells = DAILY.login.map((_, i) => {
+        const n = i + 1, gift = loginGift(g, n);
+        const state = n < day ? 'past' : n === day ? 'today' : 'future';
+        return `<div class="login-cell ${state}">
+          <small>${t('Ngày {n}', { n })}</small>
+          ${gift.gems ? `<span class="gem"></span><b>${gift.gems}</b>` : `<span class="coin"></span><b>${fmt(gift.money)}</b>`}
+          ${gift.boost ? `<i class="login-extra">+x2</i>` : ''}${n < day ? '<i class="login-check">✓</i>' : ''}
+        </div>`;
+      }).join('');
+      dailyLayer(`<div class="reward-card daily-card login-card">
+          <div class="reward-rays"></div>
+          <h2>${t('QUÀ ĐĂNG NHẬP')}</h2>
+          <div class="reward-proj">${t('Ngày {n}/7 · vào game mỗi ngày để nhận quà lớn hơn!', { n: day })}</div>
+          <div class="login-grid">${cells}</div>
+          <button class="px-btn ad wide" data-a="loginDouble">▶ ${t('Xem quảng cáo: nhận x2')}</button>
+          <button class="px-btn big" data-a="loginClaim">${t('Nhận quà')}</button>
+        </div>`);
+    },
+    hideDaily() { const el = document.getElementById('daily'); if (el) el.hidden = true; },
     hideProjectReward() { const el = document.getElementById('reward'); if (el) el.hidden = true; },
   };
 
@@ -334,10 +371,42 @@ export function createUI(root, g, act, { mobile = false } = {}) {
             <tr><td>${t('Combo cao nhất')}</td><td>x${day.bestCombo}</td></tr>
           </table>
           ${proj}
+          ${payBlock()}
           ${day.doubled ? `<div class="report-bonus">${t('Đã nhận thưởng quảng cáo ✓')}</div>`
-            : `<button class="px-btn ad wide" data-a="adDouble">▶ ${t('Xem quảng cáo: nhận thêm {m} đ', { m: fmt(day.revenue) })}</button>`}
+            : dayAdBonus(g) > 0 ? `<button class="px-btn ad wide" data-a="adDouble">▶ ${t('Xem quảng cáo: nhận thêm {m} đ', { m: fmt(dayAdBonus(g)) })}</button>` : ''}
           <button class="px-btn big" data-a="nextDay">${t('Ngày làm việc mới')}</button>
         </div>`;
+  }
+
+  function dailyLayer(html) {
+    let el = document.getElementById('daily');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'daily';
+      document.body.appendChild(el);
+      el.addEventListener('click', onClick);
+      el.addEventListener('pointerdown', (e) => e.stopPropagation());
+    }
+    el.innerHTML = html;
+    el.hidden = false;
+  }
+
+  /** Report card: this month's pay day, or how far away the next one is. */
+  function payBlock() {
+    const p = g.today.payroll;
+    if (p) {
+      return `<div class="report-pay ${p.short ? 'warn' : ''}">
+        <b>${t('Kỳ lương tháng {n}', { n: monthOf(g) })}</b>
+        <div>${t('Lương nhân viên')}: <span>−${fmt(p.salaries)} đ</span></div>
+        <div>${t('Thuê văn phòng')}: <span>−${fmt(p.rent)} đ</span></div>
+        ${p.short ? `<div class="penalty">${t('Thiếu {m} đ! Nhân viên không đủ lương nên bất mãn, dễ đình công.', { m: fmt(p.short) })}</div>`
+          : `<div class="ok">${t('Đã trả đủ {m} đ ✓', { m: fmt(p.paid) })}</div>`}
+      </div>`;
+    }
+    const bill = monthBill(g), n = daysToPayday(g);
+    const low = g.money < bill.total;
+    return `<div class="report-pay ${low ? 'warn' : ''}">${t('Kỳ lương sau {n} ngày · dự kiến {m} đ', { n, m: fmt(bill.total) })}
+      ${low ? `<div class="penalty">${t('Quỹ chưa đủ trả lương, hãy tiết kiệm!')}</div>` : ''}</div>`;
   }
 
   function togglePanel() {
@@ -370,7 +439,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       ASSISTANT[al + 1] && g.money >= ASSISTANT[al + 1].cost,
       nextOffice && g.money >= nextOffice.cost,
     ].map(Boolean).join(',');
-    const sig = [wl, cl, al, n, g.officeLevel, !!officeReady, affordability, g.candidates.length].join('|');
+    const sig = [wl, cl, al, n, g.officeLevel, !!officeReady, affordability, g.candidates.length, g.day, monthBill(g).total].join('|');
     if (sig === lastPanelSig) {
       const money = panel.querySelector('[data-panel-money]');
       if (money) money.textContent = `${fmt(g.money)} đ`;
@@ -398,7 +467,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       `<div class="item has-art">
         ${artBox('staff')}
         <div class="info"><div class="title">${t('Nhân sự · {n} người', { n })}</div>
-        <div class="desc">${t('Khen thưởng, tăng lương, liên hoan hoặc sa thải nhân viên.')}</div></div>
+        <div class="desc">${t('Lương tháng {m} đ (gồm thuê văn phòng) · trả sau {n} ngày.', { m: fmt(monthBill(g).total), n: daysToPayday(g) })}</div></div>
         <button class="px-btn buy" data-a="staff">${t('Mở')}</button>
       </div>`,
       item('coffee',

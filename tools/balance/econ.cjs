@@ -17,11 +17,12 @@ const { chromium } = require('playwright');
   for (const ads of [false, true]) for (let seed = 0; seed < 3; seed++) {
     runs.push(await pg.evaluate(async ({ ads, days }) => {
       const C = await import('/js/config.js');
-      const st = await import('/js/state.js'), sim = await import('/js/sim.js'), cv = await import('/js/cv.js'), pr = await import('/js/projects.js'), staff = await import('/js/staff.js');
+      const st = await import('/js/state.js'), sim = await import('/js/sim.js'), cv = await import('/js/cv.js'), pr = await import('/js/projects.js'), staff = await import('/js/staff.js'), pay = await import('/js/payroll.js');
       const g = st.newGame(); g.mode = 'office';
       cv.refillCandidates(g); pr.refreshOffers(g, true);
       const log = [];
-      const buy = (what, cost) => { if (g.money < cost) return false; g.money -= cost; log.push({ day: g.day, t: Math.round(g.dayTime), what, cost }); return true; };
+      const reserve = () => (pay.daysToPayday(g) <= 1 ? pay.monthBill(g).total : 0); // a sensible boss saves for payday
+      const buy = (what, cost) => { if (g.money - cost < reserve()) return false; g.money -= cost; log.push({ day: g.day, t: Math.round(g.dayTime), what, cost }); return true; };
       let dayEnded = false, react = {};
       const onEvent = (type, e) => {
         if (type === 'dayEnd') dayEnded = true;
@@ -57,8 +58,9 @@ const { chromium } = require('playwright');
         if (dayEnded) {
           dayEnded = false;
           const rev = Math.round(g.today.revenue);
-          if (ads) { g.money += g.today.revenue; g.lifetimeEarnings += g.today.revenue; }
-          dayStats.push({ day: g.day, rev, money: Math.round(g.money), staff: g.staff.length });
+          if (ads) { const b = sim.dayAdBonus(g); g.money += b; g.lifetimeEarnings += b; }
+          let paid = 0, short = 0; if (pay.isPayday(g)) { const r = pay.payMonth(g); paid = r.paid; short = r.short; }
+          dayStats.push({ day: g.day, rev, money: Math.round(g.money), staff: g.staff.length, paid, short });
           if (pr.overdue(g)) pr.fail(g);
           g.day++; g.dayTime = 0; g.today = st.freshDay();
           cv.refillCandidates(g); pr.refreshOffers(g, true);
@@ -78,6 +80,7 @@ const { chromium } = require('playwright');
     console.log(`\n=== ${ads ? 'WITH ads (x2 day + x2 projects)' : 'NO ads'} — day bought (3 runs)`);
     console.log(items.map((w) => `${w}: ${rs.map((r) => (r.log.find((l) => l.what === w) || { day: '-' }).day).join('/')}`).join('\n'));
     console.log('revenue/day:', rs[0].dayStats.map((d) => d.rev).join(' '));
+    console.log('payroll (paid/short):', rs[0].dayStats.filter((d) => d.paid || d.short).map((d) => 'd' + d.day + ' ' + d.paid + (d.short ? '/SHORT ' + d.short : '')).join(' · '));
   }
   await b.close();
 })();

@@ -1,7 +1,7 @@
 // First-time tutorial (phone): the assistant walks a new boss through the first minute.
 //
 //   intro → catch the first slacker → don't whip workers → starter fund → upgrade the whip
-//   → take a project → done (+gems)
+//   → take a project → done (+gems gift)
 //
 // Each step shows a speech card from the assistant and, where something must be tapped, a
 // spotlight with a bouncing finger. Taps outside the spotlight are blocked so the player can't
@@ -94,7 +94,7 @@ export function createTutorial({ g, view, onSave, onGems, slackFor }) {
     },
     { // 4: take a project
       enter() { if (document.querySelector('#panel:not([hidden])')) document.querySelector('#panel [data-a="shop"]')?.click(); },
-      text: () => t('Roi mới đây rồi! Giờ nhận một dự án: nhân viên làm việc sẽ đẩy tiến độ, xong trước hạn được thưởng tiền và kim cương. Mở mục Dự án.'),
+      text: () => t('Roi mới đây rồi! Giờ nhận một dự án: nhân viên làm việc sẽ đẩy tiến độ, xong trước hạn được thưởng tiền. Mở mục Dự án.'),
       target: () => el('#modal:not([hidden]) [data-a="projAccept"]') || el('.tab[data-a="projects"]'),
       text2: () => (el('#modal:not([hidden]) [data-a="projAccept"]') ? t('Chọn một hợp đồng và bấm Nhận. Để ý số ngày và mức phạt nếu trễ hạn!') : null),
       done: () => !!g.projects.active,

@@ -3,7 +3,7 @@
 // sprites.js) and cached as a data URL for <img>. Ids may carry a level: 'whip:3' calls
 // DRAW.whip(ctx, 3). Add a drawer here when you add an item to PREMIUM_ITEMS / DECOR_ITEMS.
 import { rect, px, line } from './pixel.js';
-import { WHIPS } from './config.js';
+import { WHIPS, ACHIEVEMENTS } from './config.js';
 
 const S = 24;
 
@@ -182,6 +182,21 @@ const DRAW = {
     px(c, 10, 6, '#d8f4ff'); px(c, 15, 7, '#d8f4ff');
     rect(c, 3, 18, 18, 3, '#6b4a30'); rect(c, 4, 21, 2, 2, '#3f2a20'); rect(c, 18, 21, 2, 2, '#3f2a20');
   },
+  // Achievement medal (index into ACHIEVEMENTS)
+  badge(c, n) {
+    const a = ACHIEVEMENTS[n] || ACHIEVEMENTS[0];
+    const T = TIERS[badgeTier(a)];
+    // ribbon
+    rect(c, 6, 0, 4, 8, '#d63a3a'); rect(c, 14, 0, 4, 8, '#3d6fd6'); rect(c, 9, 4, 6, 4, '#2a1d14');
+    rect(c, 7, 0, 1, 7, '#ff6a6a'); rect(c, 15, 0, 1, 7, '#6a9aff');
+    // medal: stepped circle, rim + face + highlight
+    const rows = [[8, 8], [6, 12], [5, 14], [4, 16], [4, 16], [3, 18], [3, 18], [3, 18], [3, 18], [3, 18], [4, 16], [4, 16], [5, 14], [6, 12], [8, 8]];
+    rows.forEach(([x, w], i) => rect(c, x, 7 + i, w, 1, T.rim));
+    rows.slice(1, -1).forEach(([x, w], i) => rect(c, x + 1, 8 + i, w - 2, 1, T.face));
+    rect(c, 7, 9, 3, 1, T.hi); rect(c, 6, 10, 1, 2, T.hi);
+    // glyph
+    GLYPHS[glyphFor(a.id)].forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') px(c, 8 + x, 10 + y, GLYPH_COLORS[ch]); }));
+  },
   // Gold trophy (project reward card, furniture store)
   trophy(c) {
     rect(c, 6, 3, 12, 2, '#ffe38a'); rect(c, 6, 5, 12, 6, '#ffd34d'); rect(c, 7, 11, 10, 2, '#ffd34d'); rect(c, 9, 13, 6, 1, '#e0a030');
@@ -202,6 +217,64 @@ const DRAW = {
     for (const [x, y] of [[2, 18], [20, 17], [19, 21]]) { rect(c, x, y, 3, 2, '#ffd34d'); px(c, x + 1, y, '#fff3a0'); }
   },
 };
+
+// --- Achievement badges ------------------------------------------------------------------
+// A medal whose metal shows the reward tier (bronze / silver / gold / diamond) with a 9x9 glyph
+// for the kind of achievement. 'badge:<index in ACHIEVEMENTS>'.
+const GLYPH_COLORS = { '#': '#2a1d14', w: '#ffffff', r: '#d63a3a', y: '#ffd34d', b: '#3d6fd6', g: '#2f9a4a', k: '#f1c7a0' };
+const GLYPHS = {
+  eye: ['.........', '..#####..', '.#wwwww#.', '#ww###ww#', '#ww#b#ww#', '#ww###ww#', '.#wwwww#.', '..#####..', '.........'],
+  bolt: ['....###..', '...#rr#..', '..#rr#...', '.#rrrr#..', '..#rr#...', '.#rr#....', '#rr#.....', '#r#......', '##.......'],
+  calendar: ['.#.....#.', '#########', '#rrrrrrr#', '#wwwwwww#', '#w#w#w#w#', '#wwwwwww#', '#w#w#w#w#', '#wwwwwww#', '#########'],
+  coin: ['..#####..', '.#yyyyy#.', '#yy###yy#', '#yy#yyyy#', '#yy###yy#', '#yyyy#yy#', '#yy###yy#', '.#yyyyy#.', '..#####..'],
+  person: ['...###...', '..#kkk#..', '..#kkk#..', '...###...', '.#######.', '#bbbbbbb#', '#bbbbbbb#', '#bbbbbbb#', '#########'],
+  star: ['....#....', '...#y#...', '####y####', '#yyyyyyy#', '.#yyyyy#.', '..#yyy#..', '.#yy#yy#.', '.#y#.#y#.', '.##...##.'],
+  building: ['..#####..', '..#w#w#..', '..#####..', '..#w#w#..', '#########', '#w#w#w#w#', '#########', '#w#w#w#w#', '#########'],
+  whip: ['.......##', '......#r.', '.....#...', '....#....', '...#.....', '..#......', '.##......', '###......', '##.......'],
+  lamp: ['..#####..', '.#yyyyy#.', '#yyyyyyy#', '.#######.', '....#....', '....#....', '....#....', '..#####..', '.........'],
+  case: ['...###...', '..#...#..', '#########', '#bbbbbbb#', '#bbb#bbb#', '#bbbbbbb#', '#bbbbbbb#', '#########', '.........'],
+  shield: ['#########', '#ggggggw#', '#gggggw##', '#w#ggw#g#', '#gw#w#gg#', '.#gw#gg#.', '..#ggg#..', '...#g#...', '....#....'],
+  fist: ['.#.#.#...', '#k#k#k#..', '#kkkkkk#.', '#kkkkkk#.', '#kkkkkk#.', '.#kkkk#..', '..####...', '..#rr#...', '..####...'],
+  pad: ['.........', '.#######.', '#bbbbbbb#', '#b#bbbrb#', '###bbbbb#', '#b#bbgbb#', '#bbbbbbb#', '.##...##.', '.........'],
+  phone: ['..#####..', '..#rrr#..', '..#rwr#..', '..#rrr#..', '..#rrr#..', '..#rrr#..', '..#####..', '..##w##..', '..#####..'],
+  zzz: ['#######..', '.....#...', '....#....', '...#.....', '..#......', '.#######.', '......###', '.......#.', '......###'],
+  chart: ['........#', '.......##', '#.....#.#', '##...#...', '#.#.#....', '#..#.....', '#........', '#........', '#########'],
+  cup: ['..#.#.#..', '...#.#...', '#######..', '#wwwww###', '#wwwww#.#', '#wwwww###', '.#www#...', '..###....', '#######..'],
+  glasses: ['.........', '.........', '####.####', '#bb###bb#', '####.####', '.........', '..#...#..', '...###...', '.........'],
+  gem: ['..#####..', '.#bwbbb#.', '#bbbbbbb#', '.#bbbbb#.', '..#bbb#..', '...#b#...', '....#....', '.........', '.........'],
+  crown: ['.........', '#...#...#', '##.###.##', '#y#yyy#y#', '#yyyyyyy#', '#yryyyry#', '#########', '.........', '.........'],
+  rocket: ['....#....', '...#w#...', '...#w#...', '..#wrw#..', '..#www#..', '.#w#w#w#.', '.#.#y#.#.', '...yry...', '....r....'],
+};
+function glyphFor(id) {
+  if (/^catch/.test(id)) return 'eye';
+  if (/^combo/.test(id)) return 'bolt';
+  if (/^(day5k|day20k|earn|peak)/.test(id)) return 'coin';
+  if (/^day/.test(id)) return 'calendar';
+  if (/^(staff|nick)/.test(id)) return 'person';
+  if (/^star/.test(id)) return 'star';
+  if (/^office/.test(id)) return 'building';
+  if (/^whip/.test(id)) return 'whip';
+  if (/^decor/.test(id)) return 'lamp';
+  if (/^(proj|streak|bigProj)/.test(id)) return 'case';
+  if (/^(kpi|fair)/.test(id)) return 'shield';
+  if (/^strike/.test(id)) return 'fist';
+  if (/^gamer/.test(id)) return 'pad';
+  if (/^toptop/.test(id)) return 'phone';
+  if (/^sleep/.test(id)) return 'zzz';
+  if (/^crypto/.test(id)) return 'chart';
+  if (/^coffee/.test(id)) return 'cup';
+  if (/^assist/.test(id)) return 'glasses';
+  if (/^gems/.test(id)) return 'gem';
+  if (/^perks/.test(id)) return 'crown';
+  return 'rocket';
+}
+const TIERS = [
+  { max: 5, rim: '#7a3f18', face: '#d08a4a', hi: '#f0b070' },       // bronze
+  { max: 15, rim: '#5a5a70', face: '#c8c8d8', hi: '#ffffff' },      // silver
+  { max: 30, rim: '#9a6410', face: '#ffd34d', hi: '#fff3a0' },      // gold
+  { max: Infinity, rim: '#1f5a8a', face: '#8fe8ff', hi: '#e8fbff' }, // diamond
+];
+export const badgeTier = (a) => TIERS.findIndex((x) => a.gems <= x.max);
 
 const cache = new Map();
 

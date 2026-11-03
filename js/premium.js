@@ -30,8 +30,8 @@ export function buyPremium(g, id) {
       break;
     case 'starCv': refillCandidates(g, { star: true }); break;
     case 'cash': {
-      const best = g.records.bestDays[0].revenue;
-      g.money += best; g.lifetimeEarnings += best;
+      // half of the best day; it does not count as revenue (no office unlocks bought with 💎)
+      g.money += Math.round(g.records.bestDays[0].revenue * 0.5);
       break;
     }
   }

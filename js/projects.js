@@ -2,7 +2,7 @@
 //
 // A project needs work points per role (dev / acc / des). Every working employee adds
 // WORK_RATE x skill (x1.6 while boosted) points per second to their role (sim.js → addWork).
-// Finish before the end of the deadline day → money + 💎. Miss it → the project fails,
+// Finish before the end of the deadline day → money (projects never pay 💎). Miss it → the project fails,
 // unless the player extends it once (rewarded ad, see main.js).
 // A finished project waits in g.projects.reward until the player collects it on the reward
 // card (x2 money with a rewarded ad), so the payout is never silent.
@@ -11,7 +11,6 @@
 // requirement = team output for that role over the project's days x a difficulty factor.
 import { PROJECT_TYPES, CLIENTS, PROJECT_OFFERS, PROJECT_PENALTY, WORK_RATE, TUNING } from './config.js';
 import { skillMult } from './cv.js';
-import { addGems } from './achievements.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
@@ -37,8 +36,7 @@ export function makeOffer(g) {
   const offer = {
     name: type.name, client: pick(CLIENTS), days, req,
     prog: Object.fromEntries(Object.keys(req).map((r) => [r, 0])),
-    money: Math.round(total * 5 * dayMult / 10) * 10, // ~ a solid bonus on top of normal income
-    gems: 2 + days + (difficulty > 0.6 ? 1 : 0),
+    money: Math.round(total * 3.5 * dayMult / 10) * 10, // a solid bonus on top of normal income
     penalty: 0, // contract fine if the project fails (set just below)
     deadline: 0, extended: false,
   };
@@ -112,7 +110,7 @@ export function finish(g) {
   return p;
 }
 
-/** Pay out the waiting reward; mult 2 = the rewarded-ad bonus on the money. Returns { p, money, gems }. */
+/** Pay out the waiting reward; mult 2 = the rewarded-ad bonus. Returns { p, money }. */
 export function collect(g, mult = 1) {
   const p = g.projects.reward;
   if (!p) return null;
@@ -120,9 +118,9 @@ export function collect(g, mult = 1) {
   g.money += money;
   g.lifetimeEarnings += money;
   g.today.revenue += money;
-  addGems(g, p.gems);
+  g.today.project = (g.today.project || 0) + money;
   g.projects.reward = null;
-  return { p, money, gems: p.gems };
+  return { p, money };
 }
 
 /** End of day: is the active project now overdue? */

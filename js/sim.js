@@ -5,6 +5,7 @@ import { skillMult, lazyMult, stressMult } from './cv.js';
 import { addWork } from './projects.js';
 import { motivFactor, motivBaseline } from './staff.js';
 import { updateVisit, assistantHides } from './events.js';
+import { shareBonus } from './prestige.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -13,7 +14,7 @@ export const hasPerk = (g, id) => g.perks.includes(id);
 export function incomeOf(g, e) {
   if (e.state !== 'work' && e.state !== 'hurt') return 0;
   const boost = e.boost > 0 ? T.boostMult : 1;
-  const perks = (hasPerk(g, 'aiClock') ? 1.15 : 1) * (g.hotBonus > 0 ? 2 : 1);
+  const perks = (hasPerk(g, 'aiClock') ? 1.15 : 1) * (g.hotBonus > 0 ? 2 : 1) * shareBonus(g);
   return ROLES[e.role].income * skillMult(e.cv) * boost * perks * (1 + T.dayMult * (g.day - 1));
 }
 
@@ -21,6 +22,9 @@ export function incomeOf(g, e) {
 export const assistantInterval = (g) => (hasPerk(g, 'secretary') ? 2 : ASSISTANT[g.assistantLevel].interval);
 
 export const isSlacking = (e) => e.state === 'slack';
+
+/** End-of-day ad bonus: a share of today's revenue, not counting project money. */
+export const dayAdBonus = (g) => Math.floor(Math.max(0, g.today.revenue - (g.today.project || 0)) * T.adDayBonus);
 
 export function update(g, dt, emit) {
   // Day clock
@@ -147,14 +151,16 @@ export function whipEmployee(g, e, { auto = false } = {}) {
     g.records.catches++;
     e.motiv = Math.max(0, (e.motiv ?? MOTIVATION.start) + MOTIVATION.catch);
     let reward;
+    // catch rewards grow with the company like salaries do, so whipping stays worth it
+    const day = (1 + T.dayMult * (g.day - 1)) * shareBonus(g);
     if (auto) {
-      reward = Math.round(w.bonus * 0.5);
+      reward = Math.round(w.bonus * 0.5 * day);
     } else {
       g.combo = g.comboT > 0 ? g.combo + 1 : 1;
       g.comboT = T.comboWindow;
       g.today.bestCombo = Math.max(g.today.bestCombo, g.combo);
       g.records.bestCombo = Math.max(g.records.bestCombo, g.combo);
-      reward = Math.round(w.bonus * (1 + (g.combo - 1) * 0.5));
+      reward = Math.round(w.bonus * Math.min(T.comboCap, 1 + (g.combo - 1) * 0.5) * day);
     }
     g.money += reward;
     g.lifetimeEarnings = (g.lifetimeEarnings || 0) + reward;

@@ -1,6 +1,7 @@
 // Staff care: rewarding employees (praise, cash bonus, gift, raise, team party) and firing.
 // Motivation (e.motiv) is the lever: it scales how often someone slacks (see sim.js).
 import { STAFF_ACTIONS as A, MOTIVATION as M, TUNING } from './config.js';
+import { severanceOf } from './payroll.js';
 
 const clamp = (v) => Math.max(0, Math.min(100, v));
 const dayMult = (g) => 1 + TUNING.dayMult * (g.day - 1);
@@ -52,15 +53,21 @@ export function reward(g, kind, e) {
   return true;
 }
 
-/** Let employee e go. The rest of the team gets nervous. Returns the fired employee. */
+/**
+ * Let employee e go: they are paid for the days already worked this month (no dodging payday by
+ * firing the day before). The rest of the team gets nervous. Returns { e, severance }.
+ */
 export function fire(g, e) {
   if (blocked(g, 'fire', e)) return null;
   const i = g.staff.indexOf(e);
   if (i < 0) return null;
+  const severance = Math.min(Math.floor(g.money), severanceOf(g, e));
+  g.money -= severance;
+  g.records.salariesPaid = (g.records.salariesPaid || 0) + severance;
   g.staff.splice(i, 1);
   for (const x of g.staff) apply(x, A.fire);
   g.records.fired = (g.records.fired || 0) + 1;
-  return e;
+  return { e, severance };
 }
 
 /** Next free employee id (ids stay unique after someone is fired). */

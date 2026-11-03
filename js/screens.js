@@ -7,9 +7,13 @@ import { faceUrl, hirePrice, skillMult } from './cv.js';
 import { progressOf, penaltyOf } from './projects.js';
 import { achievementList, claimableCount } from './achievements.js';
 import { blockedReason } from './premium.js';
-import { itemArtUrl } from './item-art.js';
+import { itemArtUrl, badgeTier } from './item-art.js';
 import { actionCost, blocked as staffBlocked } from './staff.js';
-import { STAFF_ACTIONS } from './config.js';
+import { STAFF_ACTIONS, ACHIEVEMENTS } from './config.js';
+import { salaryOf, monthBill, daysToPayday } from './payroll.js';
+import { questList, questClaimable, allQuestsClaimed, dailyState } from './daily.js';
+import { DAILY, PRESTIGE } from './config.js';
+import { sharesFor, canSell, shareBonus } from './prestige.js';
 import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
@@ -52,7 +56,8 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
           <div>${t('Độ lười')} ${starRow(cv.lazy, 'bad')}</div>
           <div>${t('Chịu áp lực')} ${starRow(cv.grit, 'calm')}</div>
         </div>
-        <ul class="cv-lines"><li>${esc(t(cv.line))}</li><li>${t('Sở thích:')} ${esc(t(cv.hobby))}</li></ul>
+        <ul class="cv-lines"><li>${esc(t(cv.line))}</li><li>${t('Sở thích:')} ${esc(t(cv.hobby))}</li>
+          <li class="cv-salary">${t('Lương: {m} đ/ngày (trả mỗi tháng)', { m: fmt(salaryOf(g, { role: cv.role, cv, wage: 0 })) })}</li></ul>
         <q>${esc(t(cv.quote))}</q>
         <div class="cv-actions">
           <button class="px-btn danger" data-a="cvReject" data-arg="${i}">${t('Loại')}</button>
@@ -88,7 +93,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
         <div class="cv-top">
           <img class="face" src="${faceUrl(e.look, e.cv.star)}" alt="">
           <div class="cv-who"><b>${esc(e.nickname || e.name)}</b>${e.nickname ? ` <small>(${esc(e.name)})</small>` : ''}
-            <div>${t(ROLES[e.role].label)} · ${t('Lương bậc {n}', { n: (e.wage || 0) + 1 })} · <span data-state="${e.id}">${t(STATE[e.state] || 'Đang làm')}</span></div>
+            <div>${t(ROLES[e.role].label)} · ${t('Lương bậc {n}', { n: (e.wage || 0) + 1 })} (${fmt(salaryOf(g, e))} đ/${t('ngày')}) · <span data-state="${e.id}">${t(STATE[e.state] || 'Đang làm')}</span></div>
             <div class="mini-stars">★${e.cv.skill} ${t('Kỹ năng')} · ★${e.cv.lazy} ${t('Độ lười')} · ★${e.cv.grit} ${t('Chịu áp lực')}</div></div>
         </div>
         <div class="staff-bars">
@@ -139,7 +144,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
         <div class="proj-name">${esc(t(a.name))}</div>
         <small>${t('Khách hàng: {c} · Hạn: hết ngày {d}', { c: esc(a.client), d: a.deadline })} (${left <= 0 ? `<b class="warn">${t('hôm nay!')}</b>` : t('còn {n} ngày', { n: left + 1 })})</small>
         ${Object.keys(a.req).map((r) => roleBar(a, r)).join('')}
-        <div class="reward">${t('Thưởng:')} <b>${fmt(a.money)} đ</b> · <b>${a.gems}</b> ${GEM}</div>
+        <div class="reward">${t('Thưởng:')} <b>${fmt(a.money)} đ</b></div>
         <div class="penalty">${t('Thất bại / huỷ: phạt hợp đồng {m} đ', { m: fmt(penaltyOf(a)) })}</div>
         <p class="tip">${t('Nhân viên đang làm việc sẽ góp điểm theo nghề của họ. Giữ KPI cao để kịp hạn!')}</p>
         <div class="proj-actions">
@@ -153,7 +158,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
         <small>${esc(p.client)} · ${t('{n} ngày', { n: p.days })}</small>
         <div class="chips">${Object.entries(p.req).map(([r, n]) => `<span class="chip">${t(ROLES[r].label)} ${fmt(n)} <i>(${t('{n} người', { n: team[r] })})</i></span>`).join('')}</div>
         <div class="penalty">${t('Trễ hạn phạt {m} đ', { m: fmt(penaltyOf(p)) })}</div>
-        <div class="proj-row"><span class="reward">${fmt(p.money)} đ · ${p.gems} ${GEM}</span>
+        <div class="proj-row"><span class="reward">${fmt(p.money)} đ</span>
           <button class="px-btn big accept" data-a="projAccept" data-arg="${i}">${t('Nhận')}</button></div>
       </div>`).join('');
     }
@@ -186,7 +191,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       </div>`;
     };
     return `<div class="card screen vip-screen">
-      ${head(t('Cửa hàng Kim cương'), t('Kim cương nhận từ thành tựu, dự án và quảng cáo'), `<div class="gem-balance">${GEM} <b>${g.gems}</b></div>`)}
+      ${head(t('Cửa hàng Kim cương'), t('Kim cương nhận từ thành tựu, nhiệm vụ, quà hằng ngày và quảng cáo'), `<div class="gem-balance">${GEM} <b>${g.gems}</b></div>`)}
       <button class="px-btn ad wide" data-a="adGems" ${adsLeft > 0 ? '' : 'disabled'}>▶ ${t('Xem quảng cáo:')} +${ADS.gemsPerAd} ${GEM} <small>(${t('còn {n}/{max} lượt hôm nay', { n: Math.max(0, adsLeft), max: ADS.gemAdsPerDay })})</small></button>
       <h3>${t('Đặc quyền vĩnh viễn')}</h3>
       ${PREMIUM_ITEMS.filter((x) => x.kind === 'perk').map(item).join('')}
@@ -202,7 +207,10 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     const done = list.filter((a) => a.claimed).length;
     return `<div class="card screen ach-screen">
       ${head(t('Thành tựu'), t('Đã nhận {d}/{n}', { d: done, n: list.length }))}
-      ${list.map((a) => `<div class="ach ${a.claimed ? 'claimed' : a.done ? 'ready' : ''}">
+      ${questBlock()}
+      <h3 class="ach-h">${t('Thành tựu')}</h3>
+      ${list.map((a) => `<div class="ach ${a.claimed ? 'claimed' : a.done ? 'ready' : 'locked'} tier${badgeTier(a)}">
+        <div class="ach-badge"><img src="${itemArtUrl('badge:' + ACHIEVEMENTS.findIndex((x) => x.id === a.id))}" alt="">${a.claimed ? '<i>✓</i>' : ''}</div>
         <div class="info"><div class="title">${t(a.name)}</div><div class="desc">${t(a.desc)}</div>
           <div class="meter"><i style="width:${Math.round((a.value / a.goal) * 100)}%"></i></div></div>
         ${a.claimed ? '<span class="done">✓</span>'
@@ -210,13 +218,35 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       </div>`).join('')}
     </div>`;
   }
-  const achSig = () => achievementList(g).map((a) => `${a.id}:${a.claimed ? 2 : a.done ? 1 : Math.floor((a.value / a.goal) * 20)}`).join(',');
+  /** Today's quests (daily.js): progress bars, claim buttons and the all-done bonus. */
+  function questBlock() {
+    const qs = questList(g);
+    if (!qs.length) return '';
+    const d = dailyState(g);
+    const all = allQuestsClaimed(g);
+    return `<div class="quests">
+      <h3 class="ach-h">${t('Nhiệm vụ hôm nay')} <small>${t('làm mới mỗi ngày')}</small></h3>
+      ${qs.map((q, i) => `<div class="quest ${q.claimed ? 'claimed' : q.done ? 'ready' : ''}">
+        <div class="info"><div class="title">${t(q.def.text, { n: q.n })}</div>
+          <div class="meter"><i style="width:${Math.round((q.progress / q.n) * 100)}%"></i></div>
+          <div class="desc">${q.progress}/${q.n}</div></div>
+        ${q.claimed ? '<span class="done">✓</span>' : `<button class="px-btn buy gem-btn" data-a="questClaim" data-arg="${i}" ${q.done ? '' : 'disabled'}>+${q.def.gems} ${GEM}</button>`}
+      </div>`).join('')}
+      <div class="quest bonus ${d.bonusClaimed ? 'claimed' : all ? 'ready' : ''}">
+        <div class="info"><div class="title">${t('Hoàn thành cả {n} nhiệm vụ', { n: qs.length })}</div></div>
+        ${d.bonusClaimed ? '<span class="done">✓</span>' : `<button class="px-btn buy gem-btn" data-a="questBonus" ${all ? '' : 'disabled'}>+${DAILY.questBonus} ${GEM}</button>`}
+      </div>
+    </div>`;
+  }
+  const achSig = () => achievementList(g).map((a) => `${a.id}:${a.claimed ? 2 : a.done ? 1 : Math.floor((a.value / a.goal) * 20)}`).join(',')
+    + '|' + questList(g).map((q) => `${q.progress}${q.claimed ? 'c' : ''}`).join(',') + (dailyState(g).bonusClaimed ? 'B' : '');
 
   // --- More menu -------------------------------------------------------------------------
   const moreScreen = () => `<div class="card screen more-screen">
       ${head(t('Thêm'))}
       <button class="px-btn wide" data-a="decor">${t('Nội thất văn phòng')}</button>
       <button class="px-btn wide" data-a="staff">${t('Nhân sự: khen thưởng & sa thải')}</button>
+      <button class="px-btn wide sell-btn" data-a="sellScreen">${t('Bán công ty')}${g.shares ? ` · ${t('{n} cổ phần', { n: g.shares })}` : ''}</button>
 <button class="px-btn wide" data-a="board">${t('Bảng xếp hạng áp lực')}</button>
       <button class="px-btn wide" data-a="mute">${g.muted ? t('Bật âm thanh') : t('Tắt âm thanh')}</button>
       ${mobile ? `<button class="px-btn wide" data-a="music">${g.musicOff ? t('Bật nhạc nền') : t('Tắt nhạc nền')}</button>` : ''}
@@ -224,12 +254,31 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       <a class="px-btn wide link" href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Chính sách quyền riêng tư')}</a>
     </div>`;
 
+  // --- Selling the company (prestige.js) ------------------------------------------------------
+  function sellScreen() {
+    const have = Math.floor(g.lifetimeEarnings || 0), gain = sharesFor(g), ok = canSell(g);
+    const after = Math.round(PRESTIGE.perShare * ((g.shares || 0) + gain) * 100);
+    return `<div class="card screen sell-screen">
+      ${head(t('Bán công ty'), t('Bán cho nhà đầu tư để nhận cổ phần, rồi khởi nghiệp lại mạnh hơn'))}
+      <div class="sell-now">${t('Cổ phần đang có: {n} (+{p}% thu nhập)', { n: g.shares || 0, p: Math.round((shareBonus(g) - 1) * 100) })}</div>
+      ${ok ? `<div class="sell-offer"><b>${t('Nhà đầu tư trả: +{n} cổ phần', { n: gain })}</b><br>${t('Sau khi bán: +{p}% thu nhập vĩnh viễn', { p: after })}</div>`
+        : `<div class="sell-need">${t('Cần tổng doanh thu {need} đ để có người mua (hiện có {have} đ).', { need: fmt(PRESTIGE.minRevenue), have: fmt(have) })}
+            <div class="meter"><i style="width:${Math.min(100, Math.round((have / PRESTIGE.minRevenue) * 100))}%"></i></div></div>`}
+      <div class="sell-cols">
+        <div><h3>${t('Giữ lại')}</h3><ul><li>${t('Kim cương và đặc quyền 💎')}</li><li>${t('Thành tựu đã nhận')}</li><li>${t('Cổ phần (cộng dồn)')}</li></ul></div>
+        <div><h3>${t('Làm lại từ đầu')}</h3><ul><li>${t('Tiền, ngày, nhân viên')}</li><li>${t('Văn phòng, roi, cà phê, trợ lý')}</li><li>${t('Nội thất, dự án')}</li></ul></div>
+      </div>
+      <button class="px-btn big wide danger" data-a="sellCompany" ${ok ? '' : 'disabled'}>${t('Bán công ty')}${ok ? ` · +${gain} ${t('cổ phần')}` : ''}</button>
+    </div>`;
+  }
+
   const screens = {
     cv: () => open('cv', cvScreen, cvSig),
     projects: () => open('projects', projectsScreen, projSig, projLive),
     vip: () => open('vip', vipScreen, vipSig),
     staff: () => open('staff', staffScreen, staffSig, staffLive),
     achievements: () => open('achievements', achScreen, achSig),
+    sell: () => open('sell', sellScreen, () => `${Math.floor((g.lifetimeEarnings || 0) / 1000)}|${g.shares}`),
     more: () => open('more', moreScreen, () => `${g.muted}/${g.musicOff}`),
     /** Called ~10x/s by ui.update. */
     tick() {
@@ -242,7 +291,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     close,
     get open() { return current && current.name; },
     // projects: how many contracts can be taken right now (none while one is in progress)
-    badges: () => ({ achievements: claimableCount(g), projects: g.projects.active ? 0 : g.projects.offers.length }),
+    badges: () => ({ achievements: claimableCount(g) + questClaimable(g), projects: g.projects.active ? 0 : g.projects.offers.length }),
   };
   act.closeScreen = close;
   return screens;
