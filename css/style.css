@@ -520,3 +520,19 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .lang-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
 .lang-row .px-btn { flex: 1; margin: 0; padding: 10px; }
 .lang-row .px-btn.on { background: #2f6a3f; }
+
+/* 💎 shop item pictures (js/item-art.js) */
+.item.vip { display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; }
+.item-art {
+  position: relative; width: 64px; height: 64px; background: #1d1830;
+  box-shadow: 0 0 0 3px var(--edge), inset 0 0 0 2px #342b50;
+}
+.item-art img { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+.item.vip.perk .item-art { background: radial-gradient(circle, #24486a 0, #1d1830 70%); box-shadow: 0 0 0 3px var(--edge), inset 0 0 0 2px #2a6a9a, 0 0 10px rgba(111, 240, 255, 0.25); }
+.item-art i { position: absolute; right: -4px; bottom: -4px; font-style: normal; background: var(--green); color: #12301a; width: 20px; height: 20px; line-height: 20px; text-align: center; box-shadow: 0 0 0 2px var(--edge); }
+.item.vip.owned .info { opacity: 0.75; }
+@media (max-width: 400px) {
+  .item.vip { grid-template-columns: 52px 1fr; }
+  .item-art { width: 52px; height: 52px; }
+  .item.vip .buy { grid-column: 2; justify-self: start; }
+}

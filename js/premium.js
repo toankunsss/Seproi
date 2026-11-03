@@ -36,5 +36,6 @@ export function buyPremium(g, id) {
     }
   }
   if (item.kind === 'perk') g.perks.push(id);
+  else g.records.boostsUsed++;
   return item.name;
 }

@@ -70,13 +70,16 @@ Thêm vào `ACHIEVEMENTS` trong `config.js`:
 { id: 'coffee50', name: 'Nghiện cà phê', desc: 'Dùng Cà phê sốc 50 lần', goal: 50, gems: 10, stat: (g) => g.records.coffees },
 ```
 
-Nếu cần bộ đếm mới (như `coffees`), thêm vào `freshRecords()` trong `state.js` (save cũ tự nhận giá trị 0), rồi tăng nó ở chỗ phù hợp (`useCoffee`…). Nhớ thêm bản dịch tên và mô tả vào `js/lang/en.js`.
+Nếu cần bộ đếm mới, thêm vào `freshRecords()` trong `state.js` (save cũ tự nhận giá trị mặc định), rồi tăng nó ở chỗ phù hợp. Nhớ thêm bản dịch tên và mô tả vào `js/lang/en.js`.
+
+Các bộ đếm có sẵn trong `g.records`: `catches`, `caught.{game,toptop,sleep,crypto}`, `assistCatches`, `bestCombo`, `totalWhips`, `strikes`, `coffees`, `boostsUsed`, `gemsEarned` (mọi 💎 kiếm được phải đi qua `addGems()` trong `achievements.js`), `peakMoney`, `bestKpi`, `fairDays`, `starsHired`, `projStreak`/`bestProjStreak`, `bigProjects`, `bestDays`, `adsWatched`. Hiện có 50 thành tựu, tổng thưởng 1.200 💎.
 
 ### Vật phẩm 💎 mới
 
 1. Thêm vào `PREMIUM_ITEMS` (`kind: 'perk'` mua 1 lần, `kind: 'boost'` mua nhiều lần).
 2. Điều kiện mua (nếu có): `premium.js → blockedReason`.
 3. Hiệu ứng: `premium.js → buyPremium` (dùng ngay), hoặc kiểm tra `hasPerk(g, 'id')` trong `sim.js` (vĩnh viễn).
+4. Hình minh hoạ trong cửa hàng: thêm một hàm vẽ cùng `id` vào `DRAW` trong `js/item-art.js` (lưới 24×24, dùng `rect`/`px`/`line`). Nếu thiếu hình, khung ảnh sẽ để trống.
 
 ### Loại dự án, khách hàng, dữ liệu CV
 

@@ -19,6 +19,10 @@ export function makeEmployee(i, cv = cvFromPool(i), extra = {}) {
 const freshRecords = () => ({
   bestCombo: 0, totalWhips: 0, bestDays: [],
   catches: 0, bestKpi: 0, fairDays: 0, starsHired: 0, strikes: 0, adsWatched: 0,
+  // counters for achievements (old saves get these defaults on load)
+  caught: { game: 0, toptop: 0, sleep: 0, crypto: 0 }, // catches by slacking kind
+  assistCatches: 0, coffees: 0, boostsUsed: 0, gemsEarned: 0, peakMoney: 0,
+  projStreak: 0, bestProjStreak: 0, bigProjects: 0,
 });
 
 export function newGame() {
@@ -57,6 +61,7 @@ export function load() {
     const g = Object.assign(base, s, { combo: 0, comboT: 0 });
     // nested objects: keep defaults for fields older saves don't have
     g.records = { ...freshRecords(), ...(s.records || {}) };
+    g.records.caught = { ...freshRecords().caught, ...(g.records.caught || {}) };
     g.projects = { ...newGame().projects, ...(s.projects || {}) };
     g.ads = { ...newGame().ads, ...(s.ads || {}) };
     g.today = { ...freshDay(), ...(s.today || {}) };

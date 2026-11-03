@@ -206,4 +206,37 @@ export const ACHIEVEMENTS = [
   { id: 'kpi95', name: 'Kỷ luật thép', desc: 'Kết thúc ngày với KPI ≥ 95%', goal: 95, gems: 10, stat: (g) => g.records.bestKpi },
   { id: 'fair', name: 'Sếp công tâm', desc: 'Một ngày bắt ≥ 15 lần mà không quất oan ai', goal: 1, gems: 15, stat: (g) => g.records.fairDays },
   { id: 'strike', name: 'Ác mộng công đoàn', desc: 'Lần đầu bị nhân viên đình công', goal: 1, gems: 5, stat: (g) => g.records.strikes },
+  // --- 26 more (25–50) ---
+  // catching
+  { id: 'catch5000', name: 'Huyền thoại thanh tra', desc: 'Bắt quả tang 5.000 lần', goal: 5000, gems: 80, stat: (g) => g.records.catches },
+  { id: 'combo20', name: 'Cuồng phong', desc: 'Đạt combo x20', goal: 20, gems: 40, stat: (g) => g.records.bestCombo },
+  { id: 'gamer50', name: 'Game over', desc: 'Bắt 50 người đang chơi game', goal: 50, gems: 10, stat: (g) => g.records.caught.game },
+  { id: 'toptop50', name: 'Hết trend', desc: 'Bắt 50 người đang lướt Tóp Tóp', goal: 50, gems: 10, stat: (g) => g.records.caught.toptop },
+  { id: 'sleep50', name: 'Báo thức sống', desc: 'Bắt 50 người đang ngủ gật', goal: 50, gems: 10, stat: (g) => g.records.caught.sleep },
+  { id: 'crypto50', name: 'Sập sàn', desc: 'Bắt 50 người đang xem coin', goal: 50, gems: 10, stat: (g) => g.records.caught.crypto },
+  { id: 'assist100', name: 'Cánh tay phải', desc: 'Trợ lý tự quất 100 lần', goal: 100, gems: 15, stat: (g) => g.records.assistCatches },
+  // running the company
+  { id: 'day60', name: 'Kỳ cựu', desc: 'Điều hành công ty tới ngày 60', goal: 60, gems: 60, stat: (g) => g.day },
+  { id: 'day100', name: 'Trăm ngày khởi nghiệp', desc: 'Điều hành công ty tới ngày 100', goal: 100, gems: 100, stat: (g) => g.day },
+  { id: 'fair5', name: 'Sếp mẫu mực', desc: 'Có 5 ngày công tâm (bắt ≥ 15 lần, không quất oan)', goal: 5, gems: 30, stat: (g) => g.records.fairDays },
+  { id: 'nick3', name: 'Sếp thân thiện', desc: 'Đặt biệt danh cho 3 nhân viên', goal: 3, gems: 5, stat: (g) => g.staff.filter((e) => e.nickname).length },
+  { id: 'star3', name: 'Đội hình ngôi sao', desc: 'Tuyển 3 ứng viên ngôi sao', goal: 3, gems: 30, stat: (g) => g.records.starsHired },
+  { id: 'strike10', name: 'Công đoàn nổi dậy', desc: 'Bị đình công 10 lần', goal: 10, gems: 5, stat: (g) => g.records.strikes },
+  // money
+  { id: 'earn10m', name: 'Tài phiệt', desc: 'Tổng doanh thu 10.000.000 đ', goal: 1e7, gems: 80, stat: (g) => g.lifetimeEarnings },
+  { id: 'day5k', name: 'Ngày bội thu', desc: 'Một ngày đạt doanh thu 5.000 đ', goal: 5000, gems: 10, stat: (g) => (g.records.bestDays[0] || {}).revenue || 0 },
+  { id: 'day20k', name: 'Ngày hoàng kim', desc: 'Một ngày đạt doanh thu 20.000 đ', goal: 20000, gems: 25, stat: (g) => (g.records.bestDays[0] || {}).revenue || 0 },
+  { id: 'peak50k', name: 'Quỹ dày cộp', desc: 'Quỹ công ty có 50.000 đ cùng lúc', goal: 50000, gems: 15, stat: (g) => g.records.peakMoney },
+  // upgrades
+  { id: 'coffeeMax', name: 'Barista công nghiệp', desc: 'Nâng máy cà phê lên Lv4', goal: 3, gems: 15, stat: (g) => g.coffeeLevel },
+  { id: 'assistMax', name: 'Trợ lý toàn năng', desc: 'Nâng Trợ lý lên Lv4', goal: 3, gems: 20, stat: (g) => g.assistantLevel },
+  { id: 'coffee25', name: 'Nghiện cà phê', desc: 'Dùng Cà phê sốc 25 lần', goal: 25, gems: 10, stat: (g) => g.records.coffees },
+  // projects
+  { id: 'proj50', name: 'Đế chế kinh doanh', desc: 'Hoàn thành 50 dự án', goal: 50, gems: 80, stat: (g) => g.projects.done },
+  { id: 'streak5', name: 'Uy tín vàng', desc: 'Hoàn thành 5 dự án liên tiếp không thất bại', goal: 5, gems: 20, stat: (g) => g.records.bestProjStreak },
+  { id: 'bigProj', name: 'Hợp đồng khủng', desc: 'Hoàn thành một dự án 3 ngày', goal: 1, gems: 10, stat: (g) => g.records.bigProjects },
+  // 💎
+  { id: 'gems500', name: 'Thợ săn kim cương', desc: 'Kiếm tổng cộng 500 kim cương', goal: 500, gems: 25, stat: (g) => g.records.gemsEarned },
+  { id: 'perks4', name: 'Hoàng gia', desc: 'Sở hữu cả 4 đặc quyền vĩnh viễn', goal: 4, gems: 50, stat: (g) => g.perks.length },
+  { id: 'boost10', name: 'Chơi lớn', desc: 'Dùng 10 vật phẩm kim cương', goal: 10, gems: 15, stat: (g) => g.records.boostsUsed },
 ];

@@ -21,6 +21,7 @@ js/
 ├── projects.js   dự án (nghiệp vụ): sinh hợp đồng theo đội hiện tại, cộng điểm, hoàn thành, gia hạn, thất bại
 ├── achievements.js  danh sách thành tựu, đếm số chờ nhận, nhận thưởng 💎
 ├── premium.js    cửa hàng 💎: điều kiện mua, hiệu ứng của đặc quyền & vật phẩm dùng ngay
+├── item-art.js   hình pixel-art 24×24 của từng vật phẩm 💎 (hiện trong cửa hàng)
 ├── ads.js        quảng cáo có thưởng: showRewarded(); AdMob khi có, nếu không thì quảng cáo giả lập
 ├── i18n.js       đa ngôn ngữ: t('câu tiếng Việt'), chọn/nhớ ngôn ngữ; từ điển trong js/lang/ (en.js…)
 ├── view.js       vẽ các chế độ (office isometric / văn phòng dọc / mini taskbar), tỷ lệ phóng, tọa độ, chọn đối tượng

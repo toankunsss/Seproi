@@ -13,10 +13,16 @@ export function achievementList(g) {
 
 export const claimableCount = (g) => ACHIEVEMENTS.filter((a) => !g.claimed.includes(a.id) && (Number(a.stat(g)) || 0) >= a.goal).length;
 
+/** Every 💎 the player earns goes through here (feeds the "gems earned" achievement). */
+export function addGems(g, n) {
+  g.gems += n;
+  g.records.gemsEarned += n;
+}
+
 export function claim(g, id) {
   const a = ACHIEVEMENTS.find((x) => x.id === id);
   if (!a || g.claimed.includes(id) || (Number(a.stat(g)) || 0) < a.goal) return 0;
   g.claimed.push(id);
-  g.gems += a.gems;
+  addGems(g, a.gems);
   return a.gems;
 }

@@ -7,6 +7,7 @@ import { faceUrl, hirePrice, skillMult } from './cv.js';
 import { progressOf } from './projects.js';
 import { achievementList, claimableCount } from './achievements.js';
 import { blockedReason } from './premium.js';
+import { itemArtUrl } from './item-art.js';
 import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
@@ -119,7 +120,9 @@ export function createScreens({ g, act, modal, fmt, esc }) {
     const adsLeft = ADS.gemAdsPerDay - (g.ads.day === g.day ? g.ads.gems : 0);
     const item = (it) => {
       const why = blockedReason(g, it);
-      return `<div class="item vip ${it.kind}">
+      const owned = it.kind === 'perk' && g.perks.includes(it.id);
+      return `<div class="item vip ${it.kind} ${owned ? 'owned' : ''}">
+        <div class="item-art"><img src="${itemArtUrl(it.id)}" alt="">${owned ? '<i>✓</i>' : ''}</div>
         <div class="info"><div class="title">${t(it.name)}</div><div class="desc">${t(it.desc)}</div></div>
         <button class="px-btn buy gem-btn" data-a="vipBuy" data-arg="${it.id}" ${why ? 'disabled' : ''}>${why && why !== 'gems' ? t(why) : `${it.gems} ${GEM}`}</button>
       </div>`;

@@ -4,7 +4,7 @@ import { load, save, wipe, makeEmployee, freshDay, SAVE_KEY } from './state.js';
 import { update as simUpdate, whipEmployee, useCoffee, assistantInterval } from './sim.js';
 import { hirePrice, refillCandidates } from './cv.js';
 import * as projects from './projects.js';
-import { claim } from './achievements.js';
+import { claim, addGems } from './achievements.js';
 import { buyPremium } from './premium.js';
 import { showRewarded } from './ads.js';
 import { t as tr, setLang } from './i18n.js';
@@ -136,7 +136,7 @@ const act = {
   async adGems() {
     if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
     if (g.ads.gems >= ADS.gemAdsPerDay) return;
-    if (await watchAd('gems')) { g.ads.gems++; g.gems += ADS.gemsPerAd; toast(tr('+{n} KIM CƯƠNG', { n: ADS.gemsPerAd }), 'coffee'); save(g); }
+    if (await watchAd('gems')) { g.ads.gems++; addGems(g, ADS.gemsPerAd); toast(tr('+{n} KIM CƯƠNG', { n: ADS.gemsPerAd }), 'coffee'); save(g); }
     ui.screens.repaint();
   },
   achClaim(id) {

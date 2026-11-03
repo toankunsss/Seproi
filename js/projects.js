@@ -9,6 +9,7 @@
 // requirement = team output for that role over the project's days x a difficulty factor.
 import { PROJECT_TYPES, CLIENTS, PROJECT_OFFERS, WORK_RATE, TUNING } from './config.js';
 import { skillMult } from './cv.js';
+import { addGems } from './achievements.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
@@ -61,6 +62,7 @@ export function abandon(g) {
   if (!g.projects.active) return;
   g.projects.active = null;
   g.projects.failed++;
+  g.records.projStreak = 0;
 }
 
 export const progressOf = (p) => {
@@ -84,8 +86,11 @@ export function complete(g) {
   g.money += p.money;
   g.lifetimeEarnings += p.money;
   g.today.revenue += p.money;
-  g.gems += p.gems;
+  addGems(g, p.gems);
   g.projects.done++;
+  g.records.projStreak++;
+  g.records.bestProjStreak = Math.max(g.records.bestProjStreak, g.records.projStreak);
+  if (p.days >= 3) g.records.bigProjects++;
   g.projects.active = null;
   return p;
 }
@@ -105,5 +110,6 @@ export function fail(g) {
   const p = g.projects.active;
   g.projects.active = null;
   g.projects.failed++;
+  g.records.projStreak = 0;
   return p;
 }

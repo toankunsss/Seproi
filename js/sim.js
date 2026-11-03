@@ -86,6 +86,7 @@ export function update(g, dt, emit) {
   g.money += earned;
   g.lifetimeEarnings = (g.lifetimeEarnings || 0) + earned;
   g.today.revenue += earned;
+  if (g.money > g.records.peakMoney) g.records.peakMoney = g.money;
 
   // KPI = moving average of the share of staff actually working
   const frac = g.staff.length ? working / g.staff.length : 1;
@@ -130,6 +131,8 @@ export function whipEmployee(g, e, { auto = false } = {}) {
 
   if (e.state === 'slack') {
     const excuse = SLACKS[e.slack].excuse;
+    g.records.caught[e.slack] = (g.records.caught[e.slack] || 0) + 1;
+    if (auto) g.records.assistCatches++;
     e.state = 'hurt'; e.t = 0; e.slack = null;
     e.energy = Math.min(100, e.energy + 45);
     e.boost = w.boost;
@@ -169,6 +172,7 @@ export function whipEmployee(g, e, { auto = false } = {}) {
 export function useCoffee(g) {
   if (g.coffeeLevel < 0 || g.coffeeCd > 0) return false;
   g.coffeeCd = COFFEE[g.coffeeLevel].cooldown;
+  g.records.coffees++;
   for (const e of g.staff) {
     e.energy = Math.min(100, e.energy + 55);
     e.stress = Math.max(0, e.stress - 30);
