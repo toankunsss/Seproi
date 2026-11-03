@@ -44,6 +44,7 @@ export function newGame() {
     claimed: [],             // achievement ids already rewarded
     perks: [],               // premium perks owned (config PREMIUM_ITEMS)
     partyDay: 0,             // last day of a team party (staff.js)
+    visit: null, visitPlan: null, // surprise visits (events.js)
     hotBonus: 0,             // seconds of x2 income left (premium boost)
     ads: { day: 0, gems: 0 },// rewarded-ad counters for daily caps
     muted: false, mode: 'office',

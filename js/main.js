@@ -7,6 +7,8 @@ import * as projects from './projects.js';
 import { claim, addGems } from './achievements.js';
 import { buyPremium } from './premium.js';
 import * as staffCare from './staff.js';
+import { planVisit, whipWitnessed, endVisit } from './events.js';
+import { VISITS } from './config.js';
 import { showRewarded } from './ads.js';
 import { t as tr, setLang } from './i18n.js';
 import { createView } from './view.js';
@@ -47,6 +49,7 @@ function newMorning() {
   if (g.candidatesDay !== g.day || !g.candidates.length) { refillCandidates(g); g.candidatesDay = g.day; }
   projects.refreshOffers(g);
   if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
+  if (g.visitDay !== g.day) { planVisit(g); g.visitDay = g.day; } // once per day, reloads can't re-roll
 }
 newMorning();
 
@@ -374,6 +377,11 @@ function resolveHit(hit, cx, cy) {
   const e = hit.e;
   const res = whipEmployee(g, e);
   const at = view.toClient(hit.head.x, hit.head.y - 6);
+  const fine = whipWitnessed(g); // labour inspector watching?
+  if (fine || (g.visit && g.visit.kind === 'labour' && g.visit.watching)) {
+    haptic('wrong'); audio.grumble();
+    toast(tr('BIÊN BẢN VI PHẠM! −{m} đ', { m: fmt(fine) }), 'wrong');
+  }
   if (res.kind === 'catch') {
     haptic(g.combo >= 3 ? 'heavy' : 'hit');
     audio.ouch(1 + (e.id % 3) * 0.12);
@@ -430,15 +438,45 @@ function onEvent(type, e) {
       save(g);
       break;
     }
+    case 'visitStart': {
+      const k = VISITS.kinds[e.kind];
+      audio.alert(); audio.bell(); haptic('heavy');
+      toast(tr('{name} ĐẾN KIỂM TRA!', { name: tr(k.name).toUpperCase() }), 'wrong');
+      setTimeout(() => toast(`"${tr(k.line)}"`, 'say'), 1300);
+      break;
+    }
+    case 'visitDistracted':
+      toast(tr('Thanh tra đang lướt điện thoại… quất nhanh!'), 'money');
+      break;
+    case 'visitWatching':
+      toast(tr('Thanh tra nhìn lại rồi!'), 'wrong');
+      break;
+    case 'visitEnd':
+      showVisitResult(e);
+      break;
     case 'dayEnd':
       endDay();
       break;
   }
 }
 
+/** Toast the outcome of a surprise visit (events.js → endVisit). */
+function showVisitResult(r) {
+  if (!r) return;
+  const msg = {
+    tax: r.ok ? tr('Thanh tra thuế hài lòng: +{n} KIM CƯƠNG', { n: r.gems }) : tr('Thanh tra thuế phạt {m} đ!', { m: fmt(r.fine) }),
+    labour: r.ok ? tr('Doanh nghiệp nhân văn: +{n} KIM CƯƠNG', { n: r.gems }) : tr('Thanh tra lao động đi về. Tổng phạt {m} đ', { m: fmt(r.fine) }),
+    vip: r.ok ? tr('Khách VIP ký hợp đồng: +{m} đ', { m: fmt(r.money) }) : tr('Khách VIP không hài lòng, bỏ về…'),
+  }[r.kind];
+  r.ok ? (audio.buy(), haptic('success')) : (audio.deny(), haptic('wrong'));
+  toast(msg, r.ok ? 'money' : 'wrong');
+  save(g);
+}
+
 function endDay() {
   if (paused) return;
   paused = true;
+  if (g.visit) showVisitResult(endVisit(g)); // a visitor still in the office leaves at clock-out
   audio.bell();
   const t = g.today;
   const kpi = Math.round((t.kpiN ? t.kpiSum / t.kpiN : g.kpi) * 100);

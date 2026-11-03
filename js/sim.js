@@ -4,6 +4,7 @@ import { ROLES, SLACKS, SLACK_KINDS, WHIPS, COFFEE, ASSISTANT, WORK_RATE, MOTIVA
 import { skillMult, lazyMult, stressMult } from './cv.js';
 import { addWork } from './projects.js';
 import { motivFactor, motivBaseline } from './staff.js';
+import { updateVisit, assistantHides } from './events.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -85,6 +86,7 @@ export function update(g, dt, emit) {
     income += inc;
   }
   if (finished) emit('projectDone');
+  updateVisit(g, dt, emit);
 
   const earned = income * dt;
   g.money += earned;
@@ -105,7 +107,7 @@ export function update(g, dt, emit) {
   if (g.coffeeCd > 0) g.coffeeCd = Math.max(0, g.coffeeCd - dt);
 
   // Assistant auto-whips a slacker on an interval
-  if (g.assistantLevel >= 0) {
+  if (g.assistantLevel >= 0 && !assistantHides(g)) {
     g.assistantCd -= dt;
     if (g.assistantCd <= 0) {
       const slackers = g.staff.filter(isSlacking);

@@ -11,7 +11,7 @@ Game mobile idle văn phòng pixel-art cho **Android và iOS**. Bạn là sếp;
 | `desktop/` | bản PC phụ (Electron, thanh nhỏ nằm trên taskbar Windows/macOS), dùng chung mã nguồn game |
 | `docs/` | tài liệu phát triển |
 
-**Tính năng chính:** quất nhân viên lười để giữ KPI; tuyển dụng bằng CV (chỉ số ảnh hưởng gameplay); khen thưởng, tăng lương, liên hoan và sa thải nhân viên (động lực); nhận dự án từ khách hàng (nghiệp vụ); 50 thành tựu; tiền cao cấp 💎 Kim cương mua đặc quyền và vật phẩm; quảng cáo có thưởng; đa ngôn ngữ (Tiếng Việt, English).
+**Tính năng chính:** quất nhân viên lười để giữ KPI; tuyển dụng bằng CV (chỉ số ảnh hưởng gameplay); khen thưởng, tăng lương, liên hoan và sa thải nhân viên (động lực); đoàn thanh tra thuế, thanh tra lao động, khách VIP ghé thăm bất ngờ; nhận dự án từ khách hàng (nghiệp vụ); 50 thành tựu; tiền cao cấp 💎 Kim cương mua đặc quyền và vật phẩm; quảng cáo có thưởng; đa ngôn ngữ (Tiếng Việt, English).
 
 App mobile đóng gói mã nguồn game vào trong app native. Game chạy offline hoàn toàn, có rung (haptics), nút Back Android, toàn màn hình, chơi màn hình dọc (khóa xoay), và có bản sao lưu save trong bộ nhớ native.
 

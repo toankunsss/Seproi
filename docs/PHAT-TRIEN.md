@@ -98,6 +98,13 @@ Thêm vào `PROJECT_TYPES` (`roles` = trọng số từng nghề), `CLIENTS`, `C
 
 Thêm vào `STAFF_ACTIONS` (`config.js`) với các hiệu ứng `motiv`/`stress`/`energy`/`boost`, xử lý điều kiện riêng trong `staff.js → blocked`, rồi thêm một nút `staffBtn('tên', e, 'Nhãn')` trong `screens.js → staffScreen` và câu chúc mừng trong `main.js → staffDo`. Giá nhân với hệ số ngày (`1 + 0,12 × (ngày − 1)`), nên luôn tương xứng với thu nhập.
 
+### Kiểu ghé thăm mới (ví dụ "Sếp tổng")
+
+1. Thêm vào `VISITS.kinds` (`config.js`): `name`, `line` (câu nói khi đến), `rule` (hiện trên băng thông báo) cùng các tham số riêng.
+2. Luật và kết quả: `events.js → endVisit` (và `updateVisit` nếu cần theo dõi gì trong lúc thăm).
+3. Ngoại hình: thêm mục vào `VISITOR_LOOK` trong `sprites.js` (màu đồ, mũ, huy hiệu, đồ cầm tay).
+4. Câu thông báo kết quả: `main.js → showVisitResult`. Thêm bản dịch vào `js/lang/en.js`.
+
 ## Cân bằng game
 
 Tất cả nằm trong `TUNING` (`config.js`): độ dài ngày, tốc độ mất năng lượng, xác suất lười, thời gian đình công, tiền phạt, thời gian giữ combo, hệ số tăng thu nhập theo ngày, `touchSlop` (vùng chạm rộng thêm trên mobile), `awayCap` (số giây tối đa được bù khi rời app).

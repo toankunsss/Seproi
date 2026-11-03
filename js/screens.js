@@ -237,7 +237,8 @@ export function createScreens({ g, act, modal, fmt, esc }) {
     repaint: paint,
     close,
     get open() { return current && current.name; },
-    badges: () => ({ achievements: claimableCount(g), projects: g.projects.active ? 0 : 1 }),
+    // projects: how many contracts can be taken right now (none while one is in progress)
+    badges: () => ({ achievements: claimableCount(g), projects: g.projects.active ? 0 : g.projects.offers.length }),
   };
   act.closeScreen = close;
   return screens;

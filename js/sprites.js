@@ -603,3 +603,53 @@ export function drawMiniStation(ctx, x, e, t) {
   rect(ctx, x + 25, MINI_H - 17, 3, 5, '#2c2a36');
   return drawEmployee(ctx, x + 11, MINI_H - 2, e, t);
 }
+
+// --- Surprise visitors (events.js) ------------------------------------------------------------
+const VISITOR_LOOK = {
+  tax: { suit: '#7a7a3e', hat: '#3a4a2a', badge: '#ffd34d', prop: 'clipboard' },
+  labour: { suit: '#3d6fd6', hat: '#ffd34d', badge: '#ff8a1a', prop: 'clipboard' },
+  vip: { suit: '#1a1a22', hat: null, badge: '#ffd34d', prop: 'briefcase' },
+};
+
+/** Front-facing visitor standing at floor point (x, y). Returns the head position. */
+export function drawVisitor(ctx, x, y, kind, t, walking = false, attention = null) {
+  const L = VISITOR_LOOK[kind] || VISITOR_LOOK.tax;
+  const step = walking ? Math.floor(t * 8) % 2 : 0;
+  x = Math.round(x); y = Math.round(y);
+  // legs
+  rect(ctx, x - 3, y - 7 + step, 2, 7 - step, shade(L.suit, -0.3));
+  rect(ctx, x + 1, y - 7 + (1 - step), 2, 7 - (1 - step), shade(L.suit, -0.3));
+  rect(ctx, x - 4, y - 1, 3, 1, '#111'); rect(ctx, x + 1, y - 1, 3, 1, '#111');
+  // body + collar
+  rect(ctx, x - 4, y - 15, 8, 9, L.suit);
+  rect(ctx, x - 1, y - 15, 2, 4, '#f4f4f4');
+  px(ctx, x, y - 14, kind === 'vip' ? '#ffd34d' : '#d02030'); px(ctx, x, y - 13, kind === 'vip' ? '#ffd34d' : '#d02030');
+  if (kind === 'tax') rect(ctx, x + 2, y - 14, 2, 2, L.badge);
+  // arms + prop
+  rect(ctx, x - 6, y - 14, 2, 7, L.suit); rect(ctx, x - 6, y - 7, 2, 2, '#f1c7a0');
+  rect(ctx, x + 4, y - 14, 2, 6, L.suit); rect(ctx, x + 4, y - 8, 2, 2, '#f1c7a0');
+  if (attention === 'distracted') { // both hands on a glowing phone
+    rect(ctx, x - 2, y - 11, 4, 3, '#15151c'); rect(ctx, x - 1, y - 11, 2, 2, Math.floor(t * 4) % 2 ? '#ff3d7f' : '#2de2e6');
+    rect(ctx, x - 4, y - 10, 2, 2, '#f1c7a0'); rect(ctx, x + 2, y - 10, 2, 2, '#f1c7a0');
+  } else if (L.prop === 'clipboard') { rect(ctx, x + 5, y - 13, 5, 7, '#8a6a3a'); rect(ctx, x + 6, y - 12, 3, 5, '#f4f1ea'); px(ctx, x + 7, y - 11, '#4a4560'); px(ctx, x + 7, y - 9, '#4a4560'); }
+  else { rect(ctx, x + 5, y - 9, 6, 5, '#6b4a2a'); rect(ctx, x + 7, y - 10, 2, 1, '#3a2a1a'); px(ctx, x + 8, y - 7, '#ffd34d'); }
+  // head
+  rect(ctx, x - 3, y - 22, 7, 7, '#f1c7a0');
+  if (kind === 'vip') { rect(ctx, x - 3, y - 23, 7, 2, '#141014'); rect(ctx, x - 3, y - 20, 7, 2, '#111'); }
+  else {
+    rect(ctx, x - 4, y - 24, 9, 3, L.hat); rect(ctx, x - 5, y - 22, 11, 1, shade(L.hat, -0.2));
+    px(ctx, x, y - 23, L.badge);
+    if (attention === 'distracted') { rect(ctx, x - 2, y - 18, 2, 1, '#1d1826'); rect(ctx, x + 1, y - 18, 2, 1, '#1d1826'); } // eyes down
+    else { px(ctx, x - 2, y - 19, '#1d1826'); px(ctx, x + 2, y - 19, '#1d1826'); }
+  }
+  if (attention === 'watching') { // red "!" — they are looking
+    const by = y - 32 - (Math.floor(t * 4) % 2);
+    rect(ctx, x - 2, by, 5, 7, '#1d1826'); rect(ctx, x - 1, by + 1, 3, 5, '#ff3d4a'); rect(ctx, x, by + 2, 1, 2, '#fff'); px(ctx, x, by + 5, '#fff');
+  } else if (attention === 'distracted') { // little "..." bubble
+    const by = y - 31;
+    rect(ctx, x - 4, by, 9, 5, '#ffffff'); rect(ctx, x - 4, by + 5, 2, 1, '#ffffff');
+    px(ctx, x - 2, by + 2, '#4a4560'); px(ctx, x, by + 2, '#4a4560'); px(ctx, x + 2, by + 2, '#4a4560');
+  }
+  rect(ctx, x - 1, y - 17, 3, 1, kind === 'vip' ? '#a0503a' : '#5a2e1a');
+  return { x, y: y - 24 };
+}

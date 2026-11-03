@@ -22,6 +22,7 @@ js/
 ├── achievements.js  danh sách thành tựu, đếm số chờ nhận, nhận thưởng 💎
 ├── premium.js    cửa hàng 💎: điều kiện mua, hiệu ứng của đặc quyền & vật phẩm dùng ngay
 ├── item-art.js   hình pixel-art 24×24 của từng vật phẩm 💎 (hiện trong cửa hàng)
+├── events.js     ghé thăm bất ngờ: thanh tra thuế, thanh tra lao động (lúc nhìn / lúc lơ đãng), khách VIP
 ├── staff.js      chăm sóc nhân sự: động lực, khen ngợi/thưởng/quà/tăng lương/liên hoan, sa thải, cấp mã nhân viên
 ├── ads.js        quảng cáo có thưởng: showRewarded(); AdMob khi có, nếu không thì quảng cáo giả lập
 ├── i18n.js       đa ngôn ngữ: t('câu tiếng Việt'), chọn/nhớ ngôn ngữ; từ điển trong js/lang/ (en.js…)
@@ -138,6 +139,7 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 | Thành tựu | `ACHIEVEMENTS` (mỗi cái có `stat(g)`, `goal`, `gems`) | `achievements.js` | `screens.js → achScreen` | `claimed`, các bộ đếm trong `records` |
 | Kim cương 💎 | `GEMS_START`, `PREMIUM_ITEMS` | `premium.js`, `sim.js` (`hasPerk`) | `screens.js → vipScreen` | `gems`, `perks`, `hotBonus` |
 | Khen thưởng & sa thải | `MOTIVATION`, `STAFF_ACTIONS` | `staff.js`, `sim.js` (`motivFactor`) | `screens.js → staffScreen`, ♥/mây trong `portrait.js` | `staff[].motiv`, `staff[].wage`, `staff[].praisedDay`, `partyDay` |
+| Ghé thăm bất ngờ | `VISITS` | `events.js` (gọi từ `sim.js`), `main.js → showVisitResult` | nhân vật `drawVisitor` (`sprites.js`), băng `.visitbar` trên HUD | `visit`, `visitPlan`, `visitDay` |
 | Quảng cáo có thưởng | `ADS` | `ads.js`, `main.js → watchAd()` | các nút ▶ màu xanh | `ads { day, gems }`, `records.adsWatched` |
 
 - **Mỗi sáng** (`main.js → newMorning`): CV mới, 3 hợp đồng mới, đặt lại lượt quảng cáo trong ngày.
@@ -145,6 +147,7 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 - **Dự án**: yêu cầu = sản lượng của đội cho nghề đó × số ngày × độ khó (0,4–0,7). Vì vậy với KPI tốt luôn làm kịp, KPI kém thì trễ. Hạn là hết ngày `deadline`; sang ngày mới mà chưa xong thì thất bại (trừ khi đã gia hạn bằng quảng cáo, chỉ được 1 lần mỗi dự án).
 - **Động lực** (`e.motiv`, 0–100, mặc định 50): nhân với xác suất lười, 100 → ×0,6, 0 → ×1,4; mỗi bậc lương giảm thêm 12%. Động lực tự trôi về mức nền (50 + 10 × bậc lương) với tốc độ 0,08/giây. Mỗi lần bị bắt quả tang −2, bị quất oan −15, sau đình công tối đa còn 20. Sa thải làm người ở lại −8 động lực, +10 áp lực.
 - **Mã nhân viên** (`e.id`) luôn duy nhất: khi tuyển dùng `nextStaffId()` (mã lớn nhất + 1), vì sau khi sa thải số người không còn bằng mã. Vị trí bàn là thứ tự trong mảng `g.staff`.
+- **Ghé thăm bất ngờ** (`events.js`): mỗi sáng từ ngày 2 có 35% khả năng lên lịch 1 đoàn (`visitPlan`), đến vào khoảng 10:00–16:00 và ở lại 25 giây. Thanh tra thuế xét KPI trung bình ≥ 70% (+3💎, không đạt thì phạt 10% quỹ). Khách VIP xét KPI ≥ 80% (thưởng 1.500 đ × hệ số ngày). Thanh tra lao động luân phiên **đang nhìn** (3,5–5,5 giây) và **lơ đãng** (2–3,5 giây): quất lúc họ nhìn bị phạt 60 đ × hệ số ngày mỗi roi và mất phần thưởng; quất lúc họ lơ đãng thì không sao; trợ lý cũng chỉ dám quất khi họ lơ đãng. Không ai bị thấy quất thì +4💎. Đoàn còn ở lại lúc tan ca thì tổng kết luôn. `visitDay` đảm bảo mỗi ngày chỉ lên lịch 1 lần, tải lại trang không quay lại được.
 - **Quảng cáo**: lúc quảng cáo đang hiện, mô phỏng tạm dừng (`adOpen`) và tắt tiếng. Chỉ trao thưởng khi `showRewarded()` trả về `true` (xem hết). Chi tiết tích hợp AdMob ở `docs/QUANG-CAO.md`.
 
 ## Đa ngôn ngữ

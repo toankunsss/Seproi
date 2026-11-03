@@ -254,3 +254,17 @@ export const STAFF_ACTIONS = {
   party: { cost: 80, motiv: 20, stress: -40, energy: 30 },        // per employee, once per day
   fire: { motiv: -8, stress: 10 },                                // effect on everyone who stays
 };
+
+// --- Surprise visits (events.js) ------------------------------------------------------------
+// From day 2, some days get one visit at a random time between ~10:00 and ~16:00.
+export const VISITS = {
+  chance: 0.35, // per day
+  duration: 25, // seconds of game time
+  kinds: {
+    tax: { name: 'Thanh tra thuế', line: 'Cho xem sổ sách nào!', rule: 'Giữ KPI ≥ 70% đến khi thanh tra về', kpi: 0.7, gems: 3, fine: 0.1 },
+    // The labour inspector keeps getting distracted by their phone: whips while they are not
+    // looking are not written up. watch/distracted = [min, max] seconds of each phase.
+    labour: { name: 'Thanh tra lao động', line: 'Ở đây có ai bị bóc lột không?', rule: 'Không được quất ai trước mặt thanh tra!', gems: 4, finePerWhip: 60, watch: [3.5, 5.5], distracted: [2, 3.5] },
+    vip: { name: 'Khách hàng VIP', line: 'Công ty các bạn trông chuyên nghiệp đấy!', rule: 'Giữ KPI ≥ 80% để ký hợp đồng lớn', kpi: 0.8, bonus: 1500 },
+  },
+};

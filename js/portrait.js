@@ -11,9 +11,9 @@
 //   └───────────────────────────────────────────────────────────────────────┘
 import { rect, px, line } from './pixel.js';
 import {
-  shade, renderScreen, drawEmployee, drawAssistant, drawOfficeDecor, drawSteam,
+  shade, renderScreen, drawEmployee, drawAssistant, drawOfficeDecor, drawSteam, drawVisitor,
 } from './sprites.js';
-import { TUNING } from './config.js';
+import { TUNING, VISITS } from './config.js';
 
 export const CELL = { w: 50, h: 60 };
 const WALL_H = 50;          // back wall height (floor starts below it)
@@ -70,7 +70,19 @@ export function drawPortraitOffice(ctx, L, g, t, whip) {
       drawLounge(ctx, c.x, c.y, t);
     }
   });
+  if (g.visit) drawVisitorWalk(ctx, L, g.visit, t);
   return { hits, slots, hand };
+}
+
+/** Surprise visitor: walks in from the left, inspects in the middle, walks out. */
+function drawVisitorWalk(ctx, L, v, t) {
+  const walk = 3, stay = VISITS.duration - walk;
+  const mid = Math.round(L.W / 2) + 10, from = -8;
+  let x = mid, walking = false;
+  if (v.t < walk) { x = from + (mid - from) * (v.t / walk); walking = true; }
+  else if (v.t > stay) { x = mid + (L.W + 8 - mid) * ((v.t - stay) / walk); walking = true; }
+  const attention = v.kind === 'labour' && !walking ? (v.watching ? 'watching' : 'distracted') : null;
+  drawVisitor(ctx, x, WALL_H + 1, v.kind, t, walking, attention);
 }
 
 // --- Floor & wall -----------------------------------------------------------------------------

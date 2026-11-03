@@ -4,7 +4,7 @@
 //   mini     — a thin taskbar strip of workstations (desktop shell)
 import {
   roomLayer, ROOM_SIZE, drawClockHands, drawDesk, drawMonitor, drawKeyboard, renderScreen,
-  drawEmployee, drawBubble, drawZzz, drawCoffeeMachine, drawAssistant, drawOfficeDecor, assistantPos,
+  drawEmployee, drawBubble, drawZzz, drawCoffeeMachine, drawAssistant, drawOfficeDecor, assistantPos, drawVisitor,
   PERSON_OFFSET, MINI_SLOT, MINI_H, drawMiniStation,
 } from './sprites.js';
 import { iso, rect } from './pixel.js';
@@ -122,6 +122,11 @@ export function createView(canvas) {
     if (g.assistantLevel >= 0) {
       const a = drawAssistant(ctx, room.P, g.assistantLevel, t, whip.swingT);
       v.assistantHand = a.hand;
+    }
+    if (g.visit) {
+      const p = room.P(3 + Math.min(1, g.visit.t / 3) * 3, 8.2);
+      const attention = g.visit.kind === 'labour' && g.visit.t >= 3 ? (g.visit.watching ? 'watching' : 'distracted') : null;
+      drawVisitor(ctx, p.x, p.y, g.visit.kind, t, g.visit.t < 3, attention);
     }
     for (const { e, head } of overlays) drawOverlay(e, head, t);
   }

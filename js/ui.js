@@ -3,6 +3,7 @@ import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, MAX_STAFF, OFFICE_LEVELS, DECOR_I
 import { incomeOf } from './sim.js';
 import { createScreens, projectSummary } from './screens.js';
 import { progressOf } from './projects.js';
+import { VISITS } from './config.js';
 import { t, locale } from './i18n.js';
 
 export const fmt = (n) => {
@@ -64,6 +65,7 @@ const MOBILE_HUD = `
     </div>
     <div class="side controls">
       <div class="hint" data-k="hint"></div>
+      <div class="visitbar" data-k="visit" hidden></div>
       <button class="projbar" data-a="projects"><span class="pj-name" data-k="projName"></span>
         <span class="meter"><i data-k="projBar"></i></span><span class="pj-due" data-k="projDue"></span></button>
       <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden></button>
@@ -114,6 +116,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       <div class="combo" data-k="combo"></div>
       <div class="spacer"></div>
       <div class="assist" data-k="assist"></div>
+      <div class="visitbar" data-k="visit" hidden></div>
       <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden></button>
     </div>
     <div class="tag" data-k="tag" hidden></div>`;
@@ -168,13 +171,25 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       const pj = projectSummary(g);
       if (K.projName) {
         set(K.projName, pj ? t(pj.name) : t('Chưa có dự án'));
-        set(K.projDue, pj ? `${Math.floor(pj.frac * 100)}% · ${pj.due}` : t('Chạm để nhận việc'));
+        const offers = g.projects.offers.length;
+        set(K.projDue, pj ? `${Math.floor(pj.frac * 100)}% · ${pj.due}` : offers ? t('{n} hợp đồng đang chờ', { n: offers }) : t('Hết hợp đồng hôm nay'));
         K.projBar.style.width = pj ? Math.round(pj.frac * 100) + '%' : '0%';
         K.projName.parentElement.classList.toggle('idle', !pj);
       }
       const badges = screens.badges();
       if (K.dotAch) { K.dotAch.hidden = !badges.achievements; K.dotAch.textContent = badges.achievements || ''; }
-      if (K.dotProjects) K.dotProjects.hidden = !badges.projects;
+      if (K.dotProjects) { K.dotProjects.hidden = !badges.projects; K.dotProjects.textContent = badges.projects || ''; }
+      if (K.visit) {
+        const v = g.visit;
+        K.visit.hidden = !v;
+        if (v) {
+          const left = Math.max(0, Math.ceil(VISITS.duration - v.t));
+          const k = VISITS.kinds[v.kind];
+          const lookAway = v.kind === 'labour' && !v.watching && v.t >= 3;
+          set(K.visit, `${t(k.name)} · ${lookAway ? t('Đang lướt điện thoại, quất nhanh!') : t(k.rule)} · ${left}s`);
+          K.visit.classList.toggle('safe', lookAway);
+        }
+      }
       if (panelOpen) renderPanel();
       screens.tick();
     },
