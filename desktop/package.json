@@ -1,15 +1,15 @@
 {
   "name": "sep-roi-desktop",
-  "productName": "Sep Roi",
+  "productName": "Whip Boss",
   "version": "1.0.0",
-  "description": "Sếp Roi — taskbar idle game",
-  "author": "Sep Roi",
+  "description": "Whip Boss — taskbar idle game",
+  "author": "Whip Boss",
   "main": "main.cjs",
   "private": true,
   "scripts": {
     "start": "electron .",
     "shot": "electron . --shot",
-    "icon": "node build/make-icon.cjs",
+    "icon": "node ../tools/brand/make-brand.cjs",
     "dist": "electron-builder --win",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac"
@@ -20,7 +20,7 @@
   },
   "build": {
     "appId": "vn.seproi.game",
-    "productName": "Sep Roi",
+    "productName": "Whip Boss",
     "directories": { "output": "dist", "buildResources": "build" },
     "files": ["main.cjs", "preload.cjs", "package.json"],
     "extraResources": [
@@ -41,19 +41,19 @@
         { "target": "dmg", "arch": ["x64", "arm64"] },
         { "target": "zip", "arch": ["x64", "arm64"] }
       ],
-      "artifactName": "SepRoi-${version}-mac-${arch}.${ext}"
+      "artifactName": "WhipBoss-${version}-mac-${arch}.${ext}"
     },
     "dmg": {
-      "title": "Sếp Roi ${version}",
-      "artifactName": "SepRoi-${version}-mac-${arch}.${ext}"
+      "title": "Whip Boss ${version}",
+      "artifactName": "WhipBoss-${version}-mac-${arch}.${ext}"
     },
-    "portable": { "artifactName": "SepRoi-${version}-portable.exe" },
+    "portable": { "artifactName": "WhipBoss-${version}-portable.exe" },
     "nsis": {
-      "artifactName": "SepRoi-${version}-setup.exe",
+      "artifactName": "WhipBoss-${version}-setup.exe",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Sếp Roi"
+      "shortcutName": "Whip Boss"
     }
   }
 }

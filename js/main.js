@@ -16,6 +16,8 @@ import { createWhip } from './whip.js';
 import { createUI, fmt } from './ui.js';
 import { pipSupported, openPip } from './pip.js';
 import * as audio from './audio.js';
+import * as music from './music.js';
+import { showTitle } from './title.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 
 const $ = (id) => document.getElementById(id);
@@ -30,6 +32,7 @@ if (params.get('mode') === 'mini') g.mode = 'mini';
 // Phones/tablets have no taskbar: always play the full office.
 if (mobile) g.mode = 'office';
 audio.setMuted(g.muted);
+music.setEnabled(mobile && !g.musicOff); // background music: phone game only (the taskbar stays quiet)
 
 // Running inside the Electron taskbar shell (desktop/preload.cjs)?
 const shell = window.taskbarShell || null;
@@ -44,6 +47,8 @@ let paused = false;
 let adOpen = false; // the simulation waits while a rewarded ad is on screen
 let userPaused = false; // phone: frozen while away / until the player taps "Tiếp tục"
 let resetting = false;
+// Phone: the title screen is up and the office waits behind it (?title=0 skips it, for tests).
+let onTitle = mobile && params.get('title') !== '0';
 
 // Morning routine (also on first launch / old saves): fresh CVs, client offers, ad caps.
 function newMorning() {
@@ -58,6 +63,7 @@ newMorning();
 const act = {
   mode() { setMode(g.mode === 'office' ? 'mini' : 'office'); },
   mute() { g.muted = !g.muted; audio.setMuted(g.muted); },
+  music() { g.musicOff = !g.musicOff; music.setEnabled(mobile && !g.musicOff); if (!g.musicOff) audio.unlock(); save(g); },
   coffee() {
     if (useCoffee(g)) { audio.coffee(); haptic('success'); ui.popup(innerWidth / 2, innerHeight * 0.3, tr('CÀ PHÊ SỐC!'), 'coffee'); }
   },
@@ -530,7 +536,7 @@ function frame(now) {
 
 function step(dt) {
   t += dt;
-  if (!paused && !adOpen && !userPaused) simUpdate(g, dt, onEvent);
+  if (!paused && !adOpen && !userPaused && !onTitle) simUpdate(g, dt, onEvent);
   whip.update(dt);
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
   view.render(g, whip, t);
@@ -551,9 +557,10 @@ function schedule() {
 //    since performance.now() stops while hidden), capped at TUNING.awayCap seconds
 let hiddenAt = 0;
 function pauseGame() {
-  if (userPaused || resetting) return;
+  music.pause();
+  if (onTitle || userPaused || resetting) return;
   userPaused = true;
-  ui.showPause(() => { userPaused = false; last = performance.now(); });
+  ui.showPause(() => { userPaused = false; last = performance.now(); audio.unlock(); music.resume(); });
 }
 function goAway() {
   if (mobile) pauseGame();
@@ -562,7 +569,7 @@ function goAway() {
   if (!resetting) save(g);
 }
 function comeBack() {
-  if (mobile) { last = performance.now(); fitMobile(true); return; } // stays paused until "Tiếp tục"
+  if (mobile) { last = performance.now(); fitMobile(true); if (onTitle) music.resume(); return; } // stays paused until "Tiếp tục"
   if (!hiddenAt) return;
   let away = Math.min(TUNING.awayCap, Math.max(0, (Date.now() - hiddenAt) / 1000));
   hiddenAt = 0;
@@ -603,7 +610,7 @@ async function togglePip() {
  * returns false so the app goes to the background.
  */
 function handleBack() {
-  if (userPaused) return false;
+  if (userPaused || onTitle) return false;
   if (document.querySelector('.fake-ad')) return true; // finish or close the ad first
   if (!root.modal.hidden) {
     if (act.nextDay) act.nextDay();
@@ -619,4 +626,22 @@ await initPlatform({ onBack: handleBack, onPause: goAway, onResume: comeBack });
 
 setMode(g.mode);
 schedule();
+if (onTitle) {
+  music.play('title');
+  showTitle({
+    g, fmt,
+    onTap: () => audio.unlock(),
+    onToggleSound: () => { act.mute(); save(g); },
+    onToggleMusic: () => act.music(),
+    onLang: (code) => act.setLang(code),
+    onStart: () => {
+      audio.unlock();
+      audio.whip(g.whipLevel);
+      haptic('hit');
+      onTitle = false;
+      last = performance.now();
+      music.play('office');
+    },
+  });
+} else music.play('office');
 window.__game = { g, view, whip, act, ui, projects }; // debugging + automated play tests (console only)

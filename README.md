@@ -1,4 +1,4 @@
-# Sếp Roi
+# Whip Boss
 
 Game mobile idle văn phòng pixel-art cho **Android và iOS**. Bạn là sếp; nhân viên lén chơi game, lướt Tóp Tóp, ngủ gật, xem coin… Chạm vào kẻ đang lười để quất họ quay lại làm việc, giữ KPI, kiếm tiền, nâng cấp roi, tuyển thêm người và mở rộng văn phòng. Quất oan người đang làm thì bị phạt, và họ có thể đình công.
 

@@ -47,7 +47,7 @@ export function newGame() {
     visit: null, visitPlan: null, // surprise visits (events.js)
     hotBonus: 0,             // seconds of x2 income left (premium boost)
     ads: { day: 0, gems: 0 },// rewarded-ad counters for daily caps
-    muted: false, mode: 'office',
+    muted: false, musicOff: false, mode: 'office',
   };
 }
 

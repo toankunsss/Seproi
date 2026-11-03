@@ -7,9 +7,8 @@ mobile/
 ├── package.json            scripts npm + phiên bản Capacitor/plugin
 ├── capacitor.config.json   appId, tên app, màu nền, cấu hình Splash/StatusBar
 ├── scripts/
-│   ├── copy-web.cjs        chép game (../index.html, css, js, fonts) vào www/
-│   └── make-icons.cjs      sinh icon + splash từ hình cây roi 16x16 (không cần file ảnh)
-├── assets/                 ảnh nguồn cho @capacitor/assets (do make-icons sinh ra)
+│   └── copy-web.cjs        chép game (../index.html, css, js, fonts) vào www/
+├── assets/                 ảnh nguồn cho @capacitor/assets (do ../tools/brand/make-brand.cjs sinh ra)
 ├── android/                project Android Studio (đã commit, sửa được)
 ├── ios/                    project Xcode (đã commit, sửa được, dùng Swift Package Manager)
 └── www/                    bản copy của game, tự sinh, KHÔNG commit
@@ -29,6 +28,8 @@ mobile/
 | Hướng màn hình | Khóa dọc (`portrait` trên Android, Portrait trên iOS). Riêng Android 16 trở lên, trên máy tính bảng và máy gập, hệ điều hành bỏ qua khóa xoay; khi máy nằm ngang, game tự chuyển sang bố cục ngang dự phòng (hai nhóm điều khiển thành hai cột bên cạnh văn phòng). |
 | Nút Back Android | Đóng hộp thoại hoặc panel đang mở. Nếu không có gì mở thì hiện ô **Tạm dừng**; bấm Back thêm lần nữa trên ô đó thì đưa app xuống nền (không thoát). |
 | Ra/vào app | Khi app xuống nền (về màn hình chính, chuyển app, tắt màn hình), game **đứng yên hoàn toàn** và được lưu lại. Khi quay lại sẽ thấy ô **Tạm dừng** (ngày, giờ, quỹ); bấm **Tiếp tục** thì chạy lại. Ô Tạm dừng nằm ở lớp riêng, nên bảng đang mở bên dưới vẫn được giữ. (Bản PC không tạm dừng mà bù tối đa `TUNING.awayCap` = 300 giây thời gian vắng, vì chế độ taskbar cần chạy nền.) |
+| Màn hình tiêu đề | Mở app là thấy màn tiêu đề (`js/title.js`): nền thành phố về đêm có sao, đèn cửa sổ nhấp nháy, xu rơi; logo ông sếp quất roi; chữ **WHIP BOSS**; nút lớn **Bắt đầu** (game mới) hoặc **Chơi tiếp** (kèm ngày và quỹ hiện tại); ba nút Âm thanh, Nhạc, Ngôn ngữ. Văn phòng đứng yên cho tới khi bấm nút. Khi kiểm thử tự động, thêm `?title=0` vào URL để bỏ qua màn này. |
+| Nhạc nền | Nhạc 8-bit tự tổng hợp (`js/music.js`, không có file âm thanh): một bài cho màn tiêu đề và một bài vui nhộn khi làm việc. Tắt/bật bằng nút "Nhạc" ở màn tiêu đề hoặc mục **Thêm → Tắt nhạc nền** (lưu trong save, `g.musicOff`). Nhạc đi qua cùng kênh tổng với hiệu ứng, nên nút ♪ tắt âm thanh và lúc xem quảng cáo đều tắt luôn nhạc. Nhạc dừng khi app xuống nền hoặc đang hiện ô Tạm dừng. Bản PC (taskbar) không phát nhạc. |
 | Hộp thoại dài | Tiêu đề và nút × được cố định (`position: sticky`); chỉ phần nội dung bên dưới cuộn. Cửa hàng Kim cương hiện số 💎 trên tiêu đề. |
 | Lưu game | Vẫn dùng `localStorage`, có thêm bản sao trong **Capacitor Preferences** (SharedPreferences / UserDefaults). Nếu hệ điều hành xóa dữ liệu WebView, game tự khôi phục từ bản sao. |
 
@@ -95,13 +96,22 @@ Trong Xcode: chọn target **App** → *Signing & Capabilities* → chọn Team 
 ## Gỡ lỗi trên máy thật
 
 - **Android**: bật `"webContentsDebuggingEnabled": true` trong `capacitor.config.json` (nhớ tắt lại trước khi phát hành), chạy `npm run sync`, cắm máy rồi mở `chrome://inspect` trên Chrome máy tính.
-- **iOS**: bản debug cho phép Safari → menu Develop → [tên iPhone] → Sếp Roi.
+- **iOS**: bản debug cho phép Safari → menu Develop → [tên iPhone] → Whip Boss.
 - Trong console có `window.__game` (`g` = state, `view`, `whip`). Ví dụ, để có tiền thử nghiệm: `__game.g.money = 99999`.
 - Xem log native: `npx cap run android` hoặc Logcat trong Android Studio; Xcode console cho iOS.
 
 ## Icon và màn hình chờ
 
-Icon và splash được sinh từ hình cây roi 16x16 trong `scripts/make-icons.cjs` (cùng hình với `icon.svg` và `desktop/build/make-icon.cjs`).
+Mọi hình ảnh nhận diện của game đều vẽ từ **một nguồn duy nhất**: hàm `drawLogo()` trong `js/brand.js` (ông sếp đeo kính đen quất roi vàng, pixel art lưới 32x32) và `drawTitle()` (chữ "WHIP BOSS" pixel). Màn hình tiêu đề trong game cũng dùng đúng hai hàm này. Script `tools/brand/make-brand.cjs` vẽ lại bằng Node (không cần thư viện ảnh) và ghi ra:
+
+| File | Dùng cho |
+|---|---|
+| `icon.svg` | favicon (bản web / PC) |
+| `desktop/build/icon.ico`, `icon.png` | icon app Windows / macOS |
+| `mobile/assets/icon-only.png`, `icon-foreground.png`, `icon-background.png` | icon Android (gồm adaptive icon: ông sếp đặt thấp để vai chạy ra mép mặt nạ tròn) và iOS |
+| `mobile/assets/splash.png`, `splash-dark.png` | màn hình chờ |
+| `tools/brand/out/icon-512.png` | icon 512x512 cho Google Play (không commit) |
+| `tools/brand/out/feature-1024x500.png` | ảnh nổi bật (feature graphic) cho Google Play (không commit) |
 
 ```bash
 npm run icons
@@ -109,7 +119,7 @@ npm run icons
 
 Lệnh này sinh lại `assets/*.png`, rồi `@capacitor/assets` ghi đè toàn bộ icon/splash trong `android/` và `ios/`.
 
-Muốn dùng ảnh do họa sĩ vẽ: đặt ảnh vào `assets/` (`icon-only.png` 1024², `icon-foreground.png` 1024² nền trong suốt, `icon-background.png`, `splash.png` và `splash-dark.png` 2732²), rồi chỉ chạy phần `capacitor-assets generate …` trong script `icons` (bỏ bước `make-icons.cjs` để không ghi đè ảnh của bạn).
+Sửa logo: chỉnh `drawLogo()` trong `js/brand.js` rồi chạy lại `npm run icons` (mobile) và `npm run icon` (desktop). Muốn dùng ảnh do họa sĩ vẽ: đặt ảnh vào `assets/` (`icon-only.png` 1024², `icon-foreground.png` 1024² nền trong suốt, `icon-background.png`, `splash.png` và `splash-dark.png` 2732²), rồi chỉ chạy phần `capacitor-assets generate …` trong script `icons` (bỏ bước `make-brand.cjs` để không ghi đè ảnh của bạn).
 
 ## Phát hành
 
@@ -170,7 +180,7 @@ Game không dùng bundler, nên **không `import` package npm trong `js/`**. Tha
 
 ```js
 const Share = plugin('Share');           // null nếu không chạy trong app hoặc chưa cài plugin
-if (Share) await Share.share({ title: 'Sếp Roi', text: 'Mình vừa đạt combo x12!' });
+if (Share) await Share.share({ title: 'Whip Boss', text: 'Mình vừa đạt combo x12!' });
 ```
 
 `plugin(name)` dùng `Capacitor.registerPlugin`, có sẵn nhờ `www/capacitor.js` (bản build sẵn của `@capacitor/core`, do `copy-web.cjs` chép vào). `plugin()` trả về `null` khi xem thử bằng trình duyệt hoặc trong bản PC, nên luôn kiểm tra `null` trước khi gọi.

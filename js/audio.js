@@ -24,6 +24,9 @@ function ensure() {
 
 export function unlock() { ensure(); }
 
+/** Shared context + master bus for music.js (null when Web Audio is unavailable). */
+export function context() { return ensure() ? { ac, out: master } : null; }
+
 export function setMuted(m) {
   muted = m;
   if (master) master.gain.setTargetAtTime(m ? 0 : 0.6, ac.currentTime, 0.02);

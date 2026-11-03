@@ -600,3 +600,36 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .item.vip .buy { max-width: 132px; white-space: normal; line-height: 1.05; }
 .proj .penalty, .report-proj .penalty { color: #ff8a8a; font-weight: normal; }
 .proj .penalty { font-size: 17px; margin: 2px 0 4px; }
+
+/* --- Title screen (title.js) --------------------------------------------------------- */
+#title {
+  position: fixed; inset: 0; z-index: 80; display: flex; flex-direction: column; align-items: center;
+  justify-content: space-between; overflow: hidden; background: #120d20;
+  padding: calc(env(safe-area-inset-top, 0px) + 6vh) 18px calc(env(safe-area-inset-bottom, 0px) + 14px);
+  transition: opacity .4s steps(4), transform .4s steps(4);
+}
+#title.leaving { opacity: 0; transform: scale(1.06); pointer-events: none; }
+#title .title-bg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; z-index: -1; }
+.title-top { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.title-logo {
+  width: min(48vw, 30vh, 220px); aspect-ratio: 1; image-rendering: pixelated; image-rendering: crisp-edges;
+  box-shadow: 0 0 0 4px var(--edge), 0 0 0 8px var(--gold), 0 0 0 12px var(--edge), 8px 12px 0 10px rgba(0,0,0,.45);
+  animation: title-bob 1.2s steps(2) infinite;
+}
+#title.crack .title-logo { transform: rotate(-4deg) translate(-3px, 2px); box-shadow: 0 0 0 4px var(--edge), 0 0 0 8px #fff, 0 0 0 12px var(--edge), 8px 12px 0 10px rgba(0,0,0,.45); }
+@keyframes title-bob { 50% { translate: 0 -4px; } }
+.title-name { margin: 26px 0 0; line-height: 0; }
+.title-name canvas { width: min(84vw, 380px); image-rendering: pixelated; image-rendering: crisp-edges; filter: drop-shadow(6px 8px 0 rgba(0,0,0,.45)); }
+#title.crack .title-name { transform: translateX(2px); }
+.title-tag { margin: 16px 0 0; font-size: 24px; color: #e8deff; text-shadow: 2px 2px 0 var(--edge); }
+.title-menu { width: min(360px, 100%); display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.title-play {
+  min-height: 64px; font-size: 40px; letter-spacing: 1px; color: #fff; background: #2f8a4a; text-shadow: 2px 2px 0 #1d5a30;
+  box-shadow: 0 0 0 4px var(--edge), 0 6px 0 4px #1d5a30; animation: title-pulse 1s steps(2) infinite;
+}
+.title-play:active { transform: translateY(4px); box-shadow: 0 0 0 4px var(--edge), 0 2px 0 4px #1d5a30; }
+@keyframes title-pulse { 50% { background: #38a457; } }
+.title-save { text-align: center; font-size: 22px; padding: 2px 6px; background: rgba(18, 13, 32, .7); color: var(--gold); text-shadow: 2px 2px 0 var(--edge); margin-bottom: 4px; }
+.title-row { display: flex; gap: 8px; }
+.title-row .px-btn { flex: 1; min-height: 44px; font-size: 18px; padding: 4px 6px; background: rgba(42, 35, 64, .92); }
+.title-foot { font-size: 16px; color: #8a7cb8; text-shadow: 1px 1px 0 var(--edge); }

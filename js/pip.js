@@ -11,7 +11,7 @@ export async function openPip(stage, { width, height, onClose }) {
     l.href = link.href;
     win.document.head.appendChild(l);
   }
-  win.document.title = 'Sếp Roi';
+  win.document.title = 'Whip Boss';
   win.document.body.className = 'pip mode-mini';
   win.document.body.appendChild(stage);
   win.addEventListener('pagehide', () => onClose(win), { once: true });

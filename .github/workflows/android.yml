@@ -1,6 +1,6 @@
 # Builds the Android app on every push / PR that touches the game or the mobile project.
 # Download the APK:
-#   - easiest: the "apk-latest" release (repo → Releases → "Sếp Roi – bản APK mới nhất"),
+#   - easiest: the "apk-latest" release (repo → Releases → "Whip Boss – bản APK mới nhất"),
 #     updated on every push; the .apk installs straight from a phone browser
 #   - or the run's "Artifacts" section (Actions tab → the run → sep-roi-debug-apk, a .zip)
 #
@@ -63,11 +63,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app-debug.apk SepRoi-debug.apk
+          cp app-debug.apk WhipBoss-debug.apk
           gh release delete apk-latest --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
-          gh release create apk-latest SepRoi-debug.apk --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-            --title "Sếp Roi – bản APK mới nhất" \
-            --notes "Bản debug build tự động từ nhánh ${GITHUB_REF_NAME} (commit ${GITHUB_SHA::7}). Tải SepRoi-debug.apk về điện thoại Android rồi mở để cài (cho phép cài ứng dụng từ nguồn không xác định)."
+          gh release create apk-latest WhipBoss-debug.apk --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "Whip Boss – bản APK mới nhất" \
+            --notes "Bản debug build tự động từ nhánh ${GITHUB_REF_NAME} (commit ${GITHUB_SHA::7}). Tải WhipBoss-debug.apk về điện thoại Android rồi mở để cài (cho phép cài ứng dụng từ nguồn không xác định)."
 
       - name: Build signed release bundle
         if: env.ANDROID_KEYSTORE_BASE64 != ''

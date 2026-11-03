@@ -7,7 +7,9 @@ Mã nguồn game là HTML/CSS/JavaScript: `index.html` nạp `js/main.js` dướ
 ```
 index.html              khung trang: #stage (canvas + #fx + #hud), #panel, #modal
 serve.cjs               server để xem thử khi phát triển (node serve.cjs → :5566/?shell=mobile)
-icon.svg                icon (favicon cho bản PC)
+icon.svg                favicon (sinh từ js/brand.js bởi tools/brand/make-brand.cjs)
+tools/brand/            make-brand.cjs: sinh icon app, splash, ảnh Google Play từ js/brand.js
+tools/promo/            make.sh: quay video giới thiệu (tiếng Anh) từ game thật cho Google Play
 css/style.css           toàn bộ giao diện DOM (HUD, panel, modal, mobile, taskbar)
 css/fonts.css, fonts/   font VT323 và Press Start 2P (tự host, chạy offline)
 js/
@@ -34,6 +36,9 @@ js/
 ├── ui.js         HUD, bảng Quản lý, bảng áp lực, nội thất, đặt biệt danh, báo cáo cuối ngày, chữ bay
 ├── screens.js    hộp thoại meta: CV ứng viên, Dự án, Cửa hàng 💎, Thành tựu, menu Thêm (chọn ngôn ngữ)
 ├── audio.js      hiệu ứng âm thanh tổng hợp (whip, ouch, coin, bell…)
+├── music.js      nhạc nền 8-bit tự tổng hợp (bộ sequencer nhỏ; bài 'title' và 'office'), chỉ bật trên điện thoại
+├── title.js      màn hình tiêu đề (điện thoại): nền thành phố đêm, logo, nút Bắt đầu/Chơi tiếp, âm thanh/nhạc/ngôn ngữ
+├── brand.js      logo + chữ "WHIP BOSS" pixel; nguồn của icon app, splash, ảnh Google Play (tools/brand/make-brand.cjs)
 └── pip.js        Document Picture-in-Picture (ghim thanh mini nổi trên Chrome/Edge)
 desktop/                vỏ Electron (taskbar overlay); xem desktop/main.cjs
 mobile/                 vỏ Capacitor (Android/iOS); xem docs/MOBILE.md

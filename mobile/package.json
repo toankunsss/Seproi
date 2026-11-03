@@ -1,11 +1,11 @@
 {
   "name": "sep-roi-mobile",
   "version": "1.0.0",
-  "description": "Sếp Roi — bản mobile (Android/iOS) đóng gói bằng Capacitor",
+  "description": "Whip Boss — bản mobile (Android/iOS) đóng gói bằng Capacitor",
   "private": true,
   "scripts": {
     "web": "node scripts/copy-web.cjs",
-    "icons": "node scripts/make-icons.cjs && capacitor-assets generate --android --ios --iconBackgroundColor \"#1a1626\" --iconBackgroundColorDark \"#1a1626\" --splashBackgroundColor \"#1a1626\" --splashBackgroundColorDark \"#1a1626\"",
+    "icons": "node ../tools/brand/make-brand.cjs && capacitor-assets generate --android --ios --iconBackgroundColor \"#1a1626\" --iconBackgroundColorDark \"#1a1626\" --splashBackgroundColor \"#1a1626\" --splashBackgroundColorDark \"#1a1626\"",
     "sync": "npm run web && cap sync",
     "android": "npm run sync && cap open android",
     "ios": "npm run sync && cap open ios",

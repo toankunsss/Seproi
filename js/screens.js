@@ -14,7 +14,7 @@ import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
 
-export function createScreens({ g, act, modal, fmt, esc }) {
+export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
   let current = null; // { name, render, sig, live }
   const close = () => { modal.hidden = true; current = null; };
 
@@ -219,6 +219,7 @@ export function createScreens({ g, act, modal, fmt, esc }) {
       <button class="px-btn wide" data-a="staff">${t('Nhân sự: khen thưởng & sa thải')}</button>
 <button class="px-btn wide" data-a="board">${t('Bảng xếp hạng áp lực')}</button>
       <button class="px-btn wide" data-a="mute">${g.muted ? t('Bật âm thanh') : t('Tắt âm thanh')}</button>
+      ${mobile ? `<button class="px-btn wide" data-a="music">${g.musicOff ? t('Bật nhạc nền') : t('Tắt nhạc nền')}</button>` : ''}
       <h3>${t('Ngôn ngữ')}${getLang() === 'en' ? '' : ' · Language'}</h3><div class="lang-row">${Object.entries(LANGS).map(([code, l]) => `<button class="px-btn ${code === getLang() ? 'on' : ''}" data-a="setLang" data-arg="${code}">${l.name}</button>`).join('')}</div><button class="px-btn wide danger" data-a="reset">${t('Chơi lại từ đầu')}</button>
     </div>`;
 
@@ -228,7 +229,7 @@ export function createScreens({ g, act, modal, fmt, esc }) {
     vip: () => open('vip', vipScreen, vipSig),
     staff: () => open('staff', staffScreen, staffSig, staffLive),
     achievements: () => open('achievements', achScreen, achSig),
-    more: () => open('more', moreScreen, () => String(g.muted)),
+    more: () => open('more', moreScreen, () => `${g.muted}/${g.musicOff}`),
     /** Called ~10x/s by ui.update. */
     tick() {
       if (!current) return;

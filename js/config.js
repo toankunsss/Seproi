@@ -33,7 +33,7 @@ export const hireCost = (count) => Math.round(200 * Math.pow(1.75, count - START
 export const OFFICE_LEVELS = [
   { name: 'Phòng khởi nghiệp', capacity: 4, unlockRevenue: 0, cost: 0 },
   { name: 'Văn phòng mở rộng', capacity: 6, unlockRevenue: 1500, cost: 1200 },
-  { name: 'Trụ sở Sếp Roi', capacity: 8, unlockRevenue: 7500, cost: 6000 },
+  { name: 'Trụ sở Whip Boss', capacity: 8, unlockRevenue: 7500, cost: 6000 },
 ];
 
 export const DECOR_ITEMS = [
@@ -195,7 +195,7 @@ export const ACHIEVEMENTS = [
   { id: 'staff8', name: 'Full biên chế', desc: 'Có 8 nhân viên', goal: 8, gems: 20, stat: (g) => g.staff.length },
   { id: 'star', name: 'Săn nhân tài', desc: 'Tuyển 1 ứng viên ngôi sao', goal: 1, gems: 10, stat: (g) => g.records.starsHired },
   { id: 'office2', name: 'Chuyển nhà', desc: 'Mở Văn phòng mở rộng', goal: 1, gems: 10, stat: (g) => g.officeLevel },
-  { id: 'office3', name: 'Trụ sở riêng', desc: 'Mở Trụ sở Sếp Roi', goal: 2, gems: 20, stat: (g) => g.officeLevel },
+  { id: 'office3', name: 'Trụ sở riêng', desc: 'Mở Trụ sở Whip Boss', goal: 2, gems: 20, stat: (g) => g.officeLevel },
   { id: 'whip5', name: 'Rồng lửa', desc: 'Sở hữu Roi Rồng Lửa', goal: 4, gems: 20, stat: (g) => g.whipLevel },
   { id: 'decor6', name: 'Văn phòng sang chảnh', desc: 'Mua đủ 6 món nội thất', goal: 6, gems: 15, stat: (g) => g.decor.length },
   { id: 'proj1', name: 'Hợp đồng đầu tiên', desc: 'Hoàn thành 1 dự án', goal: 1, gems: 5, stat: (g) => g.projects.done },

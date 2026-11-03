@@ -182,14 +182,14 @@ app.whenReady().then(async () => {
     ...miniBounds(),
     frame: false, transparent: true, resizable: false, hasShadow: false,
     skipTaskbar: true, alwaysOnTop: true, show: false, backgroundColor: '#00000000',
-    title: 'Sếp Roi',
+    title: 'Whip Boss',
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, backgroundThrottling: false },
   });
   win.once('ready-to-show', () => { win.showInactive(); applyMini(); });
   await win.loadURL('app://game/index.html?shell=desktop&mode=mini');
 
   tray = new Tray(trayIcon());
-  tray.setToolTip('Sếp Roi');
+  tray.setToolTip('Whip Boss');
   tray.on('click', () => { win.show(); send('mode', mode === 'mini' ? 'office' : 'mini'); });
   refreshTray();
 

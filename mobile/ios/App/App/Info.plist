@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>vi</string>
 	<key>CFBundleDisplayName</key>
-        <string>Sếp Roi</string>
+        <string>Whip Boss</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

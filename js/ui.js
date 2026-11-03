@@ -90,7 +90,7 @@ function hintText(g) {
 export function createUI(root, g, act, { mobile = false } = {}) {
   const { hud, fx, panel, modal } = root;
   let panelOpen = false, lastPanelSig = '';
-  const screens = createScreens({ g, act, modal, fmt, esc });
+  const screens = createScreens({ g, act, modal, fmt, esc, mobile });
 
   hud.innerHTML = mobile ? MOBILE_HUD : `
     <div class="bar top">
@@ -200,9 +200,11 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       el.className = 'pop ' + cls;
       el.textContent = text;
       const r = root.stage.getBoundingClientRect();
-      el.style.left = Math.max(60, Math.min(r.width - 60, x - r.left)) + 'px';
       el.style.top = Math.max(20, y - r.top) + 'px';
       fx.appendChild(el);
+      // keep the whole text on screen (it is centred on x), also on narrow phones
+      const half = Math.min(r.width / 2, el.offsetWidth / 2 + 6);
+      el.style.left = Math.max(half, Math.min(r.width - half, x - r.left)) + 'px';
       setTimeout(() => el.remove(), 1300);
     },
 

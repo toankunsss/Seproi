@@ -1,4 +1,4 @@
-# Cài đặt Sếp Roi trên macOS
+# Cài đặt Whip Boss trên macOS
 
 ## Tạo bộ cài
 
@@ -15,7 +15,7 @@ Thư mục `dist/` sẽ chứa bản `.dmg` và `.zip` cho cả Intel (`x64`) v�
 ## Cài đặt
 
 1. Mở file `.dmg` đúng với loại chip của máy.
-2. Kéo **Sếp Roi** vào thư mục **Applications**.
+2. Kéo **Whip Boss** vào thư mục **Applications**.
 3. Mở game từ Applications.
 
 Nếu bản build chưa được ký bằng chứng chỉ Apple Developer, macOS có thể chặn lần mở đầu tiên. Vào **System Settings → Privacy & Security** và chọn **Open Anyway**. Khi phát hành chính thức, nên cấu hình chứng chỉ Developer ID và notarization để bỏ cảnh báo này.

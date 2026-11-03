@@ -105,6 +105,18 @@ Thêm vào `STAFF_ACTIONS` (`config.js`) với các hiệu ứng `motiv`/`stress
 3. Ngoại hình: thêm mục vào `VISITOR_LOOK` trong `sprites.js` (màu đồ, mũ, huy hiệu, đồ cầm tay).
 4. Câu thông báo kết quả: `main.js → showVisitResult`. Thêm bản dịch vào `js/lang/en.js`.
 
+### Bài nhạc mới
+
+Nhạc nằm trong `SONGS` của `js/music.js`. Mỗi bài có `bpm`, `vol`, một hợp âm cho mỗi ô nhịp (`chords`, xem bảng `CHORDS`), giai điệu `lead` (8 nốt móc đơn mỗi ô nhịp: `E5` là nốt, `.` là nghỉ, `-` là ngân tiếp nốt trước) và trống `drums` (16 bước: `k` trống cái, `s` trống snare, `h` hi-hat). Bài dài có thể chia đoạn bằng `parts` + `order` (xem bài `office`). Phát bằng `music.play('tên')`.
+
+### Logo, icon, ảnh store
+
+Sửa `drawLogo()` / `drawTitle()` trong `js/brand.js`, rồi chạy `node tools/brand/make-brand.cjs` (hoặc `npm run icons` trong `mobile/` để cập nhật luôn icon Android/iOS). Xem bảng file đầu ra trong `docs/MOBILE.md` → "Icon và màn hình chờ".
+
+### Video giới thiệu
+
+`tools/promo/make.sh` quay video từ game thật (tiếng Anh): mở màn tiêu đề, bấm Bắt đầu, rồi đi qua quất nhân viên, tuyển CV, dự án, thanh tra, khen thưởng, cửa hàng 💎, thành tựu, văn phòng cuối game. Kết quả: `tools/promo/out/WhipBoss-promo-portrait.mp4` (1080x1920) và `WhipBoss-promo-landscape.mp4` (1920x1080). Cần Playwright (Chromium), python3 + numpy, ffmpeg. Kịch bản và chữ trên video nằm trong `tools/promo/record.cjs`; nhạc và hiệu ứng âm thanh trong `tools/promo/soundtrack.py`.
+
 ## Cân bằng game
 
 Tất cả nằm trong `TUNING` (`config.js`): độ dài ngày, tốc độ mất năng lượng, xác suất lười, thời gian đình công, tiền phạt, thời gian giữ combo, hệ số tăng thu nhập theo ngày, `touchSlop` (vùng chạm rộng thêm trên mobile), `awayCap` (số giây tối đa được bù khi rời app, chỉ áp dụng cho bản PC; bản điện thoại tạm dừng khi rời app).
