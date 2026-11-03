@@ -2,7 +2,7 @@
 
 | File | Dùng cho |
 |---|---|
-| `WhipBoss-1.0.1.aab` | **File tải lên Google Play** (bản 1.0.1, versionCode 2, đã ký bằng upload key, có link chính sách quyền riêng tư) |
+| `WhipBoss-1.0.2.aab` | **File tải lên Google Play** (bản 1.0.2, versionCode 3, đã ký bằng upload key; có quảng cáo AdMob thật và link chính sách quyền riêng tư) |
 | `icon-512.png` | Biểu tượng ứng dụng (512x512) |
 | `feature-1024x500.png` | Hình ảnh nổi bật (feature graphic) |
 | `WhipBoss-promo-portrait.mp4` | Video giới thiệu dọc 1080x1920 (tiếng Anh, 54 giây) |
