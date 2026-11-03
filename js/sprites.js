@@ -681,3 +681,46 @@ export function drawVisitor(ctx, x, y, kind, t, walking = false, attention = nul
   rect(ctx, x - 1, y - 17, 3, 1, kind === 'vip' ? '#a0503a' : '#5a2e1a');
   return { x, y: y - 24 };
 }
+
+/**
+ * Weekly boss "Siêu Nhân Viên Lười": a big slacker in a purple hoodie with headphones, shades,
+ * a phone and a "LƯỜI" crown, standing at floor point (x, y). dodge = shield bubble.
+ * Returns his hit box { x0, y0, x1, y1 }.
+ */
+export function drawBoss(ctx, x, y, t, hpFrac, dodge) {
+  x = Math.round(x); y = Math.round(y);
+  const bob = Math.floor(t * 4) % 2;
+  y -= bob;
+  // shadow + legs
+  rect(ctx, x - 7, y - 1, 14, 2, 'rgba(0,0,0,0.35)');
+  rect(ctx, x - 5, y - 9, 4, 8, '#2a2a3a'); rect(ctx, x + 1, y - 9, 4, 8, '#2a2a3a');
+  rect(ctx, x - 6, y - 2, 5, 2, '#f4f4f4'); rect(ctx, x + 1, y - 2, 5, 2, '#f4f4f4');
+  // hoodie body + arms
+  rect(ctx, x - 7, y - 22, 14, 14, '#7a3fc8'); rect(ctx, x - 7, y - 22, 14, 2, '#9a64e8');
+  rect(ctx, x - 3, y - 16, 6, 4, '#5a2a98');                                   // pocket
+  rect(ctx, x - 10, y - 21, 3, 10, '#7a3fc8'); rect(ctx, x + 7, y - 21, 3, 9, '#7a3fc8');
+  rect(ctx, x + 7, y - 13, 3, 3, '#f1c7a0');
+  rect(ctx, x + 9, y - 17, 4, 7, '#15151c'); rect(ctx, x + 10, y - 16, 2, 4, Math.floor(t * 5) % 2 ? '#ff3d7f' : '#2de2e6'); // phone
+  // head, shades, smug grin
+  rect(ctx, x - 5, y - 31, 10, 9, '#f1c7a0');
+  rect(ctx, x - 6, y - 33, 12, 4, '#7a3fc8');                                  // hood
+  rect(ctx, x - 5, y - 28, 10, 2, '#111'); px(ctx, x - 3, y - 28, '#9fd8ff'); px(ctx, x + 2, y - 28, '#9fd8ff');
+  rect(ctx, x - 2, y - 24, 5, 1, '#7a2a1a'); px(ctx, x + 3, y - 25, '#7a2a1a');
+  // headphones
+  rect(ctx, x - 7, y - 30, 2, 4, '#ff3d4a'); rect(ctx, x + 5, y - 30, 2, 4, '#ff3d4a'); rect(ctx, x - 6, y - 34, 12, 1, '#2a2a3a');
+  // crown "LƯỜI"
+  rect(ctx, x - 6, y - 39, 12, 4, '#ffd34d'); px(ctx, x - 6, y - 40, '#ffd34d'); px(ctx, x, y - 41, '#ffd34d'); px(ctx, x + 5, y - 40, '#ffd34d');
+  glyphs(ctx, 'ZZ', x - 4, y - 38, '#7a3fc8');
+  // HP bar
+  const w = 24, f = Math.max(0, Math.round(w * hpFrac));
+  rect(ctx, x - 13, y - 47, w + 2, 5, '#1d1826');
+  rect(ctx, x - 12, y - 46, w, 3, '#5a1a1a');
+  rect(ctx, x - 12, y - 46, f, 3, hpFrac > 0.5 ? '#5cff7a' : hpFrac > 0.25 ? '#ffd34d' : '#ff3d4a');
+  if (dodge) { // shield bubble
+    ctx.fillStyle = 'rgba(143, 232, 255, 0.35)';
+    ctx.fillRect(x - 13, y - 42, 26, 42);
+    rect(ctx, x - 13, y - 42, 26, 1, '#cfffff'); rect(ctx, x - 13, y - 1, 26, 1, '#cfffff');
+    rect(ctx, x - 13, y - 42, 1, 42, '#cfffff'); rect(ctx, x + 12, y - 42, 1, 42, '#cfffff');
+  }
+  return { x0: x - 14, y0: y - 48, x1: x + 14, y1: y + 1 };
+}

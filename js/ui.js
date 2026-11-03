@@ -1,9 +1,10 @@
 // DOM UI: HUD, shop, pressure leaderboard, day report and floating combat text.
-import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, MAX_STAFF, OFFICE_LEVELS, DECOR_ITEMS, ROLES, RANKS, SLACKS, hireCost, TUNING } from './config.js';
+import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, MAX_STAFF, OFFICE_LEVELS, DECOR_ITEMS, ROLES, RANKS, SLACKS, hireCost, TUNING, dayLen } from './config.js';
 import { incomeOf, dayAdBonus } from './sim.js';
 import { monthBill, daysToPayday, monthOf } from './payroll.js';
 import { loginGift } from './daily.js';
-import { DAILY } from './config.js';
+import { goalState, goalText, CHAPTERS } from './campaign.js';
+import { DAILY, BOSS } from './config.js';
 import { createScreens, projectSummary } from './screens.js';
 import { progressOf, penaltyOf } from './projects.js';
 import { VISITS } from './config.js';
@@ -24,7 +25,7 @@ const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
 const employeeName = (e) => e.nickname ? `${e.nickname} (${e.name})` : e.name;
 
 export function clockText(g) {
-  const mins = 9 * 60 + (g.dayTime / TUNING.dayLength) * 9 * 60;
+  const mins = 9 * 60 + (g.dayTime / dayLen(g)) * 9 * 60;
   const h = Math.floor(mins / 60), m = Math.floor(mins % 60);
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
@@ -41,6 +42,7 @@ export function rankFor(kpi) {
 const svg = (body) => `<svg viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true">${body}</svg>`;
 const r = (x, y, w, h, cls = '') => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${cls ? ` class="${cls}"` : ''}/>`;
 const ICON = {
+  levels: svg(r(2, 0, 1, 12) + r(3, 1, 7, 1) + r(3, 2, 8, 3) + r(3, 5, 6, 1) + r(5, 2, 2, 2, 'cut') + r(1, 11, 4, 1)),
   shop: svg(r(4, 1, 4, 1) + r(3, 2, 1, 1) + r(8, 2, 1, 1) + r(1, 3, 10, 7) + r(5, 6, 2, 1, 'cut')),
   decor: svg(r(2, 3, 8, 4) + r(0, 5, 2, 4) + r(10, 5, 2, 4) + r(2, 7, 8, 2) + r(1, 9, 1, 2) + r(10, 9, 1, 2)),
   board: svg(r(1, 10, 10, 1) + r(2, 6, 2, 4) + r(5, 2, 2, 8) + r(8, 5, 2, 5)),
@@ -76,6 +78,7 @@ const MOBILE_HUD = `
       <nav class="tabbar">
         <button class="tab" data-a="shop">${ICON.shop}<span>${t('Quản lý')}</span></button>
         <button class="tab" data-a="projects">${ICON.projects}<span>${t('Dự án')}</span><i class="dot" data-k="dotProjects" hidden></i></button>
+        <button class="tab" data-a="levels">${ICON.levels}<span>${t('Màn chơi')}</span></button>
         <button class="tab" data-a="vip">${ICON.vip}<span>${t('Kim cương')}</span></button>
         <button class="tab" data-a="achievements">${ICON.achievements}<span>${t('Thành tựu')}</span><i class="dot" data-k="dotAch" hidden></i></button>
         <button class="tab" data-a="more">${ICON.more}<span>${t('Thêm')}</span></button>
@@ -134,7 +137,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     const a = b.dataset.a;
     if (a === 'shop') togglePanel();
     else if (a === 'board') showBoard();
-    else if (screens[a] && ['projects', 'vip', 'achievements', 'more', 'staff'].includes(a)) { ui.closePanel(); screens[a](); }
+    else if (screens[a] && ['projects', 'vip', 'achievements', 'more', 'staff', 'levels'].includes(a)) { ui.closePanel(); screens[a](); }
     else act[a] && act[a](b.dataset.arg);
   };
   hud.addEventListener('click', onClick);
@@ -149,6 +152,8 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     setPipAvailable(ok) { if (K.pipBtn) K.pipBtn.hidden = !ok; },
 
     update() {
+      if (levelRun) updateLevelBar();
+      updateBossBar();
       const rate = g.staff.reduce((s, e) => s + incomeOf(g, e), 0);
       set(K.money, fmt(g.money) + ' đ');
       set(K.rate, `+${fmt(rate)}/s`);
@@ -297,13 +302,55 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       requestAnimationFrame(tick);
     },
     /** Big "DAY N" banner sliding over the office at the start of a work day. */
-    dayBanner(day) {
+    dayBanner(day, title, sub) {
       document.querySelector('.day-banner')?.remove();
       const el = document.createElement('div');
       el.className = 'day-banner';
-      el.innerHTML = `<b>${t('NGÀY {n}', { n: day })}</b><span>${t('09:00 · Vào việc thôi!')}</span>`;
+      el.innerHTML = `<b>${esc(title || t('NGÀY {n}', { n: day }))}</b><span>${esc(sub || t('09:00 · Vào việc thôi!'))}</span>`;
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 2200);
+    },
+    /** Campaign: the goals bar at the bottom while a level runs (null hides it). */
+    levelBar(run) {
+      levelRun = run;
+      let el = document.getElementById('lvlbar');
+      if (!run) { if (el) el.remove(); return; }
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'lvlbar';
+        document.body.appendChild(el);
+        el.addEventListener('click', onClick);
+        el.addEventListener('pointerdown', (e) => e.stopPropagation());
+      }
+      el.innerHTML = `<div class="lvl-head"><b>${t('Màn {id}', { id: run.id })} · ${esc(t(run.level.name))}</b>
+          <button class="px-btn" data-a="levelQuit">${t('Bỏ màn')}</button></div>
+        ${run.level.goals.map((goal, i) => { const tx = goalText(...goal); return `<div class="lvl-goal" data-goal="${i}"><i>★</i><span>${t(tx.s, { n: fmt(tx.n) })}</span><b></b></div>`; }).join('')}`;
+      updateLevelBar();
+    },
+    /** Blackout overlay for "power cut" levels: opacity 0..1, -1 removes it. */
+    blackout(alpha) {
+      let el = document.getElementById('blackout');
+      if (alpha < 0) { if (el) el.remove(); return; }
+      if (!el) { el = document.createElement('div'); el.id = 'blackout'; document.body.appendChild(el); }
+      // only the office goes dark: cover the canvas, not the HUD
+      const r = document.getElementById('game').getBoundingClientRect();
+      Object.assign(el.style, { opacity: alpha, left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    },
+    /** Campaign: end-of-level card with stars. */
+    showLevelResult(run, states, result, next) {
+      const stars = states.filter((s) => s.ok).length;
+      modal.hidden = false;
+      modal.innerHTML = `<div class="card report level-result">
+          <h2>${stars ? t('HOÀN THÀNH MÀN {id}!', { id: run.id }) : t('CHƯA ĐẠT MÀN {id}', { id: run.id })}</h2>
+          <div class="big-stars">${[0, 1, 2].map((i) => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${i * 0.25}s">★</i>`).join('')}</div>
+          ${run.level.goals.map((goal, i) => { const tx = goalText(...goal); return `<div class="lvl-goal ${states[i].ok ? 'ok' : 'no'}"><i>${states[i].ok ? '★' : '✗'}</i><span>${t(tx.s, { n: fmt(tx.n) })}</span><b>${goal[0] === 'kpi' ? states[i].v + '%' : fmt(states[i].v)}</b></div>`; }).join('')}
+          ${result.gems ? `<div class="report-bonus">${t('Sao mới: +{n} kim cương', { n: result.gems })}</div>` : stars ? `<div class="report-bonus">${t('Kỷ lục của bạn: {n} sao', { n: result.best })}</div>` : ''}
+          <div class="lvl-actions">
+            <button class="px-btn" data-a="levelRetry">${t('Chơi lại')}</button>
+            ${stars && next ? `<button class="px-btn big" data-a="levelNext">${t('Màn tiếp')}</button>` : ''}
+            <button class="px-btn ${stars && next ? '' : 'big'}" data-a="levelExit">${t('Về công ty')}</button>
+          </div>
+        </div>`;
     },
     /** Daily popups (offline earnings / login calendar) share one layer above the office. */
     showOffline(r) {
@@ -342,6 +389,31 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     hideDaily() { const el = document.getElementById('daily'); if (el) el.hidden = true; },
     hideProjectReward() { const el = document.getElementById('reward'); if (el) el.hidden = true; },
   };
+
+  /** Weekly boss: HP + time left, pinned to the top of the office. */
+  function updateBossBar() {
+    let el = document.getElementById('bossbar');
+    const b = g.boss;
+    if (!b) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'bossbar'; document.body.appendChild(el); }
+    const r = document.getElementById('game').getBoundingClientRect();
+    Object.assign(el.style, { left: r.left + 6 + 'px', top: r.top + 6 + 'px', width: r.width - 12 + 'px' });
+    el.innerHTML = `<b>${t('TRÙM TUẦN')}</b><span class="hp"><i style="width:${Math.round((b.hp / b.max) * 100)}%"></i></span>
+      <em>${Math.ceil(b.hp)}/${b.max}</em><em>⏱ ${Math.max(0, Math.ceil(BOSS.stay - b.t))}s</em>`;
+  }
+
+  let levelRun = null;
+  function updateLevelBar() {
+    const el = document.getElementById('lvlbar');
+    if (!el || !levelRun) return;
+    levelRun.level.goals.forEach((goal, i) => {
+      const row = el.querySelector(`[data-goal="${i}"]`);
+      if (!row) return;
+      const s = goalState(g, levelRun, goal);
+      row.className = `lvl-goal ${s.ok && !s.pending ? 'ok' : s.ok ? 'pending' : ''}`;
+      row.querySelector('b').textContent = goal[0] === 'kpi' ? `${s.v}%` : ['wrong', 'noStrike'].includes(goal[0]) ? s.v : `${fmt(s.v)}/${fmt(goal[1])}`;
+    });
+  }
 
   let reportDone = null;
   function renderReport() {

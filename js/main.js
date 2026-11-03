@@ -22,6 +22,9 @@ import { showTitle } from './title.js';
 import { createTutorial, needsTutorial } from './tutorial.js';
 import * as daily from './daily.js';
 import { sellCompany, sharesFor } from './prestige.js';
+import { hitBoss, winBoss } from './boss.js';
+import * as mini from './minigames.js';
+import * as campaign from './campaign.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 
 const $ = (id) => document.getElementById(id);
@@ -58,6 +61,13 @@ let tutorial = null;     // first-time tutorial (tutorial.js) while it runs
 let dailyOpen = false;   // offline-earnings / login-gift popup on screen (daily.js)
 let dailyAfterTutorial = false;
 let dailyQueue = [];
+// Campaign level in progress: { id, level, main (the real company, the only thing saved), visitsOk, visitsFail, visitIdx }
+let campaignRun = null;
+let miniOpen = false; // a mini-game (or its offer card) is on screen
+/** Save the real company (never a campaign level's throw-away state). */
+function saveGame() { save(campaignRun ? campaignRun.main : g); }
+/** Replace the contents of g in place (every module holds the same object). */
+function swapState(next) { for (const k of Object.keys(g)) delete g[k]; Object.assign(g, next); }
 let userPaused = false; // phone: frozen while away / until the player taps "Tiếp tục"
 let resetting = false;
 // Phone: the title screen is up and the office waits behind it (?title=0 skips it, for tests).
@@ -69,6 +79,11 @@ function newMorning() {
   projects.refreshOffers(g);
   if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
   if (g.visitDay !== g.day) { planVisit(g); g.visitDay = g.day; } // once per day, reloads can't re-roll
+  if (g.miniDay !== g.day) { // mid-day mini-game (minigames.js), from day 3
+    g.miniDay = g.day;
+    g.miniPlan = g.day >= 3 && Math.random() < 0.6
+      ? { day: g.day, at: TUNING.dayLength * (0.3 + Math.random() * 0.45), kind: mini.MINI_KINDS[Math.floor(Math.random() * mini.MINI_KINDS.length)] } : null;
+  }
 }
 newMorning();
 
@@ -76,12 +91,12 @@ newMorning();
 const act = {
   mode() { setMode(g.mode === 'office' ? 'mini' : 'office'); },
   mute() { g.muted = !g.muted; audio.setMuted(g.muted); },
-  music() { g.musicOff = !g.musicOff; music.setEnabled(mobile && !g.musicOff); if (!g.musicOff) audio.unlock(); save(g); },
+  music() { g.musicOff = !g.musicOff; music.setEnabled(mobile && !g.musicOff); if (!g.musicOff) audio.unlock(); saveGame(); },
   coffee() {
     if (useCoffee(g)) { audio.coffee(); haptic('success'); ui.popup(innerWidth / 2, innerHeight * 0.3, tr('CÀ PHÊ SỐC!'), 'coffee'); }
   },
   pip: () => togglePip(),
-  quit() { save(g); shell && shell.quit(); },
+  quit() { saveGame(); shell && shell.quit(); },
   buy(kind) {
     let cost = 0, ok = false;
     const nextWhip = WHIPS[g.whipLevel + 1];
@@ -100,7 +115,7 @@ const act = {
     }
     ok ? audio.buy() : audio.deny();
     haptic(ok ? 'success' : 'light');
-    save(g);
+    saveGame();
   },
   purchaseDecor(id) {
     const item = DECOR_ITEMS.find((x) => x.id === id);
@@ -109,7 +124,7 @@ const act = {
     g.decor.push(id);
     audio.buy();
     haptic('success');
-    save(g);
+    saveGame();
     return true;
   },
   // --- Recruitment by CV (screens.js) ---
@@ -125,14 +140,14 @@ const act = {
     layout();
     audio.buy(); haptic('success');
     toast(tr('ĐÃ TUYỂN {name}!', { name: cv.name.toUpperCase() }), 'money');
-    save(g); ui.screens.repaint();
+    saveGame(); ui.screens.repaint();
   },
   cvReject(i) {
     g.candidates.splice(Number(i), 1);
-    save(g); ui.screens.repaint();
+    saveGame(); ui.screens.repaint();
   },
   async adCv() {
-    if (await watchAd('cv')) { refillCandidates(g); toast(tr('3 CV MỚI!'), 'money'); save(g); }
+    if (await watchAd('cv')) { refillCandidates(g); toast(tr('3 CV MỚI!'), 'money'); saveGame(); }
     ui.screens.repaint();
   },
   // --- Staff care: rewards & firing (screens.js → staff screen) ---
@@ -144,7 +159,7 @@ const act = {
     audio.buy(); haptic('success');
     const msg = { praise: 'ĐƯỢC KHEN!', bonus: 'THƯỞNG NÓNG!', gift: 'TRÀ SỮA!', raise: 'TĂNG LƯƠNG!', party: 'LIÊN HOAN!' }[kind];
     toast(kind === 'party' ? tr(msg) : `${e.nickname || e.name}: ${tr(msg)}`, 'money');
-    save(g); ui.screens.repaint();
+    saveGame(); ui.screens.repaint();
   },
   staffFire(id) {
     const e = g.staff.find((x) => x.id === Number(id));
@@ -155,11 +170,11 @@ const act = {
     audio.strike(); haptic('heavy');
     toast(tr('ĐÃ SA THẢI {name} · −{m} đ', { name: e.name.toUpperCase(), m: fmt(r.severance) }), 'wrong');
     layout();
-    save(g); ui.screens.repaint();
+    saveGame(); ui.screens.repaint();
   },
   // --- Projects ---
   projAccept(i) {
-    if (projects.acceptOffer(g, Number(i))) { audio.buy(); haptic('success'); toast(tr('NHẬN DỰ ÁN!'), 'money'); save(g); }
+    if (projects.acceptOffer(g, Number(i))) { audio.buy(); haptic('success'); toast(tr('NHẬN DỰ ÁN!'), 'money'); saveGame(); }
     ui.screens.repaint();
   },
   projAbandon() {
@@ -168,10 +183,10 @@ const act = {
     const r = projects.abandon(g);
     audio.deny(); haptic('wrong');
     toast(tr('HUỶ DỰ ÁN · PHẠT {m} đ', { m: fmt(r.fine) }), 'wrong');
-    save(g); ui.screens.repaint();
+    saveGame(); ui.screens.repaint();
   },
   async adExtend() {
-    if (await watchAd('extend') && projects.extend(g)) { toast(tr('GIA HẠN +1 NGÀY'), 'money'); save(g); }
+    if (await watchAd('extend') && projects.extend(g)) { toast(tr('GIA HẠN +1 NGÀY'), 'money'); saveGame(); }
     ui.screens.repaint(); ui.refreshReport();
   },
   // --- 💎 ---
@@ -181,19 +196,28 @@ const act = {
     audio.buy(); haptic('success');
     toast(tr(name).toUpperCase() + '!', 'coffee');
     if (id === 'starCv') { ui.screens.cv(); }
-    save(g); ui.screens.repaint();
+    saveGame(); ui.screens.repaint();
   },
   async adGems() {
     if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
     if (g.ads.gems >= ADS.gemAdsPerDay) return;
-    if (await watchAd('gems')) { g.ads.gems++; addGems(g, ADS.gemsPerAd); toast(tr('+{n} KIM CƯƠNG', { n: ADS.gemsPerAd }), 'coffee'); save(g); }
+    if (await watchAd('gems')) { g.ads.gems++; addGems(g, ADS.gemsPerAd); toast(tr('+{n} KIM CƯƠNG', { n: ADS.gemsPerAd }), 'coffee'); saveGame(); }
     ui.screens.repaint();
   },
   achClaim(id) {
     const gems = claim(g, id);
-    if (gems) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n: gems }), 'coffee'); save(g); }
+    if (gems) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n: gems }), 'coffee'); saveGame(); }
     ui.screens.repaint();
   },
+  miniStart(kind) { if (!miniOpen) startMini(kind || 'mouse'); },
+  // --- campaign (campaign.js) ---
+  levels() { ui.closePanel(); ui.screens.levels(); },
+  levelInfo(id) { ui.screens.levelInfo(id); },
+  levelStart(id) { startLevel(id); },
+  levelQuit() { if (campaignRun && confirm(tr('Bỏ màn này? Kết quả sẽ không được tính.'))) exitLevel(); },
+  levelRetry() { const id = campaignRun && campaignRun.id; exitLevel(false); if (id) startLevel(id); },
+  levelNext() { const id = campaignRun && campaignRun.id; exitLevel(false); const n = id && campaign.nextLevel(id); if (n && campaign.unlocked(g, n.id)) ui.screens.levelInfo(n.id); else ui.screens.levels(); },
+  levelExit() { exitLevel(); },
   // --- selling the company (prestige.js) ---
   sellScreen() { ui.screens.sell(); },
   sellCompany() {
@@ -203,7 +227,7 @@ const act = {
     if (!gained) return;
     resetting = true; // the page reloads into the new run; don't let pagehide write the old state
     g.justSold = gained;
-    save(g);
+    saveGame();
     location.reload();
   },
   // --- daily popups + quests (daily.js) ---
@@ -213,12 +237,12 @@ const act = {
   loginDouble: () => finishDaily(2),
   questClaim(i) {
     const n = daily.claimQuest(g, Number(i));
-    if (n) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); save(g); }
+    if (n) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); saveGame(); }
     ui.screens.repaint();
   },
   questBonus() {
     const n = daily.claimQuestBonus(g);
-    if (n) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); save(g); }
+    if (n) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); saveGame(); }
     ui.screens.repaint();
   },
   // --- project reward card ---
@@ -233,7 +257,7 @@ const act = {
     if (await watchAd('double')) {
       const bonus = dayAdBonus(g);
       g.money += bonus; g.lifetimeEarnings += bonus; g.today.doubled = true;
-      toast(`+${fmt(bonus)} đ`, 'money'); save(g);
+      toast(`+${fmt(bonus)} đ`, 'money'); saveGame();
     }
     ui.refreshReport();
   },
@@ -242,13 +266,13 @@ const act = {
     const value = String(nickname || '').trim().slice(0, 20);
     if (!employee || !value) return false;
     employee.nickname = value;
-    save(g);
+    saveGame();
     return true;
   },
   setLang(code) {
     // Rebuild every screen in the new language: simplest and safest is a reload (state is saved).
     setLang(code);
-    save(g);
+    saveGame();
     location.reload();
   },
   reset() {
@@ -422,6 +446,13 @@ canvas.addEventListener('pointerdown', (ev) => {
   const W = WHIPS[g.whipLevel];
   // Fingers are less precise than a mouse: give touch a little extra reach.
   const reach = W.radius + (ev.pointerType === 'mouse' ? 0 : TUNING.touchSlop);
+  // The weekly boss takes priority over everything else under the finger.
+  if (g.boss && view.hitsBoss(p.x, p.y, ev.pointerType === 'mouse' ? 2 : 8)) {
+    const r = view.bossHit, bx = (r.x0 + r.x1) / 2, by = r.y0 + 20;
+    audio.whip(g.whipLevel);
+    whip.lash(bx, by, g.whipLevel, () => resolveBossHit(bx, by));
+    return;
+  }
   // Portrait office: tapping a free desk opens hiring instead of swinging at a neighbour.
   if (view.pickSlot(p.x, p.y)) { whip.visible = false; act.interview(); return; }
   const hit = view.pick(p.x, p.y, reach);
@@ -430,6 +461,25 @@ canvas.addEventListener('pointerdown', (ev) => {
   audio.whip(g.whipLevel);
   whip.lash(tx, ty, g.whipLevel, () => resolveHit(hit, ev.clientX, ev.clientY));
 });
+
+function resolveBossHit(bx, by) {
+  if (!g.boss) return;
+  const at = view.toClient(bx, by - 10);
+  const r = hitBoss(g);
+  if (r === 'dodge') { audio.deny(); haptic('light'); ui.popup(at.x, at.y, tr('NÉ!'), 'say'); return; }
+  haptic('heavy'); audio.ouch(0.7); ui.flash('hit');
+  ui.popup(at.x, at.y, `−${Math.round((1 + 0.5 * g.whipLevel) * 10) / 10}`, 'wrong');
+  if (r === 'win') {
+    const w = winBoss(g);
+    addGems(g, w.gems);
+    audio.bell(); audio.buy();
+    toast(tr('HẠ TRÙM TUẦN! +{m} đ · +{n} KIM CƯƠNG', { m: fmt(w.money), n: w.gems }), 'money');
+    onBossChest();
+    saveGame();
+  }
+}
+/** Hook for the boss chest extras (equipment drop, see inventory). */
+function onBossChest() {}
 
 function resolveHit(hit, cx, cy) {
   if (!hit) return;
@@ -492,10 +542,20 @@ function onEvent(type, e) {
     case 'projectDone': {
       if (!projects.finish(g)) break;
       audio.bell(); haptic('success');
-      save(g);
+      saveGame();
       showProjectReward();
       break;
     }
+    case 'bossStart':
+      audio.alert(); audio.strike(); haptic('heavy');
+      toast(tr('TRÙM TUẦN XUẤT HIỆN!'), 'wrong');
+      setTimeout(() => toast(tr('Quất hắn {n} lần trước khi hắn chuồn!', { n: Math.ceil(g.boss ? g.boss.max / (1 + 0.5 * g.whipLevel) : 0) }), 'say'), 1400);
+      break;
+    case 'bossLose':
+      audio.deny(); haptic('wrong');
+      toast(tr('TRÙM ĐÃ CHUỒN, CUỖM {m} đ!', { m: fmt(e.stolen) }), 'wrong');
+      saveGame();
+      break;
     case 'visitStart': {
       const k = VISITS.kinds[e.kind];
       audio.alert(); audio.bell(); haptic('heavy');
@@ -518,13 +578,100 @@ function onEvent(type, e) {
   }
 }
 
+// --- Mid-day mini-games (minigames.js) ----------------------------------------------------------
+function checkMini() {
+  if (params.get('mini') === '0') return; // automated tests
+  const p = g.miniPlan;
+  if (!p || p.day !== g.day || g.dayTime < p.at || miniOpen || paused || rewardOpen || dailyOpen || userPaused || onTitle || tutorial || g.boss || g.visit || g.mode !== 'office') return;
+  g.miniPlan = null;
+  startMini(p.kind);
+}
+function startMini(kind) {
+  miniOpen = true;
+  audio.alert(); haptic('light');
+  mini.offer(kind, () => mini.play(kind, (r) => finishMini(kind, r)), () => { miniOpen = false; last = performance.now(); saveGame(); });
+}
+function finishMini(kind, { score, max }) {
+  const dm = 1 + TUNING.dayMult * (g.day - 1);
+  const msg = [];
+  if (kind === 'mouse') {
+    const money = Math.round((250 * dm * score) / max / 10) * 10;
+    g.money += money; g.lifetimeEarnings += money;
+    msg.push(`+${fmt(money)} đ`);
+    if (score >= max) { addGems(g, 3); msg.push(tr('+{n} KIM CƯƠNG', { n: 3 })); }
+  } else if (kind === 'tabs') {
+    const money = Math.round((120 * dm * score) / 10) * 10;
+    g.money += money; g.lifetimeEarnings += money;
+    for (const e of g.staff) e.motiv = Math.min(100, (e.motiv ?? 50) + 6 * score);
+    msg.push(`+${fmt(money)} đ`, tr('Động lực +{n}', { n: 6 * score }));
+  } else {
+    for (const e of g.staff) { e.boost = Math.max(e.boost, 4 * score); e.motiv = Math.min(100, (e.motiv ?? 50) + 4 * score); if (score && e.state === 'slack') { e.state = 'work'; e.t = 0; e.slack = null; } }
+    msg.push(tr('Cả phòng hăng say {n} giây', { n: 4 * score }));
+  }
+  g.records.miniGames = (g.records.miniGames || 0) + 1;
+  mini.closeMini();
+  miniOpen = false; last = performance.now();
+  score ? (audio.buy(), haptic('success')) : audio.deny();
+  toast(`${tr('{s}/{m} điểm', { s: score, m: max })} · ${msg.join(' · ')}`, score ? 'money' : 'wrong');
+  saveGame();
+}
+
+// --- Campaign levels -------------------------------------------------------------------------
+function startLevel(id) {
+  const level = campaign.LEVELS.find((l) => l.id === id);
+  if (!level || campaignRun || !campaign.unlocked(g, id)) return;
+  const main = JSON.parse(JSON.stringify(g));
+  saveGame();
+  campaignRun = { id, level, main, visitsOk: 0, visitsFail: 0, visitIdx: 0 };
+  swapState(campaign.levelState(level));
+  ui.closePanel(); root.modal.hidden = true; if (act.closeScreen) act.closeScreen();
+  paused = false; last = performance.now();
+  document.body.classList.add('in-level');
+  layout(); fitMobile(true);
+  ui.levelBar(campaignRun);
+  ui.dayBanner(0, tr('MÀN {id}', { id }), tr(level.name));
+}
+/** Every frame during a level: scheduled inspectors and the blackout flicker. */
+function levelTick() {
+  const r = campaignRun, visits = (g.mods && g.mods.visits) || [];
+  const v = visits[r.visitIdx];
+  if (v && !g.visit && !g.visitPlan && g.dayTime >= v.at - 0.5) { g.visitPlan = { day: g.day, at: v.at, kind: v.kind }; r.visitIdx++; }
+  ui.blackout(g.mods && g.mods.blackout ? (t % 3.2 < 0.5 ? 0 : 0.93) : -1);
+}
+function finishLevel() {
+  const r = campaignRun;
+  if (g.visit) showVisitResult(endVisit(g));
+  const states = r.level.goals.map((goal) => campaign.goalState(g, r, goal, true));
+  const stars = states.map((s) => s.ok);
+  const result = campaign.settle(r.main, r, stars);
+  ui.blackout(-1);
+  stars.filter(Boolean).length ? (audio.buy(), haptic('success')) : (audio.deny(), haptic('wrong'));
+  saveGame();
+  ui.showLevelResult(r, states, result, campaign.nextLevel(r.id));
+}
+function exitLevel(openHub = true) {
+  if (!campaignRun) return;
+  const main = campaignRun.main;
+  campaignRun = null;
+  swapState(main);
+  daily.touch(g, Date.now());
+  ui.blackout(-1);
+  ui.levelBar(null);
+  root.modal.hidden = true; if (act.closeScreen) act.closeScreen();
+  document.body.classList.remove('in-level');
+  paused = false; last = performance.now();
+  layout(); fitMobile(true);
+  saveGame();
+  if (openHub) ui.screens.levels();
+}
+
 /** Phone, entering the office: the first-time tutorial for a new game, else the day banner. */
 function startDay() {
   if (mobile && needsTutorial(g) && params.get('tutorial') !== '0') {
     tutorial = createTutorial({
       g, view,
-      onSave: () => save(g),
-      onGems: (n) => { addGems(g, n); audio.buy(); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); save(g); },
+      onSave: () => saveGame(),
+      onGems: (n) => { addGems(g, n); audio.buy(); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); saveGame(); },
       slackFor: (e, kind) => Object.assign(e, { state: 'slack', slack: kind, t: 0, dur: 999 }),
     });
     tutorial.start();
@@ -547,10 +694,10 @@ function runDailyFlow() {
   pendingOffline = null;
   const day = daily.checkLogin(g, now);
   if (day) queue.push(['login', day]);
-  save(g);
+  saveGame();
   if (g.mode === 'mini') { // no room for cards in the taskbar strip: collect quietly
     for (const [kind, data] of queue) kind === 'offline' ? daily.collectOffline(g, data) : daily.claimLogin(g);
-    save(g);
+    saveGame();
     return;
   }
   dailyQueue = queue;
@@ -576,14 +723,14 @@ async function finishDaily(mult) {
     if (gift) toast([gift.money ? `+${fmt(gift.money)} đ` : '', gift.gems ? tr('+{n} KIM CƯƠNG', { n: gift.gems }) : ''].filter(Boolean).join(' · '), 'coffee');
   }
   audio.buy(); haptic('success');
-  save(g);
+  saveGame();
   nextDaily();
 }
 
 /** Show the reward card for a finished project (the taskbar strip has no room: pay at once). */
 function showProjectReward() {
   if (!g.projects.reward) return;
-  if (g.mode === 'mini') { collectProject(1); return; }
+  if (g.mode === 'mini' || campaignRun) { collectProject(1); return; } // levels: no popup
   rewardOpen = true;
   ui.showProjectReward(g.projects.reward);
 }
@@ -595,13 +742,14 @@ function collectProject(mult) {
   if (!r) return;
   audio.buy(); audio.coin(8); haptic('success');
   toast(`+${fmt(r.money)} đ`, 'money');
-  save(g);
+  saveGame();
   ui.screens.repaint();
 }
 
 /** Toast the outcome of a surprise visit (events.js → endVisit). */
 function showVisitResult(r) {
   if (!r) return;
+  if (campaignRun) r.ok ? campaignRun.visitsOk++ : campaignRun.visitsFail++;
   const msg = {
     tax: r.ok ? tr('Thanh tra thuế hài lòng: +{n} KIM CƯƠNG', { n: r.gems }) : tr('Thanh tra thuế phạt {m} đ!', { m: fmt(r.fine) }),
     labour: r.ok ? tr('Doanh nghiệp nhân văn: +{n} KIM CƯƠNG', { n: r.gems }) : tr('Thanh tra lao động đi về. Tổng phạt {m} đ', { m: fmt(r.fine) }),
@@ -609,12 +757,13 @@ function showVisitResult(r) {
   }[r.kind];
   r.ok ? (audio.buy(), haptic('success')) : (audio.deny(), haptic('wrong'));
   toast(msg, r.ok ? 'money' : 'wrong');
-  save(g);
+  saveGame();
 }
 
 function endDay() {
   if (paused) return;
   paused = true;
+  if (campaignRun) { finishLevel(); return; }
   if (g.visit) showVisitResult(endVisit(g)); // a visitor still in the office leaves at clock-out
   audio.bell();
   const t = g.today;
@@ -628,7 +777,7 @@ function endDay() {
     t.payroll = payMonth(g);
     if (t.payroll.short > 0) { audio.deny(); haptic('wrong'); }
   }
-  save(g);
+  saveGame();
   const next = () => {
     // an overdue project fails when the new day starts (unless an ad extended it)
     if (projects.overdue(g)) {
@@ -642,7 +791,7 @@ function endDay() {
     newMorning();
     for (const e of g.staff) { e.energy = 100; e.stress = Math.max(0, e.stress - 50); e.state = 'work'; e.slack = null; e.t = 0; }
     paused = false;
-    save(g);
+    saveGame();
     if (mobile) ui.dayBanner(g.day);
   };
   // In the taskbar bar there is no room for a report card: roll straight into the next day.
@@ -671,7 +820,9 @@ function frame(now) {
 
 function step(dt) {
   t += dt;
-  if (!paused && !adOpen && !rewardOpen && !dailyOpen && !userPaused && !onTitle && !(tutorial && tutorial.blocking)) simUpdate(g, dt, onEvent);
+  if (campaignRun) levelTick();
+  else checkMini();
+  if (!paused && !adOpen && !rewardOpen && !dailyOpen && !miniOpen && !userPaused && !onTitle && !(tutorial && tutorial.blocking)) simUpdate(g, dt, onEvent);
   whip.update(dt);
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
   view.render(g, whip, t);
@@ -701,7 +852,7 @@ function goAway() {
   if (mobile) pauseGame();
   else if (!hiddenAt) hiddenAt = Date.now();
   // A reset reloads the page, which also fires visibilitychange → don't write the old save back.
-  if (!resetting) { daily.touch(g, Date.now()); save(g); }
+  if (!resetting) { daily.touch(g, Date.now()); saveGame(); }
 }
 function comeBack() {
   if (mobile) {
@@ -719,8 +870,8 @@ function comeBack() {
   if (mobile) fitMobile(true);
 }
 document.addEventListener('visibilitychange', () => (document.hidden ? goAway() : comeBack()));
-addEventListener('pagehide', () => { if (!resetting) save(g); });
-setInterval(() => { if (resetting) return; if (!document.hidden) daily.touch(g, Date.now()); save(g); }, 5000);
+addEventListener('pagehide', () => { if (!resetting) saveGame(); });
+setInterval(() => { if (resetting) return; if (!document.hidden) daily.touch(g, Date.now()); saveGame(); }, 5000);
 
 // --- Picture-in-Picture ----------------------------------------------------------------
 async function togglePip() {
@@ -755,6 +906,7 @@ function handleBack() {
   if (document.querySelector('.fake-ad')) return true; // finish or close the ad first
   if (rewardOpen) { collectProject(1); return true; } // Back = take the normal reward
   if (dailyOpen) { finishDaily(1); return true; }
+  if (miniOpen) { mini.closeMini(); miniOpen = false; last = performance.now(); return true; }
   if (!root.modal.hidden) {
     if (act.nextDay) act.nextDay();
     else if (act.closeInterview) act.closeInterview();
@@ -775,7 +927,7 @@ if (onTitle) {
   showTitle({
     g, fmt,
     onTap: () => audio.unlock(),
-    onToggleSound: () => { act.mute(); save(g); },
+    onToggleSound: () => { act.mute(); saveGame(); },
     onToggleMusic: () => act.music(),
     onLang: (code) => act.setLang(code),
     onStart: () => {

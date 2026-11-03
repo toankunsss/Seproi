@@ -23,7 +23,7 @@ export function updateVisit(g, dt, emit) {
   const p = g.visitPlan;
   if (!g.visit && p && p.day === g.day && g.dayTime >= p.at) {
     const kinds = Object.keys(VISITS.kinds);
-    g.visit = { kind: kinds[Math.floor(Math.random() * kinds.length)], t: 0, kpiSum: 0, kpiN: 0, whips: 0, fined: 0, watching: true, phaseLeft: 0 };
+    g.visit = { kind: p.kind || kinds[Math.floor(Math.random() * kinds.length)], t: 0, kpiSum: 0, kpiN: 0, whips: 0, fined: 0, watching: true, phaseLeft: 0 };
     g.visit.phaseLeft = phaseLength(g.visit.kind, true);
     g.visitPlan = null;
     emit('visitStart', g.visit);

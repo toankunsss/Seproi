@@ -13,7 +13,7 @@ import { rect, px, line } from './pixel.js';
 import {
   shade, renderScreen, drawEmployee, drawAssistant, drawOfficeDecor, drawSteam, drawVisitor,
 } from './sprites.js';
-import { TUNING, VISITS } from './config.js';
+import { TUNING, VISITS, dayLen } from './config.js';
 
 export const CELL = { w: 50, h: 60 };
 const WALL_H = 50;          // back wall height (floor starts below it)
@@ -101,7 +101,7 @@ function drawFloor(ctx, L, g) {
 }
 
 function drawWall(ctx, L, g, t, whip) {
-  const W = L.W, dayFrac = Math.min(1, g.dayTime / TUNING.dayLength);
+  const W = L.W, dayFrac = Math.min(1, g.dayTime / dayLen(g));
   rect(ctx, 0, 0, W, WALL_H, '#574d7d');
   rect(ctx, 0, 0, W, 3, '#221c35');
   rect(ctx, 0, WALL_H - 14, W, 12, '#463b67');

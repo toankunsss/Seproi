@@ -2,7 +2,7 @@
 // Each screen renders into #modal. While it is open, tick() (called from ui.update every 0.1s)
 // re-renders it when its signature changes, and live() updates fast-moving numbers in place
 // so a re-render never swallows a tap.
-import { ROLES, OFFICE_LEVELS, PREMIUM_ITEMS, ADS, MAX_STAFF, PRIVACY_URL } from './config.js';
+import { ROLES, OFFICE_LEVELS, PREMIUM_ITEMS, ADS, MAX_STAFF, PRIVACY_URL, SLACKS } from './config.js';
 import { faceUrl, hirePrice, skillMult } from './cv.js';
 import { progressOf, penaltyOf } from './projects.js';
 import { achievementList, claimableCount } from './achievements.js';
@@ -14,6 +14,7 @@ import { salaryOf, monthBill, daysToPayday } from './payroll.js';
 import { questList, questClaimable, allQuestsClaimed, dailyState } from './daily.js';
 import { DAILY, PRESTIGE } from './config.js';
 import { sharesFor, canSell, shareBonus } from './prestige.js';
+import { LEVELS, CHAPTERS, bestStars, totalStars, unlocked, goalText } from './campaign.js';
 import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
@@ -254,6 +255,54 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       <a class="px-btn wide link" href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Chính sách quyền riêng tư')}</a>
     </div>`;
 
+  // --- Campaign hub (campaign.js) ---------------------------------------------------------------
+  const starRow3 = (n) => [0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}">★</i>`).join('');
+  function levelsScreen() {
+    const chapters = CHAPTERS.map((c) => {
+      const ls = LEVELS.filter((l) => l.ch === c.id);
+      const got = ls.reduce((s, l) => s + bestStars(g, l.id), 0);
+      return `<div class="chapter">
+        <h3>${t('Chương {n}: {name}', { n: c.id, name: t(c.name) })} <small>${got}/${ls.length * 3} ★ · ${t('{n} 💎/sao', { n: c.gems })}</small></h3>
+        <div class="lvl-grid">${ls.map((l) => {
+          const open = unlocked(g, l.id), st = bestStars(g, l.id);
+          return `<button class="lvl-card ${open ? '' : 'locked'} ${st === 3 ? 'perfect' : ''}" data-a="levelInfo" data-arg="${l.id}" ${open ? '' : 'disabled'}>
+            <b>${l.id}</b><span>${open ? esc(t(l.name)) : '🔒'}</span><em>${starRow3(st)}</em></button>`;
+        }).join('')}</div>
+      </div>`;
+    }).join('');
+    const bossIn = (7 - (g.day % 7)) % 7;
+    return `<div class="card screen levels-screen">
+      ${head(t('Màn chơi'), t('Chiến dịch: {s}/{n} sao', { s: totalStars(g), n: LEVELS.length * 3 }))}
+      <div class="boss-info">
+        <b>${t('Trùm tuần: Siêu Nhân Viên Lười')}</b>
+        <div>${bossIn ? t('Xuất hiện ở công ty sau {n} ngày (mỗi 7 ngày).', { n: bossIn }) : t('Xuất hiện HÔM NAY trong công ty!')} ${t('Đã hạ: {n}', { n: g.bossWins || 0 })}</div>
+      </div>
+      <p class="tip">${t('Mỗi màn là một ngày làm việc đặc biệt với luật riêng. Đạt mục tiêu để nhận sao và kim cương. Chơi màn không ảnh hưởng tới công ty của bạn.')}</p>
+      ${chapters}
+    </div>`;
+  }
+  const RULE_TEXT = {
+    slack: 'Nhân viên lười x{n}', drain: 'Mau buồn ngủ x{n}', wrongMult: 'Phạt quất oan x{n}', blackout: 'Mất điện',
+    visits: 'Có thanh tra ghé thăm', slackKind: 'Kiểu lười chủ đạo: {k}', dayLength: 'Ngày làm việc {n} giây',
+  };
+  function levelInfoScreen(id) {
+    const l = LEVELS.find((x) => x.id === id);
+    if (!l) return '';
+    const rules = Object.entries(l.rules).map(([k, v]) => RULE_TEXT[k] ? `<span class="chip">${t(RULE_TEXT[k], { n: v, k: k === 'slackKind' ? t((SLACKS[v] && SLACKS[v].label) || v) : '' })}</span>` : '').join('');
+    const s = l.setup;
+    return `<div class="card screen level-info">
+      ${head(t('Màn {id}', { id: l.id }) + ' · ' + esc(t(l.name)), t('Kỷ lục: {n} sao', { n: bestStars(g, l.id) }))}
+      <p class="brief">${esc(t(l.brief))}</p>
+      <div class="chips">${rules}<span class="chip">${t('{n} nhân viên', { n: s.staff })}</span>${s.project ? `<span class="chip">${t('Có dự án')}</span>` : ''}</div>
+      <h3>${t('Mục tiêu')}</h3>
+      ${l.goals.map((goal) => { const tx = goalText(...goal); return `<div class="lvl-goal"><i>★</i><span>${t(tx.s, { n: fmt(tx.n) })}</span></div>`; }).join('')}
+      <div class="lvl-actions">
+        <button class="px-btn" data-a="levels">${t('Danh sách màn')}</button>
+        <button class="px-btn big" data-a="levelStart" data-arg="${l.id}">${t('Bắt đầu')}</button>
+      </div>
+    </div>`;
+  }
+
   // --- Selling the company (prestige.js) ------------------------------------------------------
   function sellScreen() {
     const have = Math.floor(g.lifetimeEarnings || 0), gain = sharesFor(g), ok = canSell(g);
@@ -278,6 +327,8 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     vip: () => open('vip', vipScreen, vipSig),
     staff: () => open('staff', staffScreen, staffSig, staffLive),
     achievements: () => open('achievements', achScreen, achSig),
+    levels: () => open('levels', levelsScreen, () => `${totalStars(g)}|${g.day}`),
+    levelInfo: (id) => open('levelInfo', () => levelInfoScreen(id), () => id),
     sell: () => open('sell', sellScreen, () => `${Math.floor((g.lifetimeEarnings || 0) / 1000)}|${g.shares}`),
     more: () => open('more', moreScreen, () => `${g.muted}/${g.musicOff}`),
     /** Called ~10x/s by ui.update. */

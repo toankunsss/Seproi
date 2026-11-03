@@ -4,11 +4,11 @@
 //   mini     — a thin taskbar strip of workstations (desktop shell)
 import {
   roomLayer, ROOM_SIZE, drawClockHands, drawDesk, drawMonitor, drawKeyboard, renderScreen,
-  drawEmployee, drawBubble, drawMood, drawZzz, drawCoffeeMachine, drawAssistant, drawOfficeDecor, assistantPos, drawVisitor,
+  drawEmployee, drawBubble, drawMood, drawZzz, drawBoss, drawCoffeeMachine, drawAssistant, drawOfficeDecor, assistantPos, drawVisitor,
   PERSON_OFFSET, MINI_SLOT, MINI_H, drawMiniStation,
 } from './sprites.js';
 import { iso, rect } from './pixel.js';
-import { TUNING, COFFEE } from './config.js';
+import { TUNING, COFFEE, dayLen } from './config.js';
 import { portraitLayout, drawPortraitOffice } from './portrait.js';
 
 // Desk slots in hiring order (grid coords of the desk anchor).
@@ -98,7 +98,7 @@ export function createView(canvas) {
   function renderOffice(g, whip, t) {
     const room = roomLayer(g.officeLevel || 0);
     ctx.drawImage(room.canvas, 0, 0);
-    drawClockHands(ctx, room.P, g.dayTime / TUNING.dayLength);
+    drawClockHands(ctx, room.P, g.dayTime / dayLen(g));
     drawOfficeDecor(ctx, room.P, g.decor || [], t);
     if (g.coffeeLevel >= 0) drawCoffeeMachine(ctx, room.P, g.coffeeLevel, g.coffeeCd <= 0, t);
 
@@ -129,7 +129,23 @@ export function createView(canvas) {
       drawVisitor(ctx, p.x, p.y, g.visit.kind, t, g.visit.t < 3, attention);
     }
     for (const { e, head } of overlays) drawOverlay(e, head, t);
+    drawBossAt(g, t, (h) => ({ x: h.anchor.x + 16, y: h.anchor.y }));
   }
+
+  /** Weekly boss next to the desk of staff g.boss.at (pos maps a hit area to his floor point). */
+  function drawBossAt(g, t, pos) {
+    v.bossHit = null;
+    const b = g.boss;
+    const h = b && v.hits[Math.min(b.at, v.hits.length - 1)];
+    if (!h) return;
+    const p = pos(h);
+    v.bossHit = drawBoss(ctx, p.x, p.y, t, b.hp / b.max, b.dodge > 0);
+  }
+  /** Is the point (local canvas coords) on the boss? Generous for fingers. */
+  v.hitsBoss = (x, y, slop = 6) => {
+    const r = v.bossHit;
+    return !!r && x >= r.x0 - slop && x <= r.x1 + slop && y >= r.y0 - slop && y <= r.y1 + slop;
+  };
 
   function renderPortrait(g, whip, t) {
     const r = drawPortraitOffice(ctx, v.layout, g, t, whip);
@@ -137,6 +153,7 @@ export function createView(canvas) {
     v.slots = r.slots;
     v.assistantHand = r.hand;
     for (const h of r.hits) drawOverlay(h.e, h.head, t, { stress: h.stress });
+    drawBossAt(g, t, (h) => ({ x: h.x1 - 13, y: h.y1 - 2 }));
   }
 
   function renderMini(g, t) {

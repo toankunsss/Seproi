@@ -32,42 +32,45 @@ export const hireCost = (count) => Math.round(300 * Math.pow(1.85, count - START
 // Office growth is driven by total revenue, then paid from the current company fund.
 export const OFFICE_LEVELS = [
   { name: 'Phòng khởi nghiệp', capacity: 4, unlockRevenue: 0, cost: 0 },
-  { name: 'Văn phòng mở rộng', capacity: 6, unlockRevenue: 4000, cost: 3500 },
-  { name: 'Trụ sở Whip Boss', capacity: 8, unlockRevenue: 40000, cost: 30000 },
+  { name: 'Văn phòng mở rộng', capacity: 6, unlockRevenue: 9000, cost: 8000 },
+  { name: 'Trụ sở Whip Boss', capacity: 8, unlockRevenue: 150000, cost: 120000 },
 ];
 
 export const DECOR_ITEMS = [
-  { id: 'rug', name: 'Thảm KPI', desc: 'Thảm đỏ chạy giữa văn phòng.', cost: 600, level: 0 },
-  { id: 'lamp', name: 'Đèn cây', desc: 'Một góc làm việc bớt u ám.', cost: 1200, level: 0 },
-  { id: 'sofa', name: 'Sofa tiếp khách', desc: 'Chỗ ngồi sang hơn ghế nhựa.', cost: 3000, level: 1 },
-  { id: 'shelf', name: 'Tủ sách chuyên môn', desc: 'Sách nhiều, đọc bao nhiêu chưa rõ.', cost: 5000, level: 1 },
-  { id: 'aquarium', name: 'Bể cá thư giãn', desc: 'Cá bơi, KPI vẫn chạy.', cost: 15000, level: 2 },
-  { id: 'trophy', name: 'Cúp Sếp xuất sắc', desc: 'Biểu tượng quyền lực tối thượng.', cost: 35000, level: 2 },
+  { id: 'rug', name: 'Thảm KPI', desc: 'Thảm đỏ chạy giữa văn phòng.', cost: 900, level: 0 },
+  { id: 'lamp', name: 'Đèn cây', desc: 'Một góc làm việc bớt u ám.', cost: 2000, level: 0 },
+  { id: 'sofa', name: 'Sofa tiếp khách', desc: 'Chỗ ngồi sang hơn ghế nhựa.', cost: 6000, level: 1 },
+  { id: 'shelf', name: 'Tủ sách chuyên môn', desc: 'Sách nhiều, đọc bao nhiêu chưa rõ.', cost: 10000, level: 1 },
+  { id: 'aquarium', name: 'Bể cá thư giãn', desc: 'Cá bơi, KPI vẫn chạy.', cost: 40000, level: 2 },
+  { id: 'trophy', name: 'Cúp Sếp xuất sắc', desc: 'Biểu tượng quyền lực tối thượng.', cost: 90000, level: 2 },
 ];
 
 export const WHIPS = [
   { name: 'Roi Mây',      cost: 0,     bonus: 6,   boost: 6,  radius: 4,  rope: '#9a6a3a', tip: '#c89a5a', fx: 'wood' },
-  { name: 'Roi Da Bò',    cost: 400,   bonus: 14,  boost: 8,  radius: 6,  rope: '#6e3b1f', tip: '#a8582c', fx: 'wood' },
-  { name: 'Roi Gai',      cost: 3000,  bonus: 35,  boost: 10, radius: 8,  rope: '#4a4a52', tip: '#c0c0cc', fx: 'metal' },
-  { name: 'Roi Điện',     cost: 18000, bonus: 90,  boost: 12, radius: 10, rope: '#2a3a6a', tip: '#8fe8ff', fx: 'elec' },
-  { name: 'Roi Rồng Lửa', cost: 80000, bonus: 240, boost: 15, radius: 13, rope: '#6a1a10', tip: '#ffb030', fx: 'fire' },
+  { name: 'Roi Da Bò',    cost: 500,   bonus: 14,  boost: 8,  radius: 6,  rope: '#6e3b1f', tip: '#a8582c', fx: 'wood' },
+  { name: 'Roi Gai',      cost: 5000,  bonus: 35,  boost: 10, radius: 8,  rope: '#4a4a52', tip: '#c0c0cc', fx: 'metal' },
+  { name: 'Roi Điện',     cost: 30000, bonus: 90,  boost: 12, radius: 10, rope: '#2a3a6a', tip: '#8fe8ff', fx: 'elec' },
+  { name: 'Roi Rồng Lửa', cost: 150000, bonus: 240, boost: 15, radius: 13, rope: '#6a1a10', tip: '#ffb030', fx: 'fire' },
   // Premium (💎) whip: never sold for đ, unlocked by the "Roi Kim Cương" perk.
   { name: 'Roi Kim Cương', cost: Infinity, premium: true, bonus: 600, boost: 18, radius: 15, rope: '#4fb8e8', tip: '#e8fbff', fx: 'elec' },
 ];
 
 export const COFFEE = [
-  { cost: 400,   cooldown: 40, regen: 0.25 },
-  { cost: 2500,  cooldown: 30, regen: 0.45 },
-  { cost: 9000,  cooldown: 22, regen: 0.65 },
-  { cost: 30000, cooldown: 15, regen: 0.9 },
+  { cost: 500,   cooldown: 40, regen: 0.25 },
+  { cost: 4000,  cooldown: 30, regen: 0.45 },
+  { cost: 15000, cooldown: 22, regen: 0.65 },
+  { cost: 50000, cooldown: 15, regen: 0.9 },
 ];
 
 export const ASSISTANT = [
-  { cost: 1200,  interval: 10 },
-  { cost: 6000,  interval: 7 },
-  { cost: 20000, interval: 5 },
-  { cost: 60000, interval: 3 },
+  { cost: 1500,  interval: 10 },
+  { cost: 9000,  interval: 7 },
+  { cost: 35000, interval: 5 },
+  { cost: 100000, interval: 3 },
 ];
+
+/** Length of the current work day: campaign levels can shorten it (g.mods.dayLength). */
+export const dayLen = (g) => (g.mods && g.mods.dayLength) || TUNING.dayLength;
 
 export const TUNING = {
   dayLength: 150,          // seconds of real time for 9:00 → 18:00
@@ -250,10 +253,23 @@ export const ACHIEVEMENTS = [
 // --- Staff care: rewards & firing (staff.js) --------------------------------------------------
 // Motivation (động lực, 0..100, 50 = neutral) scales slacking: 100 → x0.6, 0 → x1.4.
 // It drifts back to a baseline (50 + 10 per salary level) at MOTIVATION.drift points/second.
+// --- Weekly boss (boss.js) -------------------------------------------------------------------
+export const BOSS = {
+  every: 7,            // a boss on day 7, 14, 21...
+  arriveAt: 0.2,       // share of the work day when he walks in (~11:00)
+  stay: 35,            // seconds before he leaves (and you lose)
+  hp: 14, hpPerWeek: 6,
+  damagePerWhipLevel: 0.5, // damage per hit = 1 + 0.5 x whip level
+  moveEvery: 1.8,      // seconds between teleports
+  dodgeChance: 0.3, dodgeTime: 1.0,
+  chestMoney: 1500, chestGems: 15,
+  steal: 0.08,         // share of the fund he walks off with
+};
+
 // --- Selling the company (prestige.js) --------------------------------------------------------
 export const PRESTIGE = {
-  minRevenue: 300000,      // total revenue needed before an investor makes an offer
-  revenuePerShare: 75000,  // shares = floor(sqrt(total revenue / this)): 300k → 2, 1.2M → 4, 7.5M → 10
+  minRevenue: 500000,      // total revenue needed before an investor makes an offer
+  revenuePerShare: 120000, // shares = floor(sqrt(total revenue / this)): 500k → 2, 1.1M → 3, 12M → 10
   perShare: 0.1,           // +10% income per share, forever
 };
 

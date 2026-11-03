@@ -1,11 +1,12 @@
 // Simulation: employee behaviour, economy, day cycle, coffee & assistant.
 // Pure-ish: mutates the game object and reports what happened through `emit`.
-import { ROLES, SLACKS, SLACK_KINDS, WHIPS, COFFEE, ASSISTANT, WORK_RATE, MOTIVATION, TUNING as T } from './config.js';
+import { ROLES, SLACKS, SLACK_KINDS, WHIPS, COFFEE, ASSISTANT, WORK_RATE, MOTIVATION, TUNING as T, dayLen } from './config.js';
 import { skillMult, lazyMult, stressMult } from './cv.js';
 import { addWork } from './projects.js';
 import { motivFactor, motivBaseline } from './staff.js';
 import { updateVisit, assistantHides } from './events.js';
 import { shareBonus } from './prestige.js';
+import { updateBoss } from './boss.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -29,7 +30,9 @@ export const dayAdBonus = (g) => Math.floor(Math.max(0, g.today.revenue - (g.tod
 export function update(g, dt, emit) {
   // Day clock
   g.dayTime += dt;
-  if (g.dayTime >= T.dayLength) { g.dayTime = T.dayLength; emit('dayEnd'); return; }
+  const len = dayLen(g);
+  if (g.dayTime >= len) { g.dayTime = len; emit('dayEnd'); return; }
+  const mods = g.mods || {};
 
   const coffee = g.coffeeLevel >= 0 ? COFFEE[g.coffeeLevel] : null;
   const decay = T.stressDecay * (hasPerk(g, 'massage') ? 2 : 1);
@@ -48,14 +51,15 @@ export function update(g, dt, emit) {
 
     switch (e.state) {
       case 'work': {
-        e.energy = Math.max(0, e.energy - T.energyDrain * dt * (e.boost > 0 ? 0.5 : 1));
+        e.energy = Math.max(0, e.energy - T.energyDrain * (mods.drain || 1) * dt * (e.boost > 0 ? 0.5 : 1));
         if (e.boost <= 0) {
           const tired = 1 - e.energy / 100;
-          const p = (T.slackBase + T.slackTired * tired * tired) * lazyMult(e.cv) * motivFactor(e) * dt;
+          const p = (T.slackBase + T.slackTired * tired * tired) * lazyMult(e.cv) * motivFactor(e) * (mods.slack || 1) * (g.boss ? 1.6 : 1) * dt;
           if (Math.random() < p) {
             e.state = 'slack'; e.t = 0; e.dur = rand(T.slackMin, T.slackMax);
             // the hobby on their CV gives their favourite way to slack away
-            e.slack = e.cv.fav && Math.random() < 0.7 ? e.cv.fav : SLACK_KINDS[Math.floor(Math.random() * SLACK_KINDS.length)];
+            e.slack = mods.slackKind && Math.random() < 0.65 ? mods.slackKind
+              : e.cv.fav && Math.random() < 0.7 ? e.cv.fav : SLACK_KINDS[Math.floor(Math.random() * SLACK_KINDS.length)];
             emit('slack', e);
           }
         }
@@ -91,6 +95,7 @@ export function update(g, dt, emit) {
   }
   if (finished) emit('projectDone');
   updateVisit(g, dt, emit);
+  updateBoss(g, dt, emit);
 
   const earned = income * dt;
   g.money += earned;
@@ -177,7 +182,7 @@ export function whipEmployee(g, e, { auto = false } = {}) {
   e.whips++;
   g.combo = 0; g.comboT = 0;
   g.kpi = Math.max(0, g.kpi - 0.05);
-  const penalty = Math.min(g.money, T.wrongPenalty * (1 + g.whipLevel));
+  const penalty = Math.min(g.money, T.wrongPenalty * (1 + g.whipLevel) * ((g.mods && g.mods.wrongMult) || 1));
   g.money -= penalty;
   g.today.wrong++;
   return { kind: 'wrong', reward: -Math.round(penalty) };
