@@ -262,6 +262,77 @@ export const ACHIEVEMENTS = [
 // --- Staff care: rewards & firing (staff.js) --------------------------------------------------
 // Motivation (động lực, 0..100, 50 = neutral) scales slacking: 100 → x0.6, 0 → x1.4.
 // It drifts back to a baseline (50 + 10 per salary level) at MOTIVATION.drift points/second.
+// --- Collections (cosmetics.js) -------------------------------------------------------------
+// Whip skins (look + crack sound), bought with 💎. They don't change the whip's power.
+export const WHIP_SKINS = [
+  { id: 'rau', name: 'Roi rau muống', gems: 40, rope: '#3a9a3a', tip: '#8ae06a', handle: '#2a6a2a', sound: 'soft' },
+  { id: 'selfie', name: 'Gậy selfie', gems: 60, rope: '#2a2a32', tip: '#e8e8f0', handle: '#111111', sound: 'shutter' },
+  { id: 'cable', name: 'Cáp sạc điện thoại', gems: 60, rope: '#f4f4f4', tip: '#c0c0cc', handle: '#ffffff', sound: 'beep' },
+  { id: 'mop', name: 'Cây lau nhà', gems: 80, rope: '#d8d0a0', tip: '#f4f1ea', handle: '#6b4a2a', sound: 'splash' },
+  { id: 'tet', name: 'Roi Tết', gems: 100, rope: '#d02030', tip: '#ffd34d', handle: '#ffd34d', sound: 'beep' },
+  { id: 'neon', name: 'Roi neon', gems: 120, rope: '#ff3d7f', tip: '#2de2e6', handle: '#1d1826', sound: 'beep' },
+];
+// Office pets, bought with 💎. Cat: the office is happier (+motivation baseline).
+// Dog: barks at anyone slacking for more than 3 s.
+export const PETS = [
+  { id: 'cat', name: 'Mèo văn phòng', gems: 80, desc: 'Nằm ườn trên vách ngăn. Cả phòng vui hơn: động lực nền +5.' },
+  { id: 'dog', name: 'Chó canh cửa', gems: 100, desc: 'Sủa "GÂU!" khi có người lười quá 3 giây, Sếp đỡ bỏ sót.' },
+];
+// Staff album: 40 characters in 5 sets of 8. They turn up as applicants; hiring one adds their card.
+export const ALBUM_SETS = [
+  { id: 'game', name: 'Hội game thủ', fav: 'game' },
+  { id: 'toptop', name: 'Hội sống ảo', fav: 'toptop' },
+  { id: 'sleep', name: 'Hội ngủ gật', fav: 'sleep' },
+  { id: 'crypto', name: 'Hội đầu tư', fav: 'crypto' },
+  { id: 'special', name: 'Hội đặc biệt', fav: null },
+];
+export const ALBUM_REWARD = { setGems: 30, allGems: 100 };
+export const ALBUM = [
+  ['game', 'Khoa', 'Rank Thách Đấu nhưng deadline thì hạng Đồng.'],
+  ['game', 'Duy', 'Bàn phím cơ kêu to nhất phòng, chủ yếu do bấm skill.'],
+  ['game', 'Phong', 'Xin nghỉ ốm đúng ngày ra mắt game mới.'],
+  ['game', 'Trâm', 'Gọi đồng nghiệp là "team", gọi sếp là "boss cuối".'],
+  ['game', 'Hưng', 'Coi họp giao ban là màn hình chờ tải game.'],
+  ['game', 'Nhung', 'Thuộc bản đồ game hơn sơ đồ văn phòng.'],
+  ['game', 'Vinh', 'Đeo tai nghe 8 tiếng, chỉ tháo ra khi nghe "tăng lương".'],
+  ['game', 'Quế', 'Từng gõ "GG" vào email gửi khách hàng.'],
+  ['toptop', 'Ly', 'Quay video "một ngày đi làm" nhưng không làm gì.'],
+  ['toptop', 'Bảo Anh', '100 nghìn người theo dõi, 0 file Excel hoàn thành.'],
+  ['toptop', 'Kiên', 'Bắt trend nhanh hơn bắt deadline.'],
+  ['toptop', 'Mỹ', 'Đổi ảnh đại diện 3 lần mỗi ngày.'],
+  ['toptop', 'Toàn', 'Livestream bán hàng giờ nghỉ trưa, kéo dài 3 tiếng.'],
+  ['toptop', 'Diệp', 'Chụp ảnh đồ ăn trước, ăn sau, làm việc thì để mai.'],
+  ['toptop', 'Tùng', 'Lướt nhanh đến mức ngón cái có cơ bắp.'],
+  ['toptop', 'Vy', 'Xem video "mẹo làm việc hiệu quả" 4 tiếng mỗi ngày.'],
+  ['sleep', 'Đạt', 'Ngủ được ở mọi tư thế, kể cả khi đang gõ phím.'],
+  ['sleep', 'Sương', 'Đặt 12 báo thức, tắt cả 12.'],
+  ['sleep', 'Cường', 'Nói mớ ra cả mã nguồn.'],
+  ['sleep', 'Thu', 'Cà phê không có tác dụng, chỉ có lương mới làm tỉnh.'],
+  ['sleep', 'Hoà', 'Vào họp lúc 9 giờ, tỉnh dậy lúc 11 giờ, vẫn gật gù đồng ý.'],
+  ['sleep', 'Lộc', 'Gối chữ U luôn trên bàn, gọi là "thiết bị văn phòng".'],
+  ['sleep', 'Ngân', 'Ngáp một cái là cả phòng ngáp theo.'],
+  ['sleep', 'Thắng', 'Mơ thấy deadline nên ngủ thêm để trốn.'],
+  ['crypto', 'Tài', 'Mua đỉnh, bán đáy, đi làm để gỡ.'],
+  ['crypto', 'Phú', 'Gọi lương tháng là "vốn mồi".'],
+  ['crypto', 'Quý', 'Xem biểu đồ nến nhiều đến mức nhìn đâu cũng thấy nến.'],
+  ['crypto', 'Bình', 'Đặt tên con mèo là Bitcoin.'],
+  ['crypto', 'Như', 'Tin vào "coin x100" hơn tin vào KPI.'],
+  ['crypto', 'Sang', 'Nghỉ việc 3 lần vì "sắp giàu", quay lại 3 lần.'],
+  ['crypto', 'Lợi', 'Tính lãi kép cho cả tiền gửi xe.'],
+  ['crypto', 'Vượng', 'Cài 7 ứng dụng sàn, không cài phần mềm công ty.'],
+  ['special', 'Béo', 'Ngăn kéo bàn làm việc là một siêu thị mini.', 'snack'],
+  ['special', 'Giòn', 'Ăn snack to đến mức họp online phải tắt mic.', 'snack'],
+  ['special', 'Thoại', 'Gọi điện cho mẹ 5 lần mỗi ngày, mỗi lần 40 phút.', 'call'],
+  ['special', 'Alo', 'Tai luôn dính điện thoại, kể cả khi điện thoại hết pin.', 'call'],
+  ['special', 'Họp', 'Lịch kín họp, chưa ai thấy kết quả cuộc họp nào.', 'meeting'],
+  ['special', 'Zoom', 'Tắt camera, bật ảnh nền "đang làm việc".', 'meeting'],
+  ['special', 'Tiến', 'Đi vệ sinh 45 phút, về bảo "đang nghĩ giải pháp".', 'toilet'],
+  ['special', 'Kín', 'Thuộc lòng lịch dọn toilet của cả toà nhà.', 'toilet'],
+].map(([set, name, bio, fav], i) => ({ id: i, set, name, bio, fav: fav || set }));
+
+// --- Rival company poaching (rival.js) -------------------------------------------------------
+export const RIVAL = { fromDay: 6, chance: 0.25, bonus: 400, fee: 300 };
+
 // --- Weekly boss (boss.js) -------------------------------------------------------------------
 export const BOSS = {
   every: 7,            // a boss on day 7, 14, 21...

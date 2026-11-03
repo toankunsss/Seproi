@@ -9,6 +9,7 @@ import { shareBonus } from './prestige.js';
 import { updateBoss } from './boss.js';
 import { bonus } from './inventory.js';
 import { catchMult, motivBonus, wrongStressMult, tickSkills } from './skills.js';
+import { deptIncome, deptSlack, trackDepts } from './depts.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -17,7 +18,7 @@ export const hasPerk = (g, id) => g.perks.includes(id);
 export function incomeOf(g, e) {
   if (e.state !== 'work' && e.state !== 'hurt') return 0;
   const boost = e.boost > 0 ? T.boostMult : 1;
-  const perks = (hasPerk(g, 'aiClock') ? 1.15 : 1) * (g.hotBonus > 0 ? 2 : 1) * shareBonus(g) * (1 + bonus(g, 'income') / 100);
+  const perks = (hasPerk(g, 'aiClock') ? 1.15 : 1) * (g.hotBonus > 0 ? 2 : 1) * shareBonus(g) * (1 + bonus(g, 'income') / 100) * deptIncome(g, e);
   return ROLES[e.role].income * skillMult(e.cv) * boost * perks * (1 + T.dayMult * (g.day - 1));
 }
 
@@ -50,7 +51,7 @@ export function update(g, dt, emit) {
     e.boost = Math.max(0, e.boost - dt);
     e.stress = Math.max(0, e.stress - decay * dt);
     // motivation slowly settles back to its baseline (rewards wear off, salary raises stick)
-    const base = Math.min(100, motivBaseline(e) + motivBonus(g)), m = e.motiv ?? MOTIVATION.start, step = MOTIVATION.drift * dt;
+    const base = Math.min(100, motivBaseline(e) + motivBonus(g) + (g.cos && g.cos.pet === 'cat' ? 5 : 0)), m = e.motiv ?? MOTIVATION.start, step = MOTIVATION.drift * dt;
     e.motiv = m > base ? Math.max(base, m - step) : Math.min(base, m + step);
     if (coffee) e.energy = Math.min(100, e.energy + coffee.regen * dt);
 
@@ -59,7 +60,7 @@ export function update(g, dt, emit) {
         e.energy = Math.max(0, e.energy - T.energyDrain * (mods.drain || 1) * dt * (e.boost > 0 ? 0.5 : 1));
         if (e.boost <= 0) {
           const tired = 1 - e.energy / 100;
-          const p = (T.slackBase + T.slackTired * tired * tired) * lazyMult(e.cv) * motivFactor(e) * (mods.slack || 1) * (g.boss ? 1.6 : 1) * (leadAt.has(idx) ? 0.7 : 1) * dt;
+          const p = (T.slackBase + T.slackTired * tired * tired) * lazyMult(e.cv) * motivFactor(e) * (mods.slack || 1) * (g.boss ? 1.6 : 1) * (leadAt.has(idx) ? 0.7 : 1) * deptSlack(g, e) * dt;
           if (Math.random() < p) {
             e.state = 'slack'; e.t = 0; e.dur = rand(T.slackMin, T.slackMax);
             // the hobby on their CV gives their favourite way to slack away
@@ -106,6 +107,7 @@ export function update(g, dt, emit) {
   updateVisit(g, dt, emit);
   updateBoss(g, dt, emit);
   tickSkills(g, dt);
+  trackDepts(g, dt);
 
   const earned = income * dt;
   g.money += earned;
@@ -141,7 +143,7 @@ export function update(g, dt, emit) {
   }
 }
 
-function toWork(e) { e.state = 'work'; e.t = 0; e.slack = null; e.halfCaught = false; }
+function toWork(e) { e.state = 'work'; e.t = 0; e.slack = null; e.halfCaught = false; e.barked = false; }
 
 /**
  * Apply a whip hit. Returns { kind: 'catch' | 'wrong' | 'strike', reward } so the

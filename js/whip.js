@@ -181,7 +181,8 @@ export function createWhip() {
 
   w.drawWhip = (ctx, level) => {
     if (!w.visible && !w.strike) return;
-    const W = WHIPS[level];
+    const W0 = WHIPS[level], S = w.skin;
+    const W = S ? { ...W0, rope: S.rope, tip: S.tip, fx: 'skin' } : W0;
     // rope
     for (let i = 1; i < N; i++) {
       const a = pts[i - 1], b = pts[i];
@@ -195,7 +196,7 @@ export function createWhip() {
     // handle
     const h = w.handle;
     line(ctx, h.x, h.y, h.x + 5, h.y + 8, '#2a160c', 3);
-    line(ctx, h.x, h.y, h.x + 5, h.y + 8, level >= 3 ? '#ffd34d' : '#6e4428', 1);
+    line(ctx, h.x, h.y, h.x + 5, h.y + 8, S ? S.handle : level >= 3 ? '#ffd34d' : '#6e4428', 1);
     rect(ctx, h.x + 4, h.y + 7, 3, 3, level >= 2 ? '#c0c0cc' : '#3a2418');
   };
 

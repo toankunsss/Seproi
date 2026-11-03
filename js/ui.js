@@ -550,6 +550,12 @@ export function createUI(root, g, act, { mobile = false } = {}) {
         <button class="px-btn buy" data-a="interview">${t('Xem CV')}</button>
       </div>` : item('hire', t('Văn phòng đã kín chỗ'), t('{n}/{n} bàn', { n: MAX_STAFF }), 0, false, true, t('Hết chỗ')),
       `<div class="item has-art">
+        ${artBox('dept')}
+        <div class="info"><div class="title">${t('Phòng ban')}</div>
+        <div class="desc">${t('Bổ nhiệm trưởng phòng, xem KPI từng phòng.')}</div></div>
+        <button class="px-btn buy" data-a="depts">${t('Mở')}</button>
+      </div>`,
+      `<div class="item has-art">
         ${artBox('staff')}
         <div class="info"><div class="title">${t('Nhân sự · {n} người', { n })}</div>
         <div class="desc">${t('Lương tháng {m} đ (gồm thuê văn phòng) · trả sau {n} ngày.', { m: fmt(monthBill(g).total), n: daysToPayday(g) })}</div></div>

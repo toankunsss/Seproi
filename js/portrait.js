@@ -11,7 +11,7 @@
 //   └───────────────────────────────────────────────────────────────────────┘
 import { rect, px, line } from './pixel.js';
 import {
-  shade, renderScreen, drawEmployee, drawAssistant, drawOfficeDecor, drawSteam, drawVisitor,
+  shade, renderScreen, drawEmployee, drawAssistant, drawOfficeDecor, drawSteam, drawVisitor, drawCat, drawDog,
 } from './sprites.js';
 import { TUNING, VISITS, dayLen } from './config.js';
 
@@ -71,6 +71,10 @@ export function drawPortraitOffice(ctx, L, g, t, whip) {
     }
   });
   if (g.visit) drawVisitorWalk(ctx, L, g.visit, t);
+  // office pets (cosmetics.js): the cat naps on a partition (moving now and then), the dog guards the floor
+  const pet = g.cos && g.cos.pet;
+  if (pet === 'cat' && hits.length) { const c = L.cells[Math.floor(t / 25) % hits.length]; drawCat(ctx, c.x + 12, c.y + 2, t); }
+  if (pet === 'dog') drawDog(ctx, L.W - 16, L.H - 3, t, g.staff.some((e) => e.state === 'slack' && e.t > 3));
   return { hits, slots, hand };
 }
 

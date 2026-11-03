@@ -767,5 +767,30 @@ export function drawTypeTag(ctx, x, y, type) {
   if (type === 'intern') { rect(ctx, x - 1, y - 1, 7, 7, '#1d1826'); rect(ctx, x, y, 5, 5, '#46b37a'); rect(ctx, x + 1, y + 1, 3, 1, '#fff'); rect(ctx, x + 2, y + 2, 1, 2, '#fff'); }
   if (type === 'lead') { rect(ctx, x + 2, y - 1, 1, 7, '#1d1826'); rect(ctx, x - 1, y + 1, 7, 2, '#1d1826'); rect(ctx, x + 2, y, 1, 5, '#ffd34d'); rect(ctx, x, y + 1, 5, 1, '#ffd34d'); rect(ctx, x + 1, y + 2, 3, 1, '#ffd34d'); px(ctx, x + 1, y + 4, '#ffd34d'); px(ctx, x + 3, y + 4, '#ffd34d'); }
   if (type === 'nephew') { rect(ctx, x - 1, y, 7, 5, '#1d1826'); rect(ctx, x, y + 1, 5, 3, '#ff6aa8'); px(ctx, x, y, '#ff6aa8'); px(ctx, x + 2, y, '#ff6aa8'); px(ctx, x + 4, y, '#ff6aa8'); px(ctx, x + 2, y + 2, '#ffd34d'); }
+  if (type === 'head') { rect(ctx, x - 1, y - 1, 8, 7, '#1d1826'); rect(ctx, x, y, 6, 5, '#3d8aff'); rect(ctx, x + 1, y + 1, 4, 1, '#fff'); rect(ctx, x + 2, y + 2, 2, 2, '#fff'); }
   if (type === 'spy') { rect(ctx, x - 1, y, 8, 4, '#1d1826'); rect(ctx, x, y + 1, 6, 2, '#3a3a48'); px(ctx, x + 1, y + 1, '#fff'); px(ctx, x + 4, y + 1, '#fff'); }
+}
+
+/** Office cat lying on a partition (x, y = where its belly rests). */
+export function drawCat(ctx, x, y, t) {
+  x = Math.round(x); y = Math.round(y);
+  const tail = Math.floor(t * 2) % 2;
+  rect(ctx, x - 6, y - 4, 11, 4, '#e08a3a'); rect(ctx, x - 6, y - 4, 11, 1, '#f0a85a');
+  rect(ctx, x + 3, y - 7, 5, 5, '#e08a3a'); px(ctx, x + 3, y - 8, '#e08a3a'); px(ctx, x + 7, y - 8, '#e08a3a');
+  px(ctx, x + 4, y - 6, '#1d1826'); px(ctx, x + 6, y - 6, '#1d1826'); px(ctx, x + 5, y - 4, '#ff8aa8');
+  rect(ctx, x - 3, y - 4, 2, 4, '#c06a2a'); rect(ctx, x, y - 4, 1, 4, '#c06a2a');
+  rect(ctx, x - 9, y - 3 - tail, 3, 1, '#e08a3a'); px(ctx, x - 9, y - 4 - tail, '#e08a3a');
+  if (Math.floor(t * 0.5) % 3 === 0) { px(ctx, x + 9, y - 10, '#ffffff'); px(ctx, x + 11, y - 12, '#ffffff'); } // purr "z"
+}
+
+/** Office dog lying on the floor, ears up when someone slacks (alert). */
+export function drawDog(ctx, x, y, t, alert) {
+  x = Math.round(x); y = Math.round(y);
+  rect(ctx, x - 7, y - 5, 12, 5, '#a8743a'); rect(ctx, x - 7, y - 5, 12, 1, '#c8945a');
+  rect(ctx, x + 4, y - 9, 6, 6, '#a8743a'); rect(ctx, x + 9, y - 6, 2, 2, '#1d1826');
+  rect(ctx, x + 4, y - (alert ? 11 : 9), 2, alert ? 3 : 2, '#6a4420'); rect(ctx, x + 8, y - (alert ? 11 : 9), 2, alert ? 3 : 2, '#6a4420');
+  px(ctx, x + 6, y - 7, '#1d1826');
+  rect(ctx, x - 7, y - 1, 2, 1, '#6a4420'); rect(ctx, x + 2, y - 1, 2, 1, '#6a4420');
+  rect(ctx, x - 9, y - 5 - (Math.floor(t * (alert ? 8 : 2)) % 2), 2, 2, '#a8743a'); // tail
+  rect(ctx, x - 4, y - 5, 5, 1, '#d02030'); px(ctx, x - 2, y - 4, '#ffd34d'); // collar
 }

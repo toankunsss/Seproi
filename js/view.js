@@ -10,6 +10,7 @@ import {
 import { iso, rect } from './pixel.js';
 import { TUNING, COFFEE, dayLen } from './config.js';
 import { aboutToSlack } from './skills.js';
+import { isHead } from './depts.js';
 import { portraitLayout, drawPortraitOffice } from './portrait.js';
 
 // Desk slots in hiring order (grid coords of the desk anchor).
@@ -178,6 +179,7 @@ export function createView(canvas) {
     }
     const type = e.cv && e.cv.type;
     if (type && !mini && (type !== 'spy' || e.cv.revealed)) drawTypeTag(ctx, head.x + 6, head.y + 1, type);
+    if (!mini && v.g && isHead(v.g, e)) drawTypeTag(ctx, head.x - 12, head.y + 1, 'head');
     if (e.state === 'slack') {
       if (e.slack === 'sleep') drawZzz(ctx, head.x, head.y, t);
       // "fake meeting" is sneaky: its bubble only shows half the time

@@ -61,10 +61,19 @@ function tone(t, dur, { type = 'square', f0 = 440, f1 = f0, gain = 0.2, attack =
   o.start(t); o.stop(t + dur + 0.05);
 }
 
-/** Whoosh then a sharp supersonic crack. `level` 0..4 adds layers. */
-export function whip(level = 0, delay = 0.13) {
+/** Whoosh then a sharp supersonic crack. `level` 0..4 adds layers; `skin` = whip skin sound. */
+export function whip(level = 0, delay = 0.13, skin = '') {
   if (!ensure()) return;
   const t = ac.currentTime;
+  if (skin) { // cosmetic whip skins replace the crack with their own sound
+    const c = t + delay;
+    noise(t, delay + 0.02, { type: 'bandpass', f0: 300, f1: 1800, q: 1.2, gain: 0.25, attack: delay * 0.8 });
+    if (skin === 'soft') noise(c, 0.12, { type: 'lowpass', f0: 900, f1: 300, q: 0.7, gain: 0.8, attack: 0.002 });
+    if (skin === 'shutter') { noise(c, 0.03, { type: 'highpass', f0: 4000, f1: 3000, gain: 1, attack: 0.001 }); noise(c + 0.06, 0.03, { type: 'highpass', f0: 3000, f1: 2000, gain: 0.7, attack: 0.001 }); }
+    if (skin === 'beep') { tone(c, 0.07, { type: 'square', f0: 1320, gain: 0.1 }); tone(c + 0.08, 0.07, { type: 'square', f0: 1760, gain: 0.1 }); }
+    if (skin === 'splash') noise(c, 0.3, { type: 'bandpass', f0: 1200, f1: 300, q: 0.8, gain: 1, attack: 0.002 });
+    return;
+  }
   // swing whoosh
   noise(t, delay + 0.02, { type: 'bandpass', f0: 300, f1: 2400, q: 1.2, gain: 0.35, attack: delay * 0.8 });
   const c = t + delay;
@@ -139,6 +148,13 @@ export function strike() {
   if (!ensure()) return;
   const t = ac.currentTime;
   [392, 330, 262].forEach((f, i) => tone(t + i * 0.14, 0.18, { type: 'square', f0: f, gain: 0.07 }));
+}
+
+/** Office dog. */
+export function bark() {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  [0, 0.18].forEach((d) => { tone(t + d, 0.1, { type: 'sawtooth', f0: 420, f1: 260, gain: 0.12 }); noise(t + d, 0.08, { type: 'bandpass', f0: 900, f1: 500, q: 2, gain: 0.3 }); });
 }
 
 export function bell() {

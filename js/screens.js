@@ -17,6 +17,10 @@ import { sharesFor, canSell, shareBonus } from './prestige.js';
 import { LEVELS, CHAPTERS, bestStars, totalStars, unlocked, goalText } from './campaign.js';
 import { SLOTS, SLOT_NAME, RARITY, STATS, invState, worn, itemName, itemIconUrl, bossUrl, bonus, wornSig, INV_CAP } from './inventory.js';
 import { SKILLS, skState, rank as skillRank, xpFor, roarCooldown } from './skills.js';
+import { DEPT, deptHead, isHead, deptKpi } from './depts.js';
+import { cosState, albumState, hasCard, setCards, setDone, albumClaimable } from './cosmetics.js';
+import { WHIP_SKINS, PETS, ALBUM, ALBUM_SETS, ALBUM_REWARD } from './config.js';
+import { incomeOf } from './sim.js';
 import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
@@ -196,6 +200,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     };
     return `<div class="card screen vip-screen">
       ${head(t('Cửa hàng Kim cương'), t('Kim cương nhận từ thành tựu, nhiệm vụ, quà hằng ngày và quảng cáo'), `<div class="gem-balance">${GEM} <b>${g.gems}</b></div>`)}
+      <button class="px-btn wide col-link" data-a="collection">${t('Bộ sưu tập: skin roi, thú cưng, album')}</button>
       <button class="px-btn ad wide" data-a="adGems" ${adsLeft > 0 ? '' : 'disabled'}>▶ ${t('Xem quảng cáo:')} +${ADS.gemsPerAd} ${GEM} <small>(${t('còn {n}/{max} lượt hôm nay', { n: Math.max(0, adsLeft), max: ADS.gemAdsPerDay })})</small></button>
       <h3>${t('Đặc quyền vĩnh viễn')}</h3>
       ${PREMIUM_ITEMS.filter((x) => x.kind === 'perk').map(item).join('')}
@@ -250,6 +255,8 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       ${head(t('Thêm'))}
       <button class="px-btn wide" data-a="decor">${t('Nội thất văn phòng')}</button>
       <button class="px-btn wide" data-a="staff">${t('Nhân sự: khen thưởng & sa thải')}</button>
+      <button class="px-btn wide" data-a="depts">${t('Phòng ban & trưởng phòng')}</button>
+      <button class="px-btn wide" data-a="collection">${t('Bộ sưu tập: skin roi, thú cưng, album')}${albumClaimable(g) ? ' ●' : ''}</button>
       <button class="px-btn wide sell-btn" data-a="sellScreen">${t('Bán công ty')}${g.shares ? ` · ${t('{n} cổ phần', { n: g.shares })}` : ''}</button>
 <button class="px-btn wide" data-a="board">${t('Bảng xếp hạng áp lực')}</button>
       <button class="px-btn wide" data-a="mute">${g.muted ? t('Bật âm thanh') : t('Tắt âm thanh')}</button>
@@ -263,6 +270,71 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     const T = typeOf(cv);
     if (!T || (T.hidden && !cv.revealed)) return '';
     return ` <span class="type-badge type-${cv.type}" title="${esc(t(T.desc))}">${t(T.name)}</span>`;
+  }
+
+  // --- Collections (cosmetics.js) -------------------------------------------------------------------
+  let colTab = 'skins';
+  function collectionScreen() {
+    const C = cosState(g), A = albumState(g);
+    const tabs = [['skins', t('Skin roi')], ['pets', t('Thú cưng')], ['album', `${t('Album')} ${A.got.length}/${ALBUM.length}`]]
+      .map(([id, label]) => `<button class="px-btn ${colTab === id ? 'on' : ''}" data-a="colTab" data-arg="${id}">${label}</button>`).join('');
+    let body = '';
+    if (colTab === 'skins') {
+      body = `<div class="col-item ${!C.skin ? 'using' : ''}"><div class="item-art"><img src="${itemArtUrl('whip:' + Math.min(g.whipLevel, 4))}" alt=""></div>
+          <div class="info"><div class="title">${t('Roi gốc')}</div><div class="desc">${t('Hình roi theo cấp nâng cấp.')}</div></div>
+          <button class="px-btn buy" data-a="useSkin" data-arg="none" ${!C.skin ? 'disabled' : ''}>${!C.skin ? t('Đang dùng') : t('Dùng')}</button></div>`
+        + WHIP_SKINS.map((s, i) => { const own = C.skins.includes(s.id), on = C.skin === s.id;
+          return `<div class="col-item ${on ? 'using' : ''}"><div class="item-art"><img src="${itemArtUrl('skin:' + i)}" alt=""></div>
+            <div class="info"><div class="title">${t(s.name)}</div><div class="desc">${t('Chỉ đổi hình và tiếng quất.')}</div></div>
+            <button class="px-btn buy ${own ? '' : 'gem-btn'}" data-a="useSkin" data-arg="${s.id}" ${on ? 'disabled' : ''}>${on ? t('Đang dùng') : own ? t('Dùng') : `${s.gems} ${GEM}`}</button></div>`; }).join('');
+    } else if (colTab === 'pets') {
+      body = `<p class="tip">${t('Thú cưng ở trong văn phòng (màn dọc). Chỉ nuôi được một con mỗi lúc.')}</p>`
+        + PETS.map((p) => { const own = C.pets.includes(p.id), on = C.pet === p.id;
+          return `<div class="col-item ${on ? 'using' : ''}"><div class="item-art"><img src="${itemArtUrl(p.id)}" alt=""></div>
+            <div class="info"><div class="title">${t(p.name)}</div><div class="desc">${t(p.desc)}</div></div>
+            <button class="px-btn buy ${own ? '' : 'gem-btn'}" data-a="usePet" data-arg="${on ? 'none' : p.id}">${on ? t('Cất đi') : own ? t('Mang ra') : `${p.gems} ${GEM}`}</button></div>`; }).join('');
+    } else {
+      body = `<p class="tip">${t('40 nhân vật thỉnh thoảng nộp CV. Tuyển họ để mở thẻ. Đủ một bộ 8 thẻ: +{g} kim cương và một món đồ hiếm.', { g: ALBUM_REWARD.setGems })}</p>`
+        + ALBUM_SETS.map((s) => {
+          const cards = setCards(s.id), got = cards.filter((c) => hasCard(g, c.id)).length, done = setDone(g, s.id), claimed = A.claimed.includes(s.id);
+          return `<div class="album-set"><h3>${t(s.name)} <small>${got}/${cards.length}</small>
+              ${claimed ? '<span class="done">✓</span>' : `<button class="px-btn buy gem-btn" data-a="albumClaim" data-arg="${s.id}" ${done ? '' : 'disabled'}>+${ALBUM_REWARD.setGems} ${GEM}</button>`}</h3>
+            <div class="album-grid">${cards.map((c) => hasCard(g, c.id)
+              ? `<div class="album-card"><b>${esc(c.name)}</b><small>${esc(t(c.bio))}</small></div>`
+              : `<div class="album-card locked"><b>???</b><small>${t('Chưa tuyển')}</small></div>`).join('')}</div></div>`;
+        }).join('')
+        + `<div class="album-set"><h3>${t('Cả bộ 40 thẻ')} ${A.all ? '<span class="done">✓</span>' : `<button class="px-btn buy gem-btn" data-a="albumClaim" data-arg="all" ${A.got.length >= ALBUM.length ? '' : 'disabled'}>+${ALBUM_REWARD.allGems} ${GEM}</button>`}</h3></div>`;
+    }
+    return `<div class="card screen col-screen">
+      ${head(t('Bộ sưu tập'), t('Skin roi, thú cưng văn phòng và album nhân viên'), `<div class="gem-balance">${GEM} <b>${g.gems}</b></div>`)}
+      <div class="inv-tabs">${tabs}</div>
+      ${body}
+    </div>`;
+  }
+
+  // --- Departments (depts.js) -----------------------------------------------------------------------
+  function deptScreen() {
+    const blocks = Object.keys(ROLES).map((role) => {
+      const members = g.staff.filter((e) => e.role === role);
+      const head = deptHead(g, role);
+      const working = members.filter((e) => e.state === 'work' || e.state === 'hurt').length;
+      const rate = members.reduce((s, e) => s + incomeOf(g, e), 0);
+      return `<div class="dept dept-${role}">
+        <div class="dept-head"><b>${t('Phòng {r}', { r: t(ROLES[role].label) })}</b>
+          <span>${t('{n} người', { n: members.length })} · ${t('đang làm {w}', { w: working })}</span></div>
+        <div class="dept-stats"><span>KPI ${deptKpi(g, role)}%</span><span>+${fmt(rate)}/s</span>
+          <span>${head ? t('Trưởng phòng: {name}', { name: esc(head.nickname || head.name) }) : t('Chưa có trưởng phòng')}</span></div>
+        ${members.length ? members.map((e) => `<div class="dept-member ${isHead(g, e) ? 'is-head' : ''}">
+            <img class="face" src="${faceUrl(e.look, e.cv.star)}" alt=""><span>${esc(e.nickname || e.name)}${typeBadge(e.cv)}</span>
+            ${isHead(g, e) ? `<button class="px-btn" data-a="deptDismiss" data-arg="${role}">${t('Bãi nhiệm')}</button>`
+              : `<button class="px-btn buy" data-a="deptAppoint" data-arg="${e.id}">${t('Bổ nhiệm')}</button>`}
+          </div>`).join('') : `<p class="empty">${t('Chưa có ai. Tuyển thêm qua CV.')}</p>`}
+      </div>`;
+    }).join('');
+    return `<div class="card screen dept-screen">
+      ${head(t('Phòng ban'), t('Trưởng phòng: lương +{s}%, cả phòng thu nhập +{i}% và bớt lười {l}%', { s: Math.round((DEPT.headSalary - 1) * 100), i: Math.round((DEPT.income - 1) * 100), l: Math.round((1 - DEPT.slack) * 100) }))}
+      ${blocks}
+    </div>`;
   }
 
   // --- Boss inventory (inventory.js) --------------------------------------------------------------
@@ -393,6 +465,8 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     inventory: () => { invSel = 0; open('inventory', inventoryScreen, () => `${invSel}|${invTab}|${wornSig(g)}|${invState(g).items.length}|${JSON.stringify(skState(g))}`); },
     invTab: (tab) => { invTab = tab; paint(); },
     invSelect: (id) => { invSel = id; paint(); },
+    collection: (tab) => { colTab = tab || colTab; open('collection', collectionScreen, () => `${colTab}|${g.gems}|${JSON.stringify(cosState(g))}|${albumState(g).got.length}|${albumState(g).claimed.length}`); },
+    depts: () => open('depts', deptScreen, () => JSON.stringify(g.depts || {}) + g.staff.length + '|' + Object.keys(ROLES).map((r) => deptKpi(g, r)).join(',') + g.staff.map((e) => e.state[0]).join('')),
     levels: () => open('levels', levelsScreen, () => `${totalStars(g)}|${g.day}`),
     levelInfo: (id) => open('levelInfo', () => levelInfoScreen(id), () => id),
     sell: () => open('sell', sellScreen, () => `${Math.floor((g.lifetimeEarnings || 0) / 1000)}|${g.shares}`),
@@ -408,7 +482,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     close,
     get open() { return current && current.name; },
     // projects: how many contracts can be taken right now (none while one is in progress)
-    badges: () => ({ achievements: claimableCount(g) + questClaimable(g), projects: g.projects.active ? 0 : g.projects.offers.length }),
+    badges: () => ({ achievements: claimableCount(g) + questClaimable(g) + albumClaimable(g), projects: g.projects.active ? 0 : g.projects.offers.length }),
   };
   act.closeScreen = close;
   return screens;

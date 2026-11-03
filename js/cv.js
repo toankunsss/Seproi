@@ -8,6 +8,7 @@ import {
   STAFF_POOL, ROLES, SLACK_KINDS, CV_NAMES, CV_LOOKS, CV_HOBBIES, CV_LINES, CV_QUOTES, hireCost, STAFF_TYPES,
 } from './config.js';
 import { rect, px } from './pixel.js';
+import { pickCharacter } from './cosmetics.js';
 import { shade } from './sprites.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -61,6 +62,15 @@ export function makeCandidate(g, { star = Math.random() < 0.08 } = {}) {
     if (cv.type === 'lead') { cv.exp = Math.max(cv.exp, 6); cv.skill = Math.max(cv.skill, 3); }
     if (cv.type === 'nephew') cv.quote = 'Bác em là sếp tổng đấy ạ.';
     if (cv.type === 'spy') cv.quote = 'Em rất quan tâm đến két sắt của công ty.';
+    // album characters (cosmetics.js): a fixed name, look and funny bio
+    if (!cv.type && g.day >= 2 && Math.random() < 0.2) {
+      const ch = pickCharacter(g);
+      const h = (n) => (ch.id * 7919 + n * 104729) % 9973;
+      cv.album = ch.id; cv.name = ch.name; cv.fav = ch.fav;
+      cv.hobby = CV_HOBBIES[ch.fav][h(1) % CV_HOBBIES[ch.fav].length]; cv.quote = ch.bio;
+      cv.look = { skin: CV_LOOKS.skin[h(2) % CV_LOOKS.skin.length], hair: CV_LOOKS.hair[h(3) % CV_LOOKS.hair.length], shirt: CV_LOOKS.shirt[h(4) % CV_LOOKS.shirt.length], style: CV_LOOKS.style[h(5) % CV_LOOKS.style.length] };
+      if (cv.look.style === 'bald') cv.look.hair = '#8a8a96';
+    }
   }
   return cv;
 }

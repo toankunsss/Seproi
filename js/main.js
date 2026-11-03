@@ -26,6 +26,9 @@ import { hitBoss, winBoss } from './boss.js';
 import * as mini from './minigames.js';
 import * as inv from './inventory.js';
 import * as skills from './skills.js';
+import * as depts from './depts.js';
+import * as rival from './rival.js';
+import * as cos from './cosmetics.js';
 import * as campaign from './campaign.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 
@@ -81,6 +84,7 @@ function newMorning() {
   projects.refreshOffers(g);
   if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
   if (g.visitDay !== g.day) { planVisit(g); g.visitDay = g.day; } // once per day, reloads can't re-roll
+  if (g.rivalDay !== g.day) { g.rivalDay = g.day; rival.planRival(g); } // rival poaching (rival.js)
   if (g.miniDay !== g.day) { // mid-day mini-game (minigames.js), from day 3
     g.miniDay = g.day;
     g.miniPlan = g.day >= 3 && Math.random() < 0.6
@@ -137,6 +141,7 @@ const act = {
     if (index >= MAX_STAFF || index >= OFFICE_LEVELS[g.officeLevel].capacity) { audio.deny(); return toast(tr('Hết bàn trống, hãy mở rộng văn phòng!'), 'wrong'); }
     if (!pay(hirePrice(g, cv))) { audio.deny(); return toast(tr('Quỹ chưa đủ tiền tuyển.'), 'wrong'); }
     g.staff.push(makeEmployee(staffCare.nextStaffId(g), cv, { hiredDay: g.day }));
+    if (cv.album !== undefined && cos.addCard(g, cv.album)) setTimeout(() => toast(tr('Thẻ mới trong album: {name}!', { name: cv.name }), 'money'), 1400);
     if (cv.type === 'nephew') { // comes with a thank-you from the big boss
       const gift = Math.round(STAFF_TYPES.nephew.gift * (1 + TUNING.dayMult * (g.day - 1)) / 10) * 10;
       g.money += gift;
@@ -220,6 +225,9 @@ const act = {
   inventory() { ui.closePanel(); inv.invState(g).fresh = 0; ui.screens.inventory(); },
   invSelect(id) { ui.screens.invSelect(Number(id)); },
   invTab(tab) { ui.screens.invTab(tab); },
+  depts() { ui.closePanel(); ui.screens.depts(); },
+  deptAppoint(id) { if (depts.appoint(g, Number(id))) { audio.buy(); haptic('success'); toast(tr('ĐÃ BỔ NHIỆM TRƯỞNG PHÒNG!'), 'money'); saveGame(); } ui.screens.repaint(); },
+  deptDismiss(role) { depts.dismiss(g, role); saveGame(); ui.screens.repaint(); },
   invEquip(id) { if (inv.equip(g, Number(id))) { audio.buy(); haptic('light'); saveGame(); } ui.screens.repaint(); },
   invUnequip(slot) { inv.unequip(g, slot); saveGame(); ui.screens.repaint(); },
   invSell(id) {
@@ -238,6 +246,19 @@ const act = {
     saveGame();
   },
   learnSkill(id) { if (skills.learn(g, id)) { audio.buy(); haptic('success'); saveGame(); } ui.screens.repaint(); },
+  // --- collections (cosmetics.js) ---
+  collection(tab) { ui.closePanel(); ui.screens.collection(tab || 'skins'); },
+  colTab(tab) { ui.screens.collection(tab); },
+  useSkin(id) { const r = cos.useSkin(g, id === 'none' ? null : id); if (r === 'gems') { audio.deny(); toast(tr('Chưa đủ kim cương'), 'wrong'); } else if (!r) { audio.whip(g.whipLevel, 0.05, (cos.skinOf(g) || {}).sound || ''); saveGame(); } ui.screens.repaint(); },
+  usePet(id) { const r = cos.usePet(g, id === 'none' ? null : id); if (r === 'gems') { audio.deny(); toast(tr('Chưa đủ kim cương'), 'wrong'); } else if (!r) { audio.buy(); saveGame(); } ui.screens.repaint(); },
+  albumClaim(setId) {
+    const n = cos.claimSet(g, setId);
+    if (!n) return;
+    audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee');
+    announceItem(inv.addItem(g, inv.rollItem(g, setId === 'all' ? 3 : 1)));
+    saveGame(); ui.screens.repaint();
+  },
+  rivalStart() { if (!miniOpen) startRival(); },
   miniStart(kind) { if (!miniOpen) startMini(kind || 'mouse'); },
   // --- campaign (campaign.js) ---
   levels() { ui.closePanel(); ui.screens.levels(); },
@@ -478,7 +499,7 @@ canvas.addEventListener('pointerdown', (ev) => {
   // The weekly boss takes priority over everything else under the finger.
   if (g.boss && view.hitsBoss(p.x, p.y, ev.pointerType === 'mouse' ? 2 : 8)) {
     const r = view.bossHit, bx = (r.x0 + r.x1) / 2, by = r.y0 + 20;
-    audio.whip(g.whipLevel);
+    audio.whip(g.whipLevel, 0.13, (cos.skinOf(g) || {}).sound || '');
     whip.lash(bx, by, g.whipLevel, () => resolveBossHit(bx, by));
     return;
   }
@@ -487,7 +508,7 @@ canvas.addEventListener('pointerdown', (ev) => {
   const hit = view.pick(p.x, p.y, reach);
   // Aim the tip at the head of whoever is in reach, or at the empty spot clicked.
   const tx = hit ? hit.head.x : p.x, ty = hit ? hit.head.y + 4 : p.y;
-  audio.whip(g.whipLevel);
+  audio.whip(g.whipLevel, 0.13, (cos.skinOf(g) || {}).sound || '');
   whip.lash(tx, ty, g.whipLevel, () => resolveHit(hit, ev.clientX, ev.clientY));
 });
 
@@ -632,6 +653,18 @@ function onEvent(type, e) {
   }
 }
 
+// --- Office pets (cosmetics.js) -----------------------------------------------------------------
+/** The dog barks at anyone slacking for more than 3 s (once per slack). */
+function petTick() {
+  if (cos.petOf(g) !== 'dog' || paused) return;
+  const e = g.staff.find((x) => x.state === 'slack' && x.t > 3 && !x.barked);
+  if (!e) return;
+  e.barked = true;
+  const h = view.hits.find((x) => x.e === e);
+  audio.bark();
+  if (h) { const at = view.toClient(h.head.x, h.head.y - 18); ui.popup(at.x, at.y, tr('GÂU GÂU!'), 'say'); }
+}
+
 // --- Mid-day mini-games (minigames.js) ----------------------------------------------------------
 function checkMini() {
   if (params.get('mini') === '0') return; // automated tests
@@ -639,6 +672,26 @@ function checkMini() {
   if (!p || p.day !== g.day || g.dayTime < p.at || miniOpen || paused || rewardOpen || dailyOpen || userPaused || onTitle || tutorial || g.boss || g.visit || g.mode !== 'office') return;
   g.miniPlan = null;
   startMini(p.kind);
+}
+function checkRival() {
+  if (params.get('mini') === '0') return; // automated tests
+  const p = g.rivalPlan;
+  if (!p || p.day !== g.day || g.dayTime < p.at || miniOpen || paused || rewardOpen || dailyOpen || userPaused || onTitle || tutorial || g.boss || g.mode !== 'office') return;
+  g.rivalPlan = null;
+  startRival();
+}
+function startRival() {
+  const e = rival.target(g);
+  if (!e) return;
+  miniOpen = true;
+  audio.alert(); haptic('heavy');
+  rival.showOffer(g, e, fmt, (choice) => {
+    const r = rival.resolve(g, e, choice) || rival.resolve(g, e, 'go');
+    miniOpen = false; last = performance.now();
+    if (r.kept) { audio.buy(); toast(tr('{name} Ở LẠI!', { name: (e.nickname || e.name).toUpperCase() }), 'money'); }
+    else { audio.deny(); toast(tr('{name} đã sang Lười Corp · +{m} đ phí', { name: e.nickname || e.name, m: fmt(r.fee || 0) }), 'wrong'); layout(); }
+    saveGame(); ui.screens.repaint();
+  });
 }
 function startMini(kind) {
   miniOpen = true;
@@ -880,8 +933,10 @@ function frame(now) {
 
 function step(dt) {
   t += dt;
+  whip.skin = cos.skinOf(g);
+  if (!campaignRun) petTick();
   if (campaignRun) levelTick();
-  else checkMini();
+  else { checkMini(); checkRival(); }
   if (!paused && !adOpen && !rewardOpen && !dailyOpen && !miniOpen && !userPaused && !onTitle && !(tutorial && tutorial.blocking)) simUpdate(g, dt, onEvent);
   whip.update(dt);
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
@@ -992,7 +1047,7 @@ if (onTitle) {
     onLang: (code) => act.setLang(code),
     onStart: () => {
       audio.unlock();
-      audio.whip(g.whipLevel);
+      audio.whip(g.whipLevel, 0.13, (cos.skinOf(g) || {}).sound || '');
       haptic('hit');
       onTitle = false;
       last = performance.now();

@@ -3,7 +3,8 @@
 // sprites.js) and cached as a data URL for <img>. Ids may carry a level: 'whip:3' calls
 // DRAW.whip(ctx, 3). Add a drawer here when you add an item to PREMIUM_ITEMS / DECOR_ITEMS.
 import { rect, px, line } from './pixel.js';
-import { WHIPS, ACHIEVEMENTS } from './config.js';
+import { WHIPS, ACHIEVEMENTS, WHIP_SKINS } from './config.js';
+import { drawCat, drawDog } from './sprites.js';
 
 const S = 24;
 
@@ -141,6 +142,30 @@ const DRAW = {
     for (const y of [12, 14, 16, 18]) rect(c, 7, y, y === 18 ? 6 : 10, 1, '#8a86a0');
     rect(c, 13, 5, 4, 1, '#4a4560'); rect(c, 13, 7, 3, 1, '#8a86a0');
     rect(c, 15, 16, 5, 2, '#ffd34d'); rect(c, 16, 15, 3, 4, '#ffd34d'); px(c, 17, 14, '#ffd34d'); px(c, 17, 19, '#ffd34d'); px(c, 16, 16, '#fff3a0');
+  },
+  // Whip skin n (WHIP_SKINS)
+  skin(c, n) {
+    const S = WHIP_SKINS[n] || WHIP_SKINS[0];
+    rect(c, 3, 17, 3, 3, S.handle); rect(c, 5, 15, 3, 3, S.handle); rect(c, 7, 13, 2, 3, S.handle);
+    const pts = [[9, 12], [10, 10], [11, 8], [12, 6], [14, 5], [16, 4], [18, 4], [19, 6], [20, 8], [20, 10]];
+    pts.forEach(([x, y], i) => rect(c, x, y, i < 4 ? 2 : 1 + (i < 7 ? 1 : 0), 2, S.rope));
+    rect(c, 20, 11, 2, 2, S.tip);
+    if (S.id === 'rau') for (const [x, y] of [[10, 9], [13, 4], [17, 3], [21, 7]]) { rect(c, x, y, 2, 1, '#5cc85a'); }
+    if (S.id === 'selfie') { rect(c, 18, 11, 5, 8, '#15151c'); rect(c, 19, 12, 3, 5, '#2de2e6'); }
+    if (S.id === 'cable') { rect(c, 19, 12, 4, 3, '#e8e8f0'); rect(c, 20, 15, 1, 2, '#c0c0cc'); rect(c, 22, 15, 1, 2, '#c0c0cc'); }
+    if (S.id === 'mop') { rect(c, 17, 11, 7, 6, '#f4f1ea'); for (let x = 17; x < 24; x += 2) rect(c, x, 17, 1, 3, '#d8d0a0'); }
+    if (S.id === 'tet') { rect(c, 18, 12, 5, 6, '#d02030'); rect(c, 19, 13, 3, 4, '#ffd34d'); }
+    if (S.id === 'neon') for (const [x, y] of [[9, 11], [12, 5], [16, 3], [21, 9]]) px(c, x, y, '#ffffff');
+  },
+  // Office pets
+  cat(c) { drawCat(c, 12, 20, 0); },
+  dog(c) { drawDog(c, 11, 21, 0, true); },
+  // Org chart (departments)
+  dept(c) {
+    rect(c, 8, 2, 8, 5, '#ffd34d'); rect(c, 9, 3, 6, 3, '#fff3a0');
+    rect(c, 11, 7, 2, 3, '#8a86a0'); rect(c, 3, 10, 18, 2, '#8a86a0'); rect(c, 3, 12, 2, 2, '#8a86a0'); rect(c, 11, 12, 2, 2, '#8a86a0'); rect(c, 19, 12, 2, 2, '#8a86a0');
+    rect(c, 0, 14, 7, 6, '#3d6fd6'); rect(c, 8, 14, 8, 6, '#3c9a5a'); rect(c, 17, 14, 7, 6, '#8a4a78');
+    rect(c, 2, 16, 3, 2, '#f4f1ea'); rect(c, 10, 16, 4, 2, '#f4f1ea'); rect(c, 19, 16, 3, 2, '#f4f1ea');
   },
   // Two employees and a heart (staff care).
   staff(c) {
