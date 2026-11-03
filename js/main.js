@@ -45,6 +45,7 @@ const whip = createWhip();
 let pipWin = null;
 let paused = false;
 let adOpen = false; // the simulation waits while a rewarded ad is on screen
+let rewardOpen = false; // …and while the project reward card waits to be collected
 let userPaused = false; // phone: frozen while away / until the player taps "Tiếp tục"
 let resetting = false;
 // Phone: the title screen is up and the office waits behind it (?title=0 skips it, for tests).
@@ -179,6 +180,12 @@ const act = {
     const gems = claim(g, id);
     if (gems) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n: gems }), 'coffee'); save(g); }
     ui.screens.repaint();
+  },
+  // --- project reward card ---
+  projCollect() { collectProject(1); },
+  async projDouble() {
+    if (!g.projects.reward) return;
+    if (await watchAd('projectDouble')) collectProject(2);
   },
   // --- end of day ---
   async adDouble() {
@@ -442,11 +449,10 @@ function onEvent(type, e) {
       break;
     }
     case 'projectDone': {
-      const p = projects.complete(g);
-      if (!p) break;
+      if (!projects.finish(g)) break;
       audio.bell(); haptic('success');
-      toast(tr('XONG DỰ ÁN! +{m} đ · +{n} KIM CƯƠNG', { m: fmt(p.money), n: p.gems }), 'money');
       save(g);
+      showProjectReward();
       break;
     }
     case 'visitStart': {
@@ -469,6 +475,25 @@ function onEvent(type, e) {
       endDay();
       break;
   }
+}
+
+/** Show the reward card for a finished project (the taskbar strip has no room: pay at once). */
+function showProjectReward() {
+  if (!g.projects.reward) return;
+  if (g.mode === 'mini') { collectProject(1); return; }
+  rewardOpen = true;
+  ui.showProjectReward(g.projects.reward);
+}
+function collectProject(mult) {
+  const r = projects.collect(g, mult);
+  rewardOpen = false;
+  ui.hideProjectReward();
+  last = performance.now();
+  if (!r) return;
+  audio.buy(); audio.coin(8); haptic('success');
+  toast(tr('+{m} đ · +{n} KIM CƯƠNG', { m: fmt(r.money), n: r.gems }), 'money');
+  save(g);
+  ui.screens.repaint();
 }
 
 /** Toast the outcome of a surprise visit (events.js → endVisit). */
@@ -536,7 +561,7 @@ function frame(now) {
 
 function step(dt) {
   t += dt;
-  if (!paused && !adOpen && !userPaused && !onTitle) simUpdate(g, dt, onEvent);
+  if (!paused && !adOpen && !rewardOpen && !userPaused && !onTitle) simUpdate(g, dt, onEvent);
   whip.update(dt);
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
   view.render(g, whip, t);
@@ -612,6 +637,7 @@ async function togglePip() {
 function handleBack() {
   if (userPaused || onTitle) return false;
   if (document.querySelector('.fake-ad')) return true; // finish or close the ad first
+  if (rewardOpen) { collectProject(1); return true; } // Back = take the normal reward
   if (!root.modal.hidden) {
     if (act.nextDay) act.nextDay();
     else if (act.closeInterview) act.closeInterview();
@@ -641,7 +667,8 @@ if (onTitle) {
       onTitle = false;
       last = performance.now();
       music.play('office');
+      showProjectReward(); // a reward left uncollected last time
     },
   });
-} else music.play('office');
+} else { music.play('office'); showProjectReward(); }
 window.__game = { g, view, whip, act, ui, projects }; // debugging + automated play tests (console only)

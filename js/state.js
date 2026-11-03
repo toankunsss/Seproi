@@ -40,7 +40,7 @@ export function newGame() {
     gems: GEMS_START,
     candidates: [],          // CVs waiting on the desk (cv.js)
     candidatesDay: 0,        // day the pile was last refilled
-    projects: { offers: [], offersDay: 0, active: null, done: 0, failed: 0 },
+    projects: { offers: [], offersDay: 0, active: null, reward: null, done: 0, failed: 0 },
     claimed: [],             // achievement ids already rewarded
     perks: [],               // premium perks owned (config PREMIUM_ITEMS)
     partyDay: 0,             // last day of a team party (staff.js)

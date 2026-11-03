@@ -79,6 +79,16 @@ const DRAW = {
     rect(c, sx, sy - 3, 2, 2, '#ffd34d'); rect(c, sx - 3, sy - 1, 8, 2, '#ffd34d'); rect(c, sx - 2, sy + 1, 6, 2, '#ffd34d');
     rect(c, sx - 2, sy + 3, 2, 2, '#ffd34d'); rect(c, sx + 2, sy + 3, 2, 2, '#ffd34d'); px(c, sx, sy, '#fff3a0');
   },
+  // Gold trophy (project reward card)
+  trophy(c) {
+    rect(c, 6, 3, 12, 2, '#ffe38a'); rect(c, 6, 5, 12, 6, '#ffd34d'); rect(c, 7, 11, 10, 2, '#ffd34d'); rect(c, 9, 13, 6, 1, '#e0a030');
+    rect(c, 3, 5, 3, 1, '#e0a030'); rect(c, 2, 6, 2, 3, '#e0a030'); rect(c, 3, 9, 3, 1, '#e0a030');   // handles
+    rect(c, 18, 5, 3, 1, '#e0a030'); rect(c, 20, 6, 2, 3, '#e0a030'); rect(c, 18, 9, 3, 1, '#e0a030');
+    rect(c, 7, 5, 2, 6, '#fff3a0');                                                                  // shine
+    rect(c, 15, 5, 2, 7, '#e0a030');
+    rect(c, 11, 14, 2, 3, '#c8862a'); rect(c, 8, 17, 8, 2, '#c8862a'); rect(c, 7, 19, 10, 3, '#6b3f1d'); rect(c, 9, 20, 6, 1, '#ffd34d');
+    px(c, 11, 7, '#c8862a'); rect(c, 10, 8, 3, 1, '#c8862a'); px(c, 11, 9, '#c8862a');             // star
+  },
   // Money bag full of đ
   cash(c) {
     rect(c, 9, 3, 6, 2, '#8a6a3a'); rect(c, 10, 5, 4, 2, '#6b4a2a');      // tie

@@ -5,6 +5,7 @@ import { createScreens, projectSummary } from './screens.js';
 import { progressOf, penaltyOf } from './projects.js';
 import { VISITS } from './config.js';
 import { t, locale } from './i18n.js';
+import { itemArtUrl } from './item-art.js';
 
 export const fmt = (n) => {
   n = Math.floor(n);
@@ -254,6 +255,46 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       el.querySelector('[data-resume]').addEventListener('click', () => { el.hidden = true; onResume(); }, { once: true });
     },
     openShop() { if (!panelOpen) togglePanel(); },
+
+    /**
+     * Project reward card (own layer above dialogs, below ads and the pause card). Nothing is
+     * paid until the player taps a button: data-a="projCollect" (x1) or "projDouble" (ad, x2 money).
+     */
+    showProjectReward(p) {
+      let el = document.getElementById('reward');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'reward';
+        document.body.appendChild(el);
+        el.addEventListener('click', onClick);
+        el.addEventListener('pointerdown', (e) => e.stopPropagation());
+      }
+      const early = p.deadline - (p.finishedDay ?? p.deadline);
+      el.innerHTML = `<div class="reward-card">
+          <div class="reward-rays"></div>
+          <img class="reward-art" src="${itemArtUrl('trophy')}" alt="">
+          <h2>${t('DỰ ÁN HOÀN THÀNH!')}</h2>
+          <div class="reward-proj"><b>${esc(t(p.name))}</b><br>${t('Khách hàng: {c}', { c: esc(t(p.client)) })}
+            ${early > 0 ? `<br><span class="reward-early">${t('Xong sớm {n} ngày!', { n: early })}</span>` : ''}</div>
+          <div class="reward-list">
+            <div class="reward-item"><span class="coin"></span><b data-count="${p.money}">+0 đ</b></div>
+            <div class="reward-item"><span class="gem"></span><b>+${p.gems}</b></div>
+          </div>
+          <button class="px-btn ad wide" data-a="projDouble">▶ ${t('Xem quảng cáo: nhận x2 tiền (+{m} đ)', { m: fmt(p.money) })}</button>
+          <button class="px-btn big" data-a="projCollect">${t('Nhận thưởng')}</button>
+        </div>`;
+      el.hidden = false;
+      // count the money up
+      const b = el.querySelector('[data-count]'), total = p.money, t0 = performance.now();
+      const tick = (now) => {
+        if (el.hidden || !b.isConnected) return;
+        const k = Math.min(1, (now - t0) / 700);
+        b.textContent = `+${fmt(total * (1 - (1 - k) ** 3))} đ`;
+        if (k < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    },
+    hideProjectReward() { const el = document.getElementById('reward'); if (el) el.hidden = true; },
   };
 
   let reportDone = null;

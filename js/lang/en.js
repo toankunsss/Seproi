@@ -140,7 +140,6 @@ export default {
   "{name} ĐÌNH CÔNG!": "{name} IS ON STRIKE!",
   "Quay lại làm...": "Back to work...",
   "TRỢ LÝ: LÀM ĐI!": "ASSISTANT: GET TO WORK!",
-  "XONG DỰ ÁN! +{m} đ · +{n} KIM CƯƠNG": "PROJECT DONE! +{m} đ · +{n} DIAMONDS",
   "DỰ ÁN THẤT BẠI: {name}": "PROJECT FAILED: {name}",
   "Tan ca! +{m} đ · KPI {k}%": "Clock-out! +{m} đ · KPI {k}%",
   "QUẢNG CÁO (GIẢ LẬP)": "AD (SIMULATED)",
@@ -415,4 +414,10 @@ export default {
   "Bật": "On",
   "Bật nhạc nền": "Turn music on",
   "Tắt nhạc nền": "Turn music off",
+  // project reward card
+  "DỰ ÁN HOÀN THÀNH!": "PROJECT COMPLETE!",
+  "Khách hàng: {c}": "Client: {c}",
+  "Xong sớm {n} ngày!": "{n} day(s) early!",
+  "Xem quảng cáo: nhận x2 tiền (+{m} đ)": "Watch an ad: x2 money (+{m} đ)",
+  "+{m} đ · +{n} KIM CƯƠNG": "+{m} đ · +{n} DIAMONDS",
 };

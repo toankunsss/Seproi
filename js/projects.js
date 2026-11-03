@@ -4,6 +4,8 @@
 // WORK_RATE x skill (x1.6 while boosted) points per second to their role (sim.js → addWork).
 // Finish before the end of the deadline day → money + 💎. Miss it → the project fails,
 // unless the player extends it once (rewarded ad, see main.js).
+// A finished project waits in g.projects.reward until the player collects it on the reward
+// card (x2 money with a rewarded ad), so the payout is never silent.
 //
 // Offers are generated from the current team so they are always doable with a decent KPI:
 // requirement = team output for that role over the project's days x a difficulty factor.
@@ -96,20 +98,31 @@ export function addWork(g, role, amount) {
   return isDone(p);
 }
 
-/** Pay out a finished project. Returns it for the UI. */
-export function complete(g) {
+/** Work finished: count it, and park it in g.projects.reward until collected. */
+export function finish(g) {
   const p = g.projects.active;
   if (!p) return null;
-  g.money += p.money;
-  g.lifetimeEarnings += p.money;
-  g.today.revenue += p.money;
-  addGems(g, p.gems);
   g.projects.done++;
   g.records.projStreak++;
   g.records.bestProjStreak = Math.max(g.records.bestProjStreak, g.records.projStreak);
   if (p.days >= 3) g.records.bigProjects++;
+  p.finishedDay = g.day;
   g.projects.active = null;
+  g.projects.reward = p;
   return p;
+}
+
+/** Pay out the waiting reward; mult 2 = the rewarded-ad bonus on the money. Returns { p, money, gems }. */
+export function collect(g, mult = 1) {
+  const p = g.projects.reward;
+  if (!p) return null;
+  const money = p.money * mult;
+  g.money += money;
+  g.lifetimeEarnings += money;
+  g.today.revenue += money;
+  addGems(g, p.gems);
+  g.projects.reward = null;
+  return { p, money, gems: p.gems };
 }
 
 /** End of day: is the active project now overdue? */

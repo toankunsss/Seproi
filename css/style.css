@@ -633,3 +633,39 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .title-row { display: flex; gap: 8px; }
 .title-row .px-btn { flex: 1; min-height: 44px; font-size: 18px; padding: 4px 6px; background: rgba(42, 35, 64, .92); }
 .title-foot { font-size: 16px; color: #8a7cb8; text-shadow: 1px 1px 0 var(--edge); }
+
+/* --- Project reward card (ui.showProjectReward) ------------------------------------------ */
+#reward {
+  position: fixed; inset: 0; z-index: 45; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(8, 6, 14, 0.8);
+}
+#reward[hidden] { display: none; }
+.reward-card {
+  position: relative; overflow: hidden; width: min(360px, 100%); padding: 18px 16px 16px; text-align: center;
+  background: var(--panel); box-shadow: 0 0 0 4px var(--edge), 0 0 0 8px var(--gold), 0 0 0 12px var(--edge), 10px 14px 0 10px rgba(0,0,0,.4);
+  animation: reward-pop .35s steps(5);
+}
+@keyframes reward-pop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+.reward-rays {
+  position: absolute; left: 50%; top: 58px; width: 340px; height: 340px; margin: -170px 0 0 -170px; z-index: 0; pointer-events: none;
+  background: repeating-conic-gradient(rgba(255, 211, 77, .16) 0 15deg, transparent 15deg 30deg);
+  border-radius: 50%; animation: reward-spin 8s linear infinite;
+}
+@keyframes reward-spin { to { transform: rotate(360deg); } }
+.reward-card > :not(.reward-rays) { position: relative; z-index: 1; }
+.reward-art { width: 96px; height: 96px; image-rendering: pixelated; image-rendering: crisp-edges; animation: title-bob 1s steps(2) infinite; }
+.reward-card h2 { margin: 6px 0 8px; font-size: 36px; line-height: 1; color: var(--gold); text-shadow: 2px 2px 0 var(--edge), 0 3px 0 #c8862a; }
+.reward-proj { color: var(--muted); line-height: 1.15; margin-bottom: 12px; }
+.reward-proj b { color: var(--ink); font-weight: normal; font-size: 24px; }
+.reward-early { color: var(--green); }
+.reward-list { display: flex; justify-content: center; gap: 12px; margin-bottom: 14px; }
+.reward-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 30px; line-height: 1;
+  background: var(--panel-2); box-shadow: 0 0 0 3px var(--edge);
+}
+.reward-item b { font-weight: normal; color: var(--gold); }
+.reward-item .coin { width: 18px; height: 18px; }
+.reward-item .gem { width: 20px; height: 18px; }
+.reward-card .px-btn { display: block; width: calc(100% - 6px); margin: 8px 3px 0; white-space: normal; }
+.reward-card .px-btn.big { min-height: 52px; background: #2f8a4a; font-size: 28px; }
+.reward-card .px-btn.ad { min-height: 46px; }
