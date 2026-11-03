@@ -85,7 +85,7 @@ export function showTitle({ g, fmt, onStart, onToggleSound, onToggleMusic, onLan
         <button class="px-btn" data-k="lang">${LANGS[langs[(langs.indexOf(getLang()) + 1) % langs.length]].name}</button>
       </div>
     </div>
-    <div class="title-foot">v1.0.4 · © Whip Boss · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Quyền riêng tư')}</a></div>`;
+    <div class="title-foot">v1.0.5 · © Whip Boss · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Quyền riêng tư')}</a></div>`;
   document.body.appendChild(el);
 
   const labels = () => {

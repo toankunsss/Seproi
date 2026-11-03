@@ -105,6 +105,24 @@ Thêm vào `STAFF_ACTIONS` (`config.js`) với các hiệu ứng `motiv`/`stress
 3. Ngoại hình: thêm mục vào `VISITOR_LOOK` trong `sprites.js` (màu đồ, mũ, huy hiệu, đồ cầm tay).
 4. Câu thông báo kết quả: `main.js → showVisitResult`. Thêm bản dịch vào `js/lang/en.js`.
 
+### Nội dung chơi lâu dài (bản 1.0.5)
+
+| Hệ thống | File | Dữ liệu chỉnh trong `config.js` |
+|---|---|---|
+| Chiến dịch 15 màn | `campaign.js` (LEVELS ngay trong file) | thêm màn: một mục trong `LEVELS` (setup, rules, goals) |
+| Trùm tuần | `boss.js` | `BOSS` (máu, thời gian, thưởng, tỉ lệ cuỗm tiền) |
+| Mini-game | `minigames.js` | thưởng trong `main.js → finishMini` |
+| Trang phục + rơi đồ | `inventory.js` | `LOOKS`, `RARITY`, `STATS`, `DROP` trong file |
+| Kỹ năng sếp | `skills.js` | `SKILLS`, `XP`, `xpFor` trong file |
+| Nhân viên đặc biệt | `cv.js`, `sim.js` | `STAFF_TYPES` |
+| Kiểu lười mới | `sim.js`, `sprites.js`, `view.js` | `SLACKS` (`hits: 2`, `sneaky`, `hide`), `CV_HOBBIES` |
+| Phòng ban | `depts.js` | `DEPT` trong file |
+| Đối thủ lôi kéo | `rival.js` | `RIVAL` |
+| Skin roi, thú cưng, album | `cosmetics.js` | `WHIP_SKINS`, `PETS`, `ALBUM`, `ALBUM_SETS`, `ALBUM_REWARD` |
+| Chia sẻ ảnh | `share.js` | `PLAY_URL` |
+
+Kiểm thử tự động có thể tắt các sự kiện bật lên bằng tham số URL: `?title=0&tutorial=0&daily=0&mini=0` (mini-game và đối thủ).
+
 ### Bài nhạc mới
 
 Nhạc nằm trong `SONGS` của `js/music.js`. Mỗi bài có `bpm`, `vol`, một hợp âm cho mỗi ô nhịp (`chords`, xem bảng `CHORDS`), giai điệu `lead` (8 nốt móc đơn mỗi ô nhịp: `E5` là nốt, `.` là nghỉ, `-` là ngân tiếp nốt trước) và trống `drums` (16 bước: `k` trống cái, `s` trống snare, `h` hi-hat). Bài dài có thể chia đoạn bằng `parts` + `order` (xem bài `office`). Phát bằng `music.play('tên')`.

@@ -954,3 +954,4 @@ body.in-level .stat.gems { visibility: hidden; }
 .album-card small { font-size: 15px; color: #d8d0f0; }
 .album-card.locked { opacity: .5; }
 .album-card.locked b { color: var(--muted); }
+.px-btn.share { background: #2a5a9a; }

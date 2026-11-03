@@ -117,11 +117,13 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
         </div>
         <div class="staff-foot">
           <button class="px-btn" data-a="nickname" data-arg="${e.id}">${t('Đặt tên')}</button>
+          <button class="px-btn share" data-a="share" data-arg="whip:${e.id}">${t('Chia sẻ ảnh quất')}</button>
           <button class="px-btn danger" data-a="staffFire" data-arg="${e.id}" ${g.staff.length <= 1 ? 'disabled' : ''}>${t('Sa thải')}</button>
         </div>
       </div>`).join('');
     return `<div class="card screen staff-screen">
       ${head(t('Nhân sự'), t('{n}/{cap} nhân viên · Quỹ {m} đ', { n: g.staff.length, cap, m: fmt(g.money) }))}
+      <p class="tip">${t('Mẹo: đặt tên nhân viên theo tên bạn bè rồi bấm "Chia sẻ ảnh quất" để troll họ!')}</p>
       <p class="tip">${t('Động lực cao → ít lười hơn. Khen thưởng để tăng động lực; quất oan làm động lực tụt mạnh.')}</p>
       ${staffBtn('party', null, 'Liên hoan cả công ty', 'wide party')}
       <div class="staff-list">${cards}</div>
@@ -256,6 +258,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       <button class="px-btn wide" data-a="decor">${t('Nội thất văn phòng')}</button>
       <button class="px-btn wide" data-a="staff">${t('Nhân sự: khen thưởng & sa thải')}</button>
       <button class="px-btn wide" data-a="depts">${t('Phòng ban & trưởng phòng')}</button>
+      <button class="px-btn wide share" data-a="share" data-arg="office">${t('Chia sẻ ảnh công ty')}</button>
       <button class="px-btn wide" data-a="collection">${t('Bộ sưu tập: skin roi, thú cưng, album')}${albumClaimable(g) ? ' ●' : ''}</button>
       <button class="px-btn wide sell-btn" data-a="sellScreen">${t('Bán công ty')}${g.shares ? ` · ${t('{n} cổ phần', { n: g.shares })}` : ''}</button>
 <button class="px-btn wide" data-a="board">${t('Bảng xếp hạng áp lực')}</button>

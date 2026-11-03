@@ -18,7 +18,7 @@ export const platform = native ? cap().getPlatform() : 'web';
 export const mobile = !window.taskbarShell && (native || params.get('shell') === 'mobile');
 
 const plugins = {};
-function plugin(name) {
+export function plugin(name) {
   if (!native) return null;
   if (name in plugins) return plugins[name];
   const C = cap();

@@ -358,6 +358,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
           ${run.level.goals.map((goal, i) => { const tx = goalText(...goal); return `<div class="lvl-goal ${states[i].ok ? 'ok' : 'no'}"><i>${states[i].ok ? '★' : '✗'}</i><span>${t(tx.s, { n: fmt(tx.n) })}</span><b>${goal[0] === 'kpi' ? states[i].v + '%' : fmt(states[i].v)}</b></div>`; }).join('')}
           ${result.gems ? `<div class="report-bonus">${t('Sao mới: +{n} kim cương', { n: result.gems })}</div>` : stars ? `<div class="report-bonus">${t('Kỷ lục của bạn: {n} sao', { n: result.best })}</div>` : ''}
           <div class="lvl-actions">
+            <button class="px-btn share" data-a="share" data-arg="level">${t('Chia sẻ')}</button>
             <button class="px-btn" data-a="levelRetry">${t('Chơi lại')}</button>
             ${stars && next ? `<button class="px-btn big" data-a="levelNext">${t('Màn tiếp')}</button>` : ''}
             <button class="px-btn ${stars && next ? '' : 'big'}" data-a="levelExit">${t('Về công ty')}</button>
@@ -459,6 +460,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
           ${payBlock()}
           ${day.doubled ? `<div class="report-bonus">${t('Đã nhận thưởng quảng cáo ✓')}</div>`
             : dayAdBonus(g) > 0 ? `<button class="px-btn ad wide" data-a="adDouble">▶ ${t('Xem quảng cáo: nhận thêm {m} đ', { m: fmt(dayAdBonus(g)) })}</button>` : ''}
+          <button class="px-btn wide share" data-a="share" data-arg="report">${t('Chia sẻ kết quả')}</button>
           <button class="px-btn big" data-a="nextDay">${t('Ngày làm việc mới')}</button>
         </div>`;
   }

@@ -37,6 +37,15 @@ js/
 ├── screens.js    hộp thoại meta: CV ứng viên, Dự án, Cửa hàng 💎, Thành tựu, menu Thêm (chọn ngôn ngữ)
 ├── audio.js      hiệu ứng âm thanh tổng hợp (whip, ouch, coin, bell…)
 ├── music.js      nhạc nền 8-bit tự tổng hợp (bộ sequencer nhỏ; bài 'title' và 'office'), chỉ bật trên điện thoại
+├── campaign.js   Chiến dịch: 15 màn / 3 chương, luật riêng (g.mods), 3 mục tiêu = 3 sao; chơi trên bản sao, chỉ lưu công ty thật
+├── boss.js       trùm tuần "Siêu Nhân Viên Lười" (ngày 7, 14…): máu, dịch chuyển, khiên, rương thưởng / bị cuỗm tiền
+├── minigames.js  mini-game giữa ngày: săn chuột, kiểm tra máy tính, họp giao ban
+├── inventory.js  trang phục sếp: 6 ô, 4 độ hiếm, chỉ số cộng thêm, rơi đồ ngẫu nhiên, hình sếp mặc đồ (ảnh đại diện góc trái)
+├── skills.js     XP, cấp sếp, cây kỹ năng (mắt diều hâu, lãnh đạo, kỷ luật, đàm phán, tiếng gầm)
+├── depts.js      phòng ban theo nghề, trưởng phòng, KPI từng phòng
+├── rival.js      công ty đối thủ "Lười Corp" lôi kéo nhân viên giỏi
+├── cosmetics.js  skin roi, thú cưng văn phòng, album 40 nhân vật
+├── share.js      ảnh chia sẻ 1080x1350 (báo cáo, công ty, "Sếp vừa quất…", màn chơi) + link CH Play
 ├── payroll.js    lương tháng: 5 ngày = 1 tháng, trả lương + thuê văn phòng lúc tan ca; thiếu tiền → nhân viên bất mãn
 ├── daily.js      thu nhập khi vắng mặt, quà đăng nhập 7 ngày, 3 nhiệm vụ hằng ngày (theo đồng hồ máy, chặn chỉnh lùi giờ)
 ├── prestige.js   bán công ty lấy cổ phần (+10% thu nhập/cổ phần, vĩnh viễn), chơi lại từ đầu

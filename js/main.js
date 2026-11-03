@@ -29,6 +29,10 @@ import * as skills from './skills.js';
 import * as depts from './depts.js';
 import * as rival from './rival.js';
 import * as cos from './cosmetics.js';
+import { makeCard, shareCard } from './share.js';
+import { faceUrl } from './cv.js';
+import { rankFor } from './ui.js';
+import { OFFICE_LEVELS as OFFICES, SLACKS as SLACK_INFO } from './config.js';
 import * as campaign from './campaign.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 
@@ -257,6 +261,43 @@ const act = {
     audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee');
     announceItem(inv.addItem(g, inv.rollItem(g, setId === 'all' ? 3 : 1)));
     saveGame(); ui.screens.repaint();
+  },
+  // --- sharing (share.js) ---
+  async share(arg = 'office') {
+    const [kind, id] = String(arg).split(':');
+    const snapshot = canvas;
+    let card, caption;
+    try {
+      if (kind === 'report') {
+        const d = g.today, kpi = Math.round((d.kpiN ? d.kpiSum / d.kpiN : g.kpi) * 100);
+        card = await makeCard({ headline: tr('NGÀY {n} · KPI {k}%', { n: g.day, k: kpi }), sub: rankFor(kpi / 100), snapshot,
+          rows: [[tr('Doanh thu'), `${fmt(d.revenue)} đ`], [tr('Bắt quả tang'), String(d.catches)], [tr('Combo cao nhất'), `x${d.bestCombo}`]] });
+        caption = tr('Hôm nay tôi bắt {n} nhân viên lười, KPI {k}%! Bạn làm sếp giỏi hơn không?', { n: d.catches, k: kpi });
+      } else if (kind === 'whip') {
+        const e = g.staff.find((x) => x.id === Number(id));
+        if (!e) return;
+        const name = e.nickname || e.name, why = SLACK_INFO[e.slack || e.cv.fav] || SLACK_INFO.game;
+        card = await makeCard({ headline: tr('SẾP VỪA QUẤT {name}!', { name: name.toUpperCase() }), sub: tr('Tội danh: {why}', { why: tr(why.label) }),
+          images: [{ src: inv.bossUrl(g, true), x: 250, y: 470, w: 200, h: 340 }, { src: faceUrl(e.look, e.cv.star), x: 600, y: 540, w: 224, h: 224 }],
+          rows: [], snapshot: null });
+        const x = card.getContext('2d'); x.fillStyle = '#ffd34d'; for (let i = 0; i < 9; i++) x.fillRect(450 + i * 18, 560 - Math.round(Math.sin(i / 2.6) * 60), 14, 10);
+        x.font = '64px VT323, monospace'; x.textAlign = 'center'; x.fillStyle = '#ff6a6a'; x.fillText(`"${tr(why.excuse)}"`, 540, 900);
+        caption = tr('{name} vừa bị Sếp quất vì tội {why} 😂', { name, why: tr(why.label).toLowerCase() });
+      } else if (kind === 'level' && campaignRun) {
+        const states = campaignRun.level.goals.map((goal) => campaign.goalState(g, campaignRun, goal, true));
+        const n = states.filter((s) => s.ok).length;
+        card = await makeCard({ headline: tr('MÀN {id}: {n}/3 SAO', { id: campaignRun.id, n }), sub: tr(campaignRun.level.name), snapshot,
+          rows: campaignRun.level.goals.map((goal, i) => { const tx = campaign.goalText(...goal); return [tr(tx.s, { n: fmt(tx.n) }), states[i].ok ? '★' : '✗']; }) });
+        caption = tr('Tôi vừa qua màn {id} với {n} sao!', { id: campaignRun.id, n });
+      } else {
+        card = await makeCard({ headline: tr('CÔNG TY CỦA TÔI'), sub: `${tr(OFFICES[g.officeLevel].name)} · ${tr('{n} nhân viên', { n: g.staff.length })}`, snapshot,
+          rows: [[tr('Ngày'), String(g.day)], [tr('Quỹ'), `${fmt(g.money)} đ`], [tr('Cấp sếp'), String(skills.skState(g).lvl)]] });
+        caption = tr('Công ty của tôi trong Whip Boss, ai lười là ăn roi!');
+      }
+    } catch (err) { console.warn('[share]', err); return; }
+    const r = await shareCard(card, caption);
+    if (r === 'downloaded') toast(tr('Đã lưu ảnh'), 'money');
+    if (r === 'shared') { g.records.shares = (g.records.shares || 0) + 1; saveGame(); }
   },
   rivalStart() { if (!miniOpen) startRival(); },
   miniStart(kind) { if (!miniOpen) startMini(kind || 'mouse'); },
