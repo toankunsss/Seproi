@@ -11,6 +11,7 @@
 // requirement = team output for that role over the project's days x a difficulty factor.
 import { PROJECT_TYPES, CLIENTS, PROJECT_OFFERS, PROJECT_PENALTY, WORK_RATE, TUNING } from './config.js';
 import { skillMult } from './cv.js';
+import { projectMult } from './skills.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
@@ -114,7 +115,7 @@ export function finish(g) {
 export function collect(g, mult = 1) {
   const p = g.projects.reward;
   if (!p) return null;
-  const money = p.money * mult;
+  const money = Math.round(p.money * mult * projectMult(g));
   g.money += money;
   g.lifetimeEarnings += money;
   g.today.revenue += money;

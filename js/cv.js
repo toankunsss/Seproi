@@ -5,7 +5,7 @@
 //   grit  1..5 → stress taken from each whip   (x1.4 … x0.6)
 //   fav        → the slacking habit their hobby gives away (70% of their slacks)
 import {
-  STAFF_POOL, ROLES, SLACK_KINDS, CV_NAMES, CV_LOOKS, CV_HOBBIES, CV_LINES, CV_QUOTES, hireCost,
+  STAFF_POOL, ROLES, SLACK_KINDS, CV_NAMES, CV_LOOKS, CV_HOBBIES, CV_LINES, CV_QUOTES, hireCost, STAFF_TYPES,
 } from './config.js';
 import { rect, px } from './pixel.js';
 import { shade } from './sprites.js';
@@ -14,7 +14,9 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const stars = () => 1 + Math.floor(Math.random() * 5);
 
 export const skillMult = (cv) => 0.65 + 0.15 * (cv.skill || 3);   // 0.8 … 1.4
-export const lazyMult = (cv) => 0.4 + 0.2 * (cv.lazy || 3);       // 0.6 … 1.4
+/** Special staff type of a CV (STAFF_TYPES entry) or null. */
+export const typeOf = (cv) => (cv && cv.type && STAFF_TYPES[cv.type]) || null;
+export const lazyMult = (cv) => (0.4 + 0.2 * (cv.lazy || 3)) * ((typeOf(cv) || {}).lazy || 1); // 0.6 … 1.4 (x type)
 export const stressMult = (cv) => 1.6 - 0.2 * (cv.grit || 3);     // 1.4 … 0.6
 
 /** CV for the original staff (and old saves): average traits, look from STAFF_POOL. */
@@ -48,13 +50,26 @@ export function makeCandidate(g, { star = Math.random() < 0.08 } = {}) {
   };
   if (cv.look.style === 'bald') cv.look.hair = '#8a8a96';
   if (star) { cv.skill = 5; cv.lazy = 1 + Math.floor(Math.random() * 2); cv.grit = 4 + Math.floor(Math.random() * 2); cv.exp = Math.max(cv.exp, 5); }
+  else {
+    // special applicants (STAFF_TYPES): intern, team lead, the big boss's nephew, a spy
+    let x = Math.random();
+    for (const [type, T] of Object.entries(STAFF_TYPES)) {
+      if (g.day < (T.minDay || 1)) continue;
+      if ((x -= T.chance) < 0) { cv.type = type; break; }
+    }
+    if (cv.type === 'intern') { cv.age = 20 + Math.floor(Math.random() * 3); cv.exp = 0; cv.skill = Math.min(cv.skill, 3); }
+    if (cv.type === 'lead') { cv.exp = Math.max(cv.exp, 6); cv.skill = Math.max(cv.skill, 3); }
+    if (cv.type === 'nephew') cv.quote = 'Bác em là sếp tổng đấy ạ.';
+    if (cv.type === 'spy') cv.quote = 'Em rất quan tâm đến két sắt của công ty.';
+  }
   return cv;
 }
 
 /** Hiring fee: grows with team size, scaled by how good the CV is. */
 export function hirePrice(g, cv) {
   const quality = 0.55 + 0.12 * cv.skill + 0.05 * (5 - cv.lazy) + 0.03 * cv.grit + (cv.star ? 0.35 : 0);
-  return Math.round(hireCost(g.staff.length) * quality / 5) * 5;
+  const T = typeOf(cv);
+  return Math.round(hireCost(g.staff.length) * quality * (T ? T.hire : 1) / 5) * 5;
 }
 
 export function refillCandidates(g, { star = false } = {}) {

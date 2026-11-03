@@ -11,6 +11,11 @@ export const SLACKS = {
   toptop: { label: 'Lướt Tóp Tóp',   excuse: 'Em xem tí trend thôi...' },
   sleep:  { label: 'Ngủ gật',        excuse: 'Em... em đang nghĩ giải pháp!' },
   crypto: { label: 'Xem sàn crypto', excuse: 'Coin em đang x10 sếp ạ!' },
+  // new kinds, each caught differently (sim.js / view.js / portrait.js)
+  snack: { label: 'Ăn vặt', excuse: 'Em nạp năng lượng để chạy deadline!' },
+  call: { label: 'Gọi điện riêng', excuse: 'Mẹ em gọi sếp ạ, em cúp đây!', hits: 2 },        // needs two whips
+  meeting: { label: 'Giả vờ họp', excuse: 'Em đang họp với đối tác mà sếp!', sneaky: true }, // bubble flickers
+  toilet: { label: 'Trốn trong toilet', excuse: 'Em… em đau bụng thật mà!', hide: true },     // leaves the desk
 };
 export const SLACK_KINDS = Object.keys(SLACKS);
 
@@ -130,6 +135,10 @@ export const CV_HOBBIES = {
   toptop: ['Lướt Tóp Tóp bắt trend', 'Quay vlog dạo phố', 'Săn deal livestream'],
   sleep: ['Ngủ trưa 2 tiếng', 'Thiền (và ngủ quên)', 'Nằm dài nghe podcast'],
   crypto: ['Đầu tư coin "chắc thắng"', 'Đọc biểu đồ nến', 'Đào coin bằng máy công ty'],
+  snack: ['Review đồ ăn vặt', 'Ăn bánh tráng trộn', 'Sưu tầm snack nước ngoài'],
+  call: ['Buôn điện thoại hàng giờ', 'Tư vấn tình cảm qua điện thoại', 'Bán hàng online qua điện thoại'],
+  meeting: ['Tham gia mọi cuộc họp', 'Viết biên bản họp', 'Đặt lịch họp'],
+  toilet: ['Đọc truyện trong toilet', 'Chơi game trong toilet', 'Ngồi thiền ở nơi yên tĩnh'],
 };
 export const CV_LINES = {
   dev: ['Thành thạo Ctrl+C, Ctrl+V', 'Biết 7 ngôn ngữ lập trình, nói được 1', 'Sửa bug bằng cách tắt máy bật lại', 'Từng code xuyên Tết'],
@@ -295,6 +304,17 @@ export const DAILY = {
     { id: 'days', text: 'Làm xong {n} ngày làm việc', n: [2, 3], gems: 6, stat: (g) => g.day },
     { id: 'combo', text: 'Đạt combo x{n} trong một ngày', n: [5, 7], gems: 6, stat: (g) => g.today.bestCombo, best: true },
   ],
+};
+
+// --- Special staff (cv.js) -------------------------------------------------------------------
+// Some applicants are special. hire / salary / lazy multiply the normal values.
+export const STAFF_TYPES = {
+  intern: { name: 'Thực tập sinh', short: 'TTS', chance: 0.15, hire: 0.4, salary: 0.4, lazy: 1.4, desc: 'Phí tuyển và lương chỉ 40%, nhưng hay lười hơn.' },
+  lead: { name: 'Trưởng nhóm', short: 'TN', chance: 0.08, hire: 1.8, salary: 1.6, lazy: 0.8, desc: 'Người ngồi cạnh bớt lười 30%. Lương cao.' },
+  nephew: { name: 'Con ông cháu cha', short: 'COCC', chance: 0.06, minDay: 3, hire: 0, salary: 1.2, lazy: 1.5, gift: 600,
+    desc: 'Tuyển miễn phí, kèm quà của sếp tổng. Nhưng CẤM QUẤT: quất là bị phạt nặng. Dùng cà phê, khen thưởng để trị.' },
+  spy: { name: 'Gián điệp', short: 'GĐ', chance: 0.06, minDay: 4, hire: 0.9, salary: 1, lazy: 1.2, hidden: true, steal: 3,
+    desc: 'Lén rút tiền công ty mỗi khi lười. Bắt quả tang để lộ mặt và thu hồi gấp rưỡi.' },
 };
 
 // --- Payroll (payroll.js) ---------------------------------------------------------------------

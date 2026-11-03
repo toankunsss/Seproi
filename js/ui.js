@@ -5,6 +5,7 @@ import { monthBill, daysToPayday, monthOf } from './payroll.js';
 import { loginGift } from './daily.js';
 import { goalState, goalText, CHAPTERS } from './campaign.js';
 import { bossUrl, wornSig, invState } from './inventory.js';
+import { rank as skillRank, skState } from './skills.js';
 import { DAILY, BOSS } from './config.js';
 import { createScreens, projectSummary } from './screens.js';
 import { progressOf, penaltyOf } from './projects.js';
@@ -62,7 +63,7 @@ const ICON = {
 // so update() drives both.
 const MOBILE_HUD = `
     <div class="side info">
-      <button class="avatar" data-a="inventory" title="${t('Kho đồ của sếp')}"><img data-k="avatar" alt=""><i class="dot" data-k="dotInv" hidden></i></button>
+      <button class="avatar" data-a="inventory" title="${t('Kho đồ của sếp')}"><img data-k="avatar" alt=""><i class="dot" data-k="dotInv" hidden></i><b class="lvl" data-k="lvl">Lv1</b></button>
       <div class="stat money"><span class="coin"></span><b data-k="money">0</b><small data-k="rate"></small></div>
       <div class="stat day"><span data-k="day"></span><b data-k="clock">09:00</b></div>
       <div class="stat kpi"><span>KPI</span><div class="meter"><i data-k="kpiBar"></i></div><b data-k="kpi">100%</b></div>
@@ -76,7 +77,7 @@ const MOBILE_HUD = `
       <div class="visitbar" data-k="visit" hidden></div>
       <button class="projbar" data-a="projects"><span class="pj-name" data-k="projName"></span>
         <span class="meter"><i data-k="projBar"></i></span><span class="pj-due" data-k="projDue"></span></button>
-      <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden></button>
+      <div class="actrow"><button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden></button><button class="px-btn roar" data-a="roar" data-k="roar" hidden></button></div>
       <nav class="tabbar">
         <button class="tab" data-a="shop">${ICON.shop}<span>${t('Quản lý')}</span></button>
         <button class="tab" data-a="projects">${ICON.projects}<span>${t('Dự án')}</span><i class="dot" data-k="dotProjects" hidden></i></button>
@@ -157,7 +158,13 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       if (levelRun) updateLevelBar();
       const ws = wornSig(g);
       if (K.avatar && ws !== lastWorn) { lastWorn = ws; K.avatar.src = bossUrl(g); }
-      if (K.dotInv) { const f = (g.inv && g.inv.fresh) || 0; K.dotInv.hidden = !f; K.dotInv.textContent = f || ''; }
+      if (K.dotInv) { const f = ((g.inv && g.inv.fresh) || 0) + ((g.sk && g.sk.pts) || 0); K.dotInv.hidden = !f; K.dotInv.textContent = f || ''; }
+      if (K.roar) {
+        const r = skillRank(g, 'roar'), cd = r ? Math.ceil(skState(g).roarCd) : 0;
+        K.roar.hidden = !r;
+        if (r) { const txt = cd ? `${t('Tiếng gầm')} ${cd}s` : t('TIẾNG GẦM!'); if (K.roar.textContent !== txt) K.roar.textContent = txt; K.roar.disabled = cd > 0; }
+      }
+      if (K.lvl) set(K.lvl, `Lv${(g.sk && g.sk.lvl) || 1}`);
       updateBossBar();
       const rate = g.staff.reduce((s, e) => s + incomeOf(g, e), 0);
       set(K.money, fmt(g.money) + ' đ');

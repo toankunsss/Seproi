@@ -369,6 +369,19 @@ export function renderScreen(e, t) {
       glyphs(x, '%', 12, 0, Math.floor(t * 3) % 2 ? '#ef5350' : '#26a69a');
       break;
     }
+    case 'snack': {
+      rect(x, 0, 0, 16, 10, '#2a1d14');
+      rect(x, 3, 2, 10, 6, '#e0802a'); rect(x, 4, 3, 8, 4, '#ffcb3d'); glyphs(x, 'O', 6, 3, '#e0302a');
+      if (Math.floor(t * 4) % 2) px(x, 13, 1, '#ffcb3d');
+      break;
+    }
+    case 'meeting': { // fake video call
+      rect(x, 0, 0, 16, 10, '#1d2a3a');
+      for (let i = 0; i < 4; i++) { const cx = (i % 2) * 8, cy = Math.floor(i / 2) * 5; rect(x, cx + 1, cy + 1, 6, 3, '#3a4a6a'); rect(x, cx + 3, cy + 1, 2, 2, '#f1c7a0'); }
+      if (Math.floor(t * 2) % 2) px(x, 1, 1, '#e0404a');
+      break;
+    }
+    case 'call': case 'toilet': // phone in hand / nobody at the desk: a screensaver
     case 'toptop': case 'sleep': {
       // screensaver
       rect(x, 0, 0, 16, 10, '#0c1024');
@@ -426,6 +439,15 @@ export function drawEmployee(ctx, x, y, e, t) {
   rect(ctx, x - 1, y - 5, 2, 4, '#3a3746');
   rect(ctx, x - 6, y - 8, 12, 3, '#34303f');
   rect(ctx, x - 6, y - 8, 12, 1, '#4a4558');
+
+  // hiding in the toilet: an empty chair and a "WC" door sign where they should be
+  if (e.state === 'slack' && e.slack === 'toilet') {
+    rect(ctx, x - 5, y - 16, 10, 8, '#2b2836'); rect(ctx, x - 5, y - 16, 10, 1, '#3a3746');
+    const sy = y - 30 - (Math.floor(t * 2) % 2);
+    rect(ctx, x - 6, sy - 1, 13, 11, '#1d1826'); rect(ctx, x - 5, sy, 11, 9, '#46b37a');
+    glyphs(ctx, 'WC', x - 4, sy + 2, '#ffffff');
+    return { x: x - 1, y: y - 27 };
+  }
 
   // torso
   rect(ctx, bx - 5, by - 17, 10, 9, shirt);
@@ -524,6 +546,20 @@ export function drawBubble(ctx, x, y, kind, t, urgent) {
     case 'sleep':
       glyphs(ctx, 'Z', ix + 1, iy + 1, '#3a6bd6');
       glyphs(ctx, 'z', ix + 6, iy + 2, '#7a9be8');
+      break;
+    case 'snack':
+      rect(ctx, ix + 2, iy, 7, 7, '#e0802a'); rect(ctx, ix + 3, iy + 1, 5, 5, '#ffcb3d'); px(ctx, ix + 5, iy + 3, '#e0302a');
+      px(ctx, ix + 10, iy + 5 - (Math.floor(t * 4) % 2), '#ffcb3d');
+      break;
+    case 'call':
+      rect(ctx, ix + 1, iy + 1, 3, 2, '#2a2836'); rect(ctx, ix + 7, iy + 1, 3, 2, '#2a2836'); rect(ctx, ix + 2, iy + 2, 7, 3, '#2a2836'); rect(ctx, ix + 4, iy + 5, 3, 2, '#2a2836');
+      if (Math.floor(t * 6) % 2) { px(ctx, ix + 10, iy, '#e0404a'); px(ctx, ix, iy, '#e0404a'); }
+      break;
+    case 'meeting':
+      rect(ctx, ix + 1, iy, 9, 7, '#3d6fd6'); rect(ctx, ix + 2, iy + 2, 7, 4, '#ffffff'); rect(ctx, ix + 3, iy + 3, 2, 1, '#3d6fd6'); rect(ctx, ix + 6, iy + 4, 2, 1, '#3d6fd6');
+      break;
+    case 'toilet':
+      rect(ctx, ix + 1, iy, 9, 7, '#46b37a'); glyphs(ctx, 'WC', ix + 2, iy + 1, '#ffffff');
       break;
     case 'crypto':
       line(ctx, ix, iy + 6, ix + 3, iy + 2, '#26a69a');
@@ -723,4 +759,13 @@ export function drawBoss(ctx, x, y, t, hpFrac, dodge) {
     rect(ctx, x - 13, y - 42, 1, 42, '#cfffff'); rect(ctx, x + 12, y - 42, 1, 42, '#cfffff');
   }
   return { x0: x - 14, y0: y - 48, x1: x + 14, y1: y + 1 };
+}
+
+/** Tiny tag next to a special employee's head: intern "T", team lead star, nephew crown, unmasked spy. */
+export function drawTypeTag(ctx, x, y, type) {
+  x = Math.round(x); y = Math.round(y);
+  if (type === 'intern') { rect(ctx, x - 1, y - 1, 7, 7, '#1d1826'); rect(ctx, x, y, 5, 5, '#46b37a'); rect(ctx, x + 1, y + 1, 3, 1, '#fff'); rect(ctx, x + 2, y + 2, 1, 2, '#fff'); }
+  if (type === 'lead') { rect(ctx, x + 2, y - 1, 1, 7, '#1d1826'); rect(ctx, x - 1, y + 1, 7, 2, '#1d1826'); rect(ctx, x + 2, y, 1, 5, '#ffd34d'); rect(ctx, x, y + 1, 5, 1, '#ffd34d'); rect(ctx, x + 1, y + 2, 3, 1, '#ffd34d'); px(ctx, x + 1, y + 4, '#ffd34d'); px(ctx, x + 3, y + 4, '#ffd34d'); }
+  if (type === 'nephew') { rect(ctx, x - 1, y, 7, 5, '#1d1826'); rect(ctx, x, y + 1, 5, 3, '#ff6aa8'); px(ctx, x, y, '#ff6aa8'); px(ctx, x + 2, y, '#ff6aa8'); px(ctx, x + 4, y, '#ff6aa8'); px(ctx, x + 2, y + 2, '#ffd34d'); }
+  if (type === 'spy') { rect(ctx, x - 1, y, 8, 4, '#1d1826'); rect(ctx, x, y + 1, 6, 2, '#3a3a48'); px(ctx, x + 1, y + 1, '#fff'); px(ctx, x + 4, y + 1, '#fff'); }
 }

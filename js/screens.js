@@ -3,7 +3,7 @@
 // re-renders it when its signature changes, and live() updates fast-moving numbers in place
 // so a re-render never swallows a tap.
 import { ROLES, OFFICE_LEVELS, PREMIUM_ITEMS, ADS, MAX_STAFF, PRIVACY_URL, SLACKS } from './config.js';
-import { faceUrl, hirePrice, skillMult } from './cv.js';
+import { faceUrl, hirePrice, skillMult, typeOf } from './cv.js';
 import { progressOf, penaltyOf } from './projects.js';
 import { achievementList, claimableCount } from './achievements.js';
 import { blockedReason } from './premium.js';
@@ -16,6 +16,7 @@ import { DAILY, PRESTIGE } from './config.js';
 import { sharesFor, canSell, shareBonus } from './prestige.js';
 import { LEVELS, CHAPTERS, bestStars, totalStars, unlocked, goalText } from './campaign.js';
 import { SLOTS, SLOT_NAME, RARITY, STATS, invState, worn, itemName, itemIconUrl, bossUrl, bonus, wornSig, INV_CAP } from './inventory.js';
+import { SKILLS, skState, rank as skillRank, xpFor, roarCooldown } from './skills.js';
 import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
@@ -50,7 +51,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       return `<div class="cv ${cv.star ? 'star' : ''}">
         <div class="cv-top">
           <img class="face" src="${faceUrl(cv.look, cv.star)}" alt="">
-          <div class="cv-who"><b>${esc(cv.name)}</b>${cv.star ? ` <span class="badge-star">${t('NGÔI SAO')}</span>` : ''}
+          <div class="cv-who"><b>${esc(cv.name)}</b>${cv.star ? ` <span class="badge-star">${t('NGÔI SAO')}</span>` : ''}${typeBadge(cv)}
             <div>${t('{role} · {age} tuổi · {exp} năm KN', { role: t(ROLES[cv.role].label), age: cv.age, exp: cv.exp })}</div></div>
         </div>
         <div class="traits">
@@ -58,6 +59,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
           <div>${t('Độ lười')} ${starRow(cv.lazy, 'bad')}</div>
           <div>${t('Chịu áp lực')} ${starRow(cv.grit, 'calm')}</div>
         </div>
+        ${typeOf(cv) && !typeOf(cv).hidden ? `<div class="type-note">${t(typeOf(cv).desc)}</div>` : ''}
         <ul class="cv-lines"><li>${esc(t(cv.line))}</li><li>${t('Sở thích:')} ${esc(t(cv.hobby))}</li>
           <li class="cv-salary">${t('Lương: {m} đ/ngày (trả mỗi tháng)', { m: fmt(salaryOf(g, { role: cv.role, cv, wage: 0 })) })}</li></ul>
         <q>${esc(t(cv.quote))}</q>
@@ -94,7 +96,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     const cards = g.staff.map((e) => `<div class="staff-card ${e.cv.star ? 'star' : ''}">
         <div class="cv-top">
           <img class="face" src="${faceUrl(e.look, e.cv.star)}" alt="">
-          <div class="cv-who"><b>${esc(e.nickname || e.name)}</b>${e.nickname ? ` <small>(${esc(e.name)})</small>` : ''}
+          <div class="cv-who"><b>${esc(e.nickname || e.name)}</b>${e.nickname ? ` <small>(${esc(e.name)})</small>` : ''}${typeBadge(e.cv)}
             <div>${t(ROLES[e.role].label)} · ${t('Lương bậc {n}', { n: (e.wage || 0) + 1 })} (${fmt(salaryOf(g, e))} đ/${t('ngày')}) · <span data-state="${e.id}">${t(STATE[e.state] || 'Đang làm')}</span></div>
             <div class="mini-stars">★${e.cv.skill} ${t('Kỹ năng')} · ★${e.cv.lazy} ${t('Độ lười')} · ★${e.cv.grit} ${t('Chịu áp lực')}</div></div>
         </div>
@@ -256,8 +258,31 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       <a class="px-btn wide link" href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Chính sách quyền riêng tư')}</a>
     </div>`;
 
+  /** Special staff badge; a spy only shows once caught. */
+  function typeBadge(cv) {
+    const T = typeOf(cv);
+    if (!T || (T.hidden && !cv.revealed)) return '';
+    return ` <span class="type-badge type-${cv.type}" title="${esc(t(T.desc))}">${t(T.name)}</span>`;
+  }
+
   // --- Boss inventory (inventory.js) --------------------------------------------------------------
-  let invSel = 0;
+  let invSel = 0, invTab = 'gear';
+  function skillsBlock() {
+    const s = skState(g);
+    return `<div class="sk-head"><b>${t('Sếp cấp {n}', { n: s.lvl })}</b>
+        <div class="meter"><i style="width:${Math.round((s.xp / xpFor(s.lvl)) * 100)}%"></i></div>
+        <small>${s.xp}/${xpFor(s.lvl)} XP · ${t('Điểm kỹ năng: {n}', { n: s.pts })}</small></div>
+      <p class="tip">${t('Nhận XP khi quất trúng, xong dự án, hạ trùm tuần, đạt sao và thắng mini-game.')}</p>
+      ${SKILLS.map((k) => {
+        const r = skillRank(g, k.id);
+        return `<div class="sk-row ${r ? 'on' : ''}">
+          <div class="info"><div class="title">${t(k.name)} ${k.active ? `<span class="chip">${t('Chủ động')}</span>` : ''}</div>
+            <div class="desc">${t(k.desc)}${k.id === 'roar' && r ? ` (${t('hồi chiêu {n}s', { n: roarCooldown(g) })})` : ''}</div>
+            <div class="pips">${Array.from({ length: k.max }, (_, i) => `<i class="${i < r ? 'on' : ''}"></i>`).join('')}</div></div>
+          <button class="px-btn buy" data-a="learnSkill" data-arg="${k.id}" ${s.pts > 0 && r < k.max ? '' : 'disabled'}>${r >= k.max ? t('Tối đa') : '+1'}</button>
+        </div>`;
+      }).join('')}`;
+  }
   const statLine = (it) => t(STATS[it.stat].text, { v: it.value });
   const itemBox = (it, extra = '') => `<span class="inv-icon r${it.rarity}"><img src="${itemIconUrl(it)}" alt="">${extra}</span>`;
   function inventoryScreen() {
@@ -272,8 +297,10 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     const sel = I.items.find((x) => x.id === invSel);
     const items = [...I.items].sort((a, b) => b.rarity - a.rarity || SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot));
     return `<div class="card screen inv-screen">
-      ${head(t('Kho đồ của sếp'), t('{n}/{max} món · quất nhân viên có thể rơi đồ', { n: I.items.length, max: INV_CAP }))}
-      <div class="inv-top">
+      ${head(t('Hồ sơ sếp'), t('{n}/{max} món · quất nhân viên có thể rơi đồ', { n: I.items.length, max: INV_CAP }))}
+      <div class="inv-tabs"><button class="px-btn ${invTab === 'gear' ? 'on' : ''}" data-a="invTab" data-arg="gear">${t('Trang phục')}</button>
+        <button class="px-btn ${invTab === 'skills' ? 'on' : ''}" data-a="invTab" data-arg="skills">${t('Kỹ năng')}${skState(g).pts ? ` (${skState(g).pts})` : ''}</button></div>
+      ${invTab === 'skills' ? skillsBlock() : `<div class="inv-top">
         <div class="inv-figure"><img src="${bossUrl(g, true)}" alt=""></div>
         <div class="inv-slots">${slotsHtml}</div>
       </div>
@@ -287,7 +314,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
           </div>
         </div>` : `<p class="tip">${t('Chạm vào một món để xem, mặc hoặc bán.')}</p>`}
       <div class="inv-grid">${items.length ? items.map((it) => `<button class="inv-item ${it.id === invSel ? 'sel' : ''}" data-a="invSelect" data-arg="${it.id}">${itemBox(it, wornIds.has(it.id) ? '<i>✓</i>' : '')}</button>`).join('')
-        : `<p class="empty">${t('Kho trống. Quất nhân viên lười để có cơ hội nhận đồ, hoặc hạ trùm tuần!')}</p>`}</div>
+        : `<p class="empty">${t('Kho trống. Quất nhân viên lười để có cơ hội nhận đồ, hoặc hạ trùm tuần!')}</p>`}</div>`}
     </div>`;
   }
 
@@ -363,7 +390,8 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     vip: () => open('vip', vipScreen, vipSig),
     staff: () => open('staff', staffScreen, staffSig, staffLive),
     achievements: () => open('achievements', achScreen, achSig),
-    inventory: () => { invSel = 0; open('inventory', inventoryScreen, () => `${invSel}|${wornSig(g)}|${invState(g).items.length}`); },
+    inventory: () => { invSel = 0; open('inventory', inventoryScreen, () => `${invSel}|${invTab}|${wornSig(g)}|${invState(g).items.length}|${JSON.stringify(skState(g))}`); },
+    invTab: (tab) => { invTab = tab; paint(); },
     invSelect: (id) => { invSel = id; paint(); },
     levels: () => open('levels', levelsScreen, () => `${totalStars(g)}|${g.day}`),
     levelInfo: (id) => open('levelInfo', () => levelInfoScreen(id), () => id),

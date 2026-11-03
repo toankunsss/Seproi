@@ -22,7 +22,7 @@ const freshRecords = () => ({
   bestCombo: 0, totalWhips: 0, bestDays: [],
   catches: 0, bestKpi: 0, fairDays: 0, starsHired: 0, strikes: 0, adsWatched: 0,
   // counters for achievements (old saves get these defaults on load)
-  caught: { game: 0, toptop: 0, sleep: 0, crypto: 0 }, // catches by slacking kind
+  caught: { game: 0, toptop: 0, sleep: 0, crypto: 0, snack: 0, call: 0, meeting: 0, toilet: 0 }, // catches by slacking kind
   assistCatches: 0, coffees: 0, boostsUsed: 0, gemsEarned: 0, peakMoney: 0,
   projStreak: 0, bestProjStreak: 0, bigProjects: 0,
 });

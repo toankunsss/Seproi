@@ -9,13 +9,13 @@
 // If the fund can't cover it, everything left is paid and the staff take the rest badly
 // (motivation and stress hit, see unpaid*), which can end in strikes.
 import { PAYROLL, TUNING } from './config.js';
-import { skillMult } from './cv.js';
+import { skillMult, typeOf } from './cv.js';
 
 const dayMult = (g) => 1 + TUNING.dayMult * (g.day - 1);
 
 /** Daily salary of employee e (rounded to 5 đ). */
 export const salaryOf = (g, e) =>
-  Math.round((PAYROLL.daily[e.role] * skillMult(e.cv) * (1 + PAYROLL.raiseStep * (e.wage || 0)) * dayMult(g)) / 5) * 5;
+  Math.round((PAYROLL.daily[e.role] * skillMult(e.cv) * (1 + PAYROLL.raiseStep * (e.wage || 0)) * ((typeOf(e.cv) || {}).salary || 1) * dayMult(g)) / 5) * 5;
 
 export const rentOf = (g) => PAYROLL.rent[g.officeLevel] || 0;
 

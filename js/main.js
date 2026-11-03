@@ -9,7 +9,7 @@ import { claim, addGems } from './achievements.js';
 import { buyPremium } from './premium.js';
 import * as staffCare from './staff.js';
 import { planVisit, whipWitnessed, endVisit } from './events.js';
-import { VISITS } from './config.js';
+import { VISITS, STAFF_TYPES } from './config.js';
 import { showRewarded, initAds, lastAdFailure } from './ads.js';
 import { t as tr, setLang } from './i18n.js';
 import { createView } from './view.js';
@@ -25,6 +25,7 @@ import { sellCompany, sharesFor } from './prestige.js';
 import { hitBoss, winBoss } from './boss.js';
 import * as mini from './minigames.js';
 import * as inv from './inventory.js';
+import * as skills from './skills.js';
 import * as campaign from './campaign.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 
@@ -136,6 +137,11 @@ const act = {
     if (index >= MAX_STAFF || index >= OFFICE_LEVELS[g.officeLevel].capacity) { audio.deny(); return toast(tr('Hết bàn trống, hãy mở rộng văn phòng!'), 'wrong'); }
     if (!pay(hirePrice(g, cv))) { audio.deny(); return toast(tr('Quỹ chưa đủ tiền tuyển.'), 'wrong'); }
     g.staff.push(makeEmployee(staffCare.nextStaffId(g), cv, { hiredDay: g.day }));
+    if (cv.type === 'nephew') { // comes with a thank-you from the big boss
+      const gift = Math.round(STAFF_TYPES.nephew.gift * (1 + TUNING.dayMult * (g.day - 1)) / 10) * 10;
+      g.money += gift;
+      setTimeout(() => toast(tr('Quà cảm ơn của sếp tổng: +{m} đ', { m: fmt(gift) }), 'money'), 900);
+    }
     if (cv.star) g.records.starsHired++;
     g.candidates.splice(Number(i), 1);
     layout();
@@ -213,6 +219,7 @@ const act = {
   // --- boss inventory (inventory.js) ---
   inventory() { ui.closePanel(); inv.invState(g).fresh = 0; ui.screens.inventory(); },
   invSelect(id) { ui.screens.invSelect(Number(id)); },
+  invTab(tab) { ui.screens.invTab(tab); },
   invEquip(id) { if (inv.equip(g, Number(id))) { audio.buy(); haptic('light'); saveGame(); } ui.screens.repaint(); },
   invUnequip(slot) { inv.unequip(g, slot); saveGame(); ui.screens.repaint(); },
   invSell(id) {
@@ -223,6 +230,14 @@ const act = {
     ui.screens.invSelect(0);
     saveGame();
   },
+  roar() {
+    const n = skills.roar(g);
+    if (!skills.rank(g, 'roar')) return;
+    audio.strike(); audio.alert(); haptic('heavy'); ui.flash('hit');
+    toast(n ? tr('TIẾNG GẦM! {n} người quay lại làm việc', { n }) : tr('TIẾNG GẦM! Cả phòng hăng say'), 'money');
+    saveGame();
+  },
+  learnSkill(id) { if (skills.learn(g, id)) { audio.buy(); haptic('success'); saveGame(); } ui.screens.repaint(); },
   miniStart(kind) { if (!miniOpen) startMini(kind || 'mouse'); },
   // --- campaign (campaign.js) ---
   levels() { ui.closePanel(); ui.screens.levels(); },
@@ -493,7 +508,13 @@ function resolveBossHit(bx, by) {
   }
 }
 /** The boss chest always holds an epic-or-better item. */
-function onBossChest() { announceItem(inv.addItem(g, inv.rollItem(g, 2))); }
+function onBossChest() { announceItem(inv.addItem(g, inv.rollItem(g, 2))); gainXp(g, skills.XP.boss); }
+
+/** Boss XP (skills.js); a level-up gives a skill point. `who` = the real company. */
+function gainXp(who, n) {
+  const up = skills.addXp(who, n);
+  if (up) setTimeout(() => { toast(tr('SẾP LÊN CẤP {n}! +1 điểm kỹ năng', { n: who.sk.lvl }), 'money'); audio.bell(); }, 300);
+}
 
 /** A new item went into the bag: popup + toast in its rarity colour. */
 function announceItem(it, at) {
@@ -524,7 +545,7 @@ function resolveHit(hit, cx, cy) {
     ui.popup(at.x, at.y + 22, `+${fmt(res.reward)} đ`, 'money');
     if (g.combo > 1) ui.popup(at.x, at.y - 40, `COMBO x${g.combo}`, 'combo');
     if (Math.random() < 0.5) ui.popup(at.x, at.y + 44, `"${tr(res.excuse)}"`, 'say');
-    if (!campaignRun) { const it = inv.maybeDrop(g, g.combo); if (it) announceItem(it, at); }
+    if (!campaignRun) { const it = inv.maybeDrop(g, g.combo); if (it) announceItem(it, at); gainXp(g, skills.XP.catch); }
   } else if (res.kind === 'wrong') {
     haptic('wrong');
     audio.ouch(0.8);
@@ -534,7 +555,15 @@ function resolveHit(hit, cx, cy) {
     if (res.reward) ui.popup(at.x, at.y + 22, `${fmt(res.reward)} đ`, 'loss');
   } else if (res.kind === 'strike') {
     ui.popup(at.x, at.y - 10, tr('Đang đình công!'), 'wrong');
+  } else if (res.kind === 'half') {
+    haptic('hit'); audio.ouch(1.2);
+    ui.popup(at.x, at.y - 10, tr('CÚP MÁY! (thêm 1 roi)'), 'say');
+  } else if (res.kind === 'nephew') {
+    haptic('wrong'); audio.grumble(); audio.deny(); ui.flash('wrong');
+    ui.popup(at.x, at.y - 10, tr('CHÁU SẾP TỔNG ĐẤY!'), 'wrong');
+    ui.popup(at.x, at.y + 22, `${fmt(res.reward)} đ`, 'loss');
   }
+  if (res.spy) setTimeout(() => { ui.popup(at.x, at.y - 40, tr('LỘ MẶT GIÁN ĐIỆP!'), 'wrong'); toast(tr('Thu hồi {m} đ từ gián điệp', { m: fmt(res.spy) }), 'money'); }, 400);
 }
 
 // --- Simulation events -----------------------------------------------------------------
@@ -634,6 +663,7 @@ function finishMini(kind, { score, max }) {
     msg.push(tr('Cả phòng hăng say {n} giây', { n: 4 * score }));
   }
   g.records.miniGames = (g.records.miniGames || 0) + 1;
+  if (score) gainXp(g, skills.XP.mini);
   mini.closeMini();
   miniOpen = false; last = performance.now();
   score ? (audio.buy(), haptic('success')) : audio.deny();
@@ -671,6 +701,7 @@ function finishLevel() {
   const before = campaign.bestStars(r.main, r.id);
   const result = campaign.settle(r.main, r, stars);
   // first time at 3 stars: a rare-or-better item for the real company's bag
+  if (result.gained) gainXp(r.main, skills.XP.star * result.gained);
   if (result.count === 3 && before < 3) { result.item = inv.addItem(r.main, inv.rollItem(r.main, 1)); announceItem(result.item); }
   ui.blackout(-1);
   stars.filter(Boolean).length ? (audio.buy(), haptic('success')) : (audio.deny(), haptic('wrong'));
@@ -764,6 +795,7 @@ function showProjectReward() {
 }
 function collectProject(mult) {
   const r = projects.collect(g, mult);
+  if (r && !campaignRun) gainXp(g, skills.XP.project);
   rewardOpen = false;
   ui.hideProjectReward();
   last = performance.now();

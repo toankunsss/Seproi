@@ -1,13 +1,14 @@
 // Simulation: employee behaviour, economy, day cycle, coffee & assistant.
 // Pure-ish: mutates the game object and reports what happened through `emit`.
 import { ROLES, SLACKS, SLACK_KINDS, WHIPS, COFFEE, ASSISTANT, WORK_RATE, MOTIVATION, TUNING as T, dayLen } from './config.js';
-import { skillMult, lazyMult, stressMult } from './cv.js';
+import { skillMult, lazyMult, stressMult, typeOf } from './cv.js';
 import { addWork } from './projects.js';
 import { motivFactor, motivBaseline } from './staff.js';
 import { updateVisit, assistantHides } from './events.js';
 import { shareBonus } from './prestige.js';
 import { updateBoss } from './boss.js';
 import { bonus } from './inventory.js';
+import { catchMult, motivBonus, wrongStressMult, tickSkills } from './skills.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -39,14 +40,17 @@ export function update(g, dt, emit) {
   const decay = T.stressDecay * (hasPerk(g, 'massage') ? 2 : 1);
   if (g.hotBonus > 0) g.hotBonus = Math.max(0, g.hotBonus - dt);
   let working = 0, income = 0, finished = false;
+  // team leads keep the people next to them in line (special staff, cv.js)
+  const leadAt = new Set();
+  g.staff.forEach((e, i) => { if (e.cv && e.cv.type === 'lead' && e.state === 'work') { leadAt.add(i - 1); leadAt.add(i + 1); } });
 
-  for (const e of g.staff) {
+  for (const [idx, e] of g.staff.entries()) {
     e.t += dt;
     e.flash = Math.max(0, e.flash - dt);
     e.boost = Math.max(0, e.boost - dt);
     e.stress = Math.max(0, e.stress - decay * dt);
     // motivation slowly settles back to its baseline (rewards wear off, salary raises stick)
-    const base = motivBaseline(e), m = e.motiv ?? MOTIVATION.start, step = MOTIVATION.drift * dt;
+    const base = Math.min(100, motivBaseline(e) + motivBonus(g)), m = e.motiv ?? MOTIVATION.start, step = MOTIVATION.drift * dt;
     e.motiv = m > base ? Math.max(base, m - step) : Math.min(base, m + step);
     if (coffee) e.energy = Math.min(100, e.energy + coffee.regen * dt);
 
@@ -55,7 +59,7 @@ export function update(g, dt, emit) {
         e.energy = Math.max(0, e.energy - T.energyDrain * (mods.drain || 1) * dt * (e.boost > 0 ? 0.5 : 1));
         if (e.boost <= 0) {
           const tired = 1 - e.energy / 100;
-          const p = (T.slackBase + T.slackTired * tired * tired) * lazyMult(e.cv) * motivFactor(e) * (mods.slack || 1) * (g.boss ? 1.6 : 1) * dt;
+          const p = (T.slackBase + T.slackTired * tired * tired) * lazyMult(e.cv) * motivFactor(e) * (mods.slack || 1) * (g.boss ? 1.6 : 1) * (leadAt.has(idx) ? 0.7 : 1) * dt;
           if (Math.random() < p) {
             e.state = 'slack'; e.t = 0; e.dur = rand(T.slackMin, T.slackMax);
             // the hobby on their CV gives their favourite way to slack away
@@ -68,6 +72,10 @@ export function update(g, dt, emit) {
       }
       case 'slack':
         e.energy = Math.min(100, e.energy + 2 * dt);
+        if (e.cv && e.cv.type === 'spy' && g.money > 0) { // a spy dips into the company fund
+          const take = Math.min(g.money, typeOf(e.cv).steal * (1 + T.dayMult * (g.day - 1)) * dt);
+          g.money -= take; e.stolen = (e.stolen || 0) + take;
+        }
         if (e.t >= e.dur) { toWork(e); e.energy = Math.min(100, e.energy + 20); }
         break;
       case 'hurt':
@@ -97,6 +105,7 @@ export function update(g, dt, emit) {
   if (finished) emit('projectDone');
   updateVisit(g, dt, emit);
   updateBoss(g, dt, emit);
+  tickSkills(g, dt);
 
   const earned = income * dt;
   g.money += earned;
@@ -120,7 +129,7 @@ export function update(g, dt, emit) {
   if (g.assistantLevel >= 0 && !assistantHides(g)) {
     g.assistantCd -= dt;
     if (g.assistantCd <= 0) {
-      const slackers = g.staff.filter(isSlacking);
+      const slackers = g.staff.filter((x) => isSlacking(x) && !(x.cv && x.cv.type === 'nephew')); // the assistant won't touch the nephew
       if (slackers.length) {
         const target = slackers.reduce((a, b) => (b.t > a.t ? b : a));
         g.assistantCd = assistantInterval(g);
@@ -132,7 +141,7 @@ export function update(g, dt, emit) {
   }
 }
 
-function toWork(e) { e.state = 'work'; e.t = 0; e.slack = null; }
+function toWork(e) { e.state = 'work'; e.t = 0; e.slack = null; e.halfCaught = false; }
 
 /**
  * Apply a whip hit. Returns { kind: 'catch' | 'wrong' | 'strike', reward } so the
@@ -145,7 +154,23 @@ export function whipEmployee(g, e, { auto = false } = {}) {
 
   if (e.state === 'strike') return { kind: 'strike', reward: 0 };
 
+  // the big boss's nephew: whipping him is never OK, slacking or not
+  if (e.cv && e.cv.type === 'nephew' && !auto) {
+    const fine = Math.min(g.money, Math.round(150 * (1 + T.dayMult * (g.day - 1)) * (1 + 0.3 * g.whipLevel)));
+    g.money -= fine;
+    e.state = 'angry'; e.t = 0; e.slack = null;
+    for (const x of g.staff) x.motiv = Math.max(0, (x.motiv ?? MOTIVATION.start) - 5);
+    g.combo = 0; g.comboT = 0; g.today.wrong++;
+    return { kind: 'nephew', reward: -fine };
+  }
+
   if (e.state === 'slack') {
+    // a private phone call takes two whips: the first one only makes them hang up
+    if (SLACKS[e.slack].hits === 2 && !e.halfCaught) {
+      e.halfCaught = true; e.flash = 0.25;
+      return { kind: 'half', reward: 0 };
+    }
+    e.halfCaught = false;
     const excuse = SLACKS[e.slack].excuse;
     g.records.caught[e.slack] = (g.records.caught[e.slack] || 0) + 1;
     if (auto) g.records.assistCatches++;
@@ -158,7 +183,7 @@ export function whipEmployee(g, e, { auto = false } = {}) {
     e.motiv = Math.max(0, (e.motiv ?? MOTIVATION.start) + MOTIVATION.catch);
     let reward;
     // catch rewards grow with the company like salaries do, so whipping stays worth it
-    const day = (1 + T.dayMult * (g.day - 1)) * shareBonus(g) * (1 + bonus(g, 'catch') / 100);
+    const day = (1 + T.dayMult * (g.day - 1)) * shareBonus(g) * (1 + bonus(g, 'catch') / 100) * catchMult(g);
     if (auto) {
       reward = Math.round(w.bonus * 0.5 * day);
     } else {
@@ -172,12 +197,19 @@ export function whipEmployee(g, e, { auto = false } = {}) {
     g.lifetimeEarnings = (g.lifetimeEarnings || 0) + reward;
     g.today.revenue += reward;
     g.today.catches++;
-    return { kind: 'catch', reward, excuse };
+    // a spy caught in the act: unmasked, and the stolen money comes back with interest
+    let spy = 0;
+    if (e.cv && e.cv.type === 'spy') {
+      spy = Math.round((e.stolen || 0) * 1.5);
+      g.money += spy; e.stolen = 0;
+      if (!e.cv.revealed) { e.cv.revealed = true; g.records.spiesCaught = (g.records.spiesCaught || 0) + 1; }
+    }
+    return { kind: 'catch', reward, excuse, spy };
   }
 
   // Innocent (working, already hurt, or angry): unfair!
   e.state = 'angry'; e.t = 0;
-  e.stress += T.stressWrong * stressMult(e.cv);
+  e.stress += T.stressWrong * stressMult(e.cv) * wrongStressMult(g);
   e.motiv = Math.max(0, (e.motiv ?? MOTIVATION.start) + MOTIVATION.wrong);
   e.wrong++;
   e.whips++;

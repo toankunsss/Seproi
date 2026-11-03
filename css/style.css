@@ -893,3 +893,29 @@ body.in-level .stat.gems { visibility: hidden; }
 .inv-detail .info b { color: var(--rc, #fff); }
 .inv-icon.r3, .inv-slot.r3 { animation: badge-glow 1.2s steps(2) infinite; }
 .pop.item { font-size: 30px; color: var(--rc, #fff); }
+/* special staff (STAFF_TYPES) */
+.type-badge { display: inline-block; padding: 0 5px; margin-left: 4px; font-size: 15px; color: #12101a; vertical-align: middle; }
+.type-intern { background: #46b37a; } .type-lead { background: #ffd34d; } .type-nephew { background: #ff6aa8; } .type-spy { background: #8a86a6; }
+.type-note { margin: 4px 0; padding: 4px 6px; font-size: 16px; line-height: 1.1; background: rgba(255, 211, 77, .1); color: #ffe9a8; box-shadow: inset 2px 0 0 var(--gold); }
+/* boss level + skills (skills.js) */
+.mobile .avatar .lvl { position: absolute; left: 0; right: 0; bottom: 0; font-weight: normal; font-size: 14px; line-height: 15px; color: #fff; background: rgba(15, 12, 24, .8); text-align: center; }
+.inv-tabs { display: flex; gap: 8px; margin: 2px 0 8px; }
+.inv-tabs .px-btn { flex: 1; }
+.inv-tabs .px-btn.on { background: #6a3fb8; }
+.sk-head { padding: 8px; background: var(--panel-2); box-shadow: 0 0 0 3px var(--edge); }
+.sk-head b { font-weight: normal; font-size: 24px; color: var(--gold); }
+.sk-head .meter { height: 10px; margin: 4px 0; }
+.sk-head small { color: var(--muted); }
+.sk-row { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 2px dashed #4a3f70; }
+.sk-row .info { flex: 1; }
+.sk-row .title { font-size: 21px; }
+.sk-row .desc { font-size: 16px; color: var(--muted); line-height: 1.1; }
+.sk-row.on .title { color: #9ff4ff; }
+.pips { display: flex; gap: 3px; margin-top: 4px; }
+.pips i { width: 14px; height: 6px; background: #342b50; box-shadow: 0 0 0 1px var(--edge); }
+.pips i.on { background: var(--gold); }
+.mobile .actrow { display: flex; gap: 8px; }
+.mobile .actrow .px-btn { flex: 1; }
+.mobile .actrow .px-btn[hidden] { display: none; }
+.mobile .side .px-btn.roar { min-height: 54px; margin: 0; font-size: 22px; background: #8a2030; touch-action: manipulation; }
+.mobile .side .px-btn.roar:disabled { background: var(--panel-2); color: var(--muted); }

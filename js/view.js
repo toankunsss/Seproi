@@ -4,11 +4,12 @@
 //   mini     — a thin taskbar strip of workstations (desktop shell)
 import {
   roomLayer, ROOM_SIZE, drawClockHands, drawDesk, drawMonitor, drawKeyboard, renderScreen,
-  drawEmployee, drawBubble, drawMood, drawZzz, drawBoss, drawCoffeeMachine, drawAssistant, drawOfficeDecor, assistantPos, drawVisitor,
+  drawEmployee, drawBubble, drawMood, drawZzz, drawBoss, drawTypeTag, drawCoffeeMachine, drawAssistant, drawOfficeDecor, assistantPos, drawVisitor,
   PERSON_OFFSET, MINI_SLOT, MINI_H, drawMiniStation,
 } from './sprites.js';
 import { iso, rect } from './pixel.js';
 import { TUNING, COFFEE, dayLen } from './config.js';
+import { aboutToSlack } from './skills.js';
 import { portraitLayout, drawPortraitOffice } from './portrait.js';
 
 // Desk slots in hiring order (grid coords of the desk anchor).
@@ -75,6 +76,7 @@ export function createView(canvas) {
   };
 
   v.render = (g, whip, t) => {
+    v.g = g;
     const sx = whip.shake ? Math.round((Math.random() * 2 - 1) * whip.shake) : 0;
     const sy = whip.shake ? Math.round((Math.random() * 2 - 1) * whip.shake) : 0;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -171,8 +173,15 @@ export function createView(canvas) {
   }
 
   function drawOverlay(e, head, t, { mini = false, stress = null } = {}) {
+    if (!mini && v.g && aboutToSlack(v.g, e) && Math.floor(t * 3) % 2) { // hawk eye skill
+      rect(ctx, head.x - 2, head.y - 13, 5, 8, '#1d1826'); rect(ctx, head.x - 1, head.y - 12, 3, 4, '#ffd34d'); rect(ctx, head.x - 1, head.y - 7, 3, 1, '#ffd34d');
+    }
+    const type = e.cv && e.cv.type;
+    if (type && !mini && (type !== 'spy' || e.cv.revealed)) drawTypeTag(ctx, head.x + 6, head.y + 1, type);
     if (e.state === 'slack') {
       if (e.slack === 'sleep') drawZzz(ctx, head.x, head.y, t);
+      // "fake meeting" is sneaky: its bubble only shows half the time
+      if (e.slack === 'meeting' && Math.floor(t * 1.4 + e.id) % 2) return;
       const urgent = e.t > e.dur * 0.5;
       drawBubble(ctx, head.x + (mini ? 8 : 0), head.y + (mini ? 14 : 0), e.slack, t, urgent);
     } else if (!mini) {
