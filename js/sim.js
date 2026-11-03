@@ -7,6 +7,7 @@ import { motivFactor, motivBaseline } from './staff.js';
 import { updateVisit, assistantHides } from './events.js';
 import { shareBonus } from './prestige.js';
 import { updateBoss } from './boss.js';
+import { bonus } from './inventory.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -15,7 +16,7 @@ export const hasPerk = (g, id) => g.perks.includes(id);
 export function incomeOf(g, e) {
   if (e.state !== 'work' && e.state !== 'hurt') return 0;
   const boost = e.boost > 0 ? T.boostMult : 1;
-  const perks = (hasPerk(g, 'aiClock') ? 1.15 : 1) * (g.hotBonus > 0 ? 2 : 1) * shareBonus(g);
+  const perks = (hasPerk(g, 'aiClock') ? 1.15 : 1) * (g.hotBonus > 0 ? 2 : 1) * shareBonus(g) * (1 + bonus(g, 'income') / 100);
   return ROLES[e.role].income * skillMult(e.cv) * boost * perks * (1 + T.dayMult * (g.day - 1));
 }
 
@@ -157,12 +158,12 @@ export function whipEmployee(g, e, { auto = false } = {}) {
     e.motiv = Math.max(0, (e.motiv ?? MOTIVATION.start) + MOTIVATION.catch);
     let reward;
     // catch rewards grow with the company like salaries do, so whipping stays worth it
-    const day = (1 + T.dayMult * (g.day - 1)) * shareBonus(g);
+    const day = (1 + T.dayMult * (g.day - 1)) * shareBonus(g) * (1 + bonus(g, 'catch') / 100);
     if (auto) {
       reward = Math.round(w.bonus * 0.5 * day);
     } else {
       g.combo = g.comboT > 0 ? g.combo + 1 : 1;
-      g.comboT = T.comboWindow;
+      g.comboT = T.comboWindow * (1 + bonus(g, 'combo') / 100);
       g.today.bestCombo = Math.max(g.today.bestCombo, g.combo);
       g.records.bestCombo = Math.max(g.records.bestCombo, g.combo);
       reward = Math.round(w.bonus * Math.min(T.comboCap, 1 + (g.combo - 1) * 0.5) * day);
@@ -182,7 +183,7 @@ export function whipEmployee(g, e, { auto = false } = {}) {
   e.whips++;
   g.combo = 0; g.comboT = 0;
   g.kpi = Math.max(0, g.kpi - 0.05);
-  const penalty = Math.min(g.money, T.wrongPenalty * (1 + g.whipLevel) * ((g.mods && g.mods.wrongMult) || 1));
+  const penalty = Math.min(g.money, T.wrongPenalty * (1 + g.whipLevel) * ((g.mods && g.mods.wrongMult) || 1) * (1 - bonus(g, 'guard') / 100));
   g.money -= penalty;
   g.today.wrong++;
   return { kind: 'wrong', reward: -Math.round(penalty) };
@@ -190,7 +191,7 @@ export function whipEmployee(g, e, { auto = false } = {}) {
 
 export function useCoffee(g) {
   if (g.coffeeLevel < 0 || g.coffeeCd > 0) return false;
-  g.coffeeCd = COFFEE[g.coffeeLevel].cooldown;
+  g.coffeeCd = COFFEE[g.coffeeLevel].cooldown * (1 - bonus(g, 'coffee') / 100);
   g.records.coffees++;
   for (const e of g.staff) {
     e.energy = Math.min(100, e.energy + 55);

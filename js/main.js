@@ -24,6 +24,7 @@ import * as daily from './daily.js';
 import { sellCompany, sharesFor } from './prestige.js';
 import { hitBoss, winBoss } from './boss.js';
 import * as mini from './minigames.js';
+import * as inv from './inventory.js';
 import * as campaign from './campaign.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 
@@ -208,6 +209,19 @@ const act = {
     const gems = claim(g, id);
     if (gems) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n: gems }), 'coffee'); saveGame(); }
     ui.screens.repaint();
+  },
+  // --- boss inventory (inventory.js) ---
+  inventory() { ui.closePanel(); inv.invState(g).fresh = 0; ui.screens.inventory(); },
+  invSelect(id) { ui.screens.invSelect(Number(id)); },
+  invEquip(id) { if (inv.equip(g, Number(id))) { audio.buy(); haptic('light'); saveGame(); } ui.screens.repaint(); },
+  invUnequip(slot) { inv.unequip(g, slot); saveGame(); ui.screens.repaint(); },
+  invSell(id) {
+    const it = inv.invState(g).items.find((x) => x.id === Number(id));
+    if (!it || (it.rarity >= 2 && !confirm(tr('Bán {name} ({r})?', { name: tr(inv.itemName(it)), r: tr(inv.RARITY[it.rarity].name) })))) return;
+    const m = inv.sell(g, it.id);
+    toast(`+${fmt(m)} đ`, 'money'); audio.coin(1);
+    ui.screens.invSelect(0);
+    saveGame();
   },
   miniStart(kind) { if (!miniOpen) startMini(kind || 'mouse'); },
   // --- campaign (campaign.js) ---
@@ -445,7 +459,7 @@ canvas.addEventListener('pointerdown', (ev) => {
   if (ev.pointerType !== 'mouse') touchHide = 1.2;
   const W = WHIPS[g.whipLevel];
   // Fingers are less precise than a mouse: give touch a little extra reach.
-  const reach = W.radius + (ev.pointerType === 'mouse' ? 0 : TUNING.touchSlop);
+  const reach = W.radius + (ev.pointerType === 'mouse' ? 0 : TUNING.touchSlop) + inv.bonus(g, 'reach');
   // The weekly boss takes priority over everything else under the finger.
   if (g.boss && view.hitsBoss(p.x, p.y, ev.pointerType === 'mouse' ? 2 : 8)) {
     const r = view.bossHit, bx = (r.x0 + r.x1) / 2, by = r.y0 + 20;
@@ -478,8 +492,18 @@ function resolveBossHit(bx, by) {
     saveGame();
   }
 }
-/** Hook for the boss chest extras (equipment drop, see inventory). */
-function onBossChest() {}
+/** The boss chest always holds an epic-or-better item. */
+function onBossChest() { announceItem(inv.addItem(g, inv.rollItem(g, 2))); }
+
+/** A new item went into the bag: popup + toast in its rarity colour. */
+function announceItem(it, at) {
+  const p = at || { x: innerWidth / 2, y: innerHeight * 0.4 };
+  setTimeout(() => {
+    ui.popup(p.x, p.y - 60, tr('RƠI ĐỒ!'), `item r${it.rarity}`);
+    toast(`${tr(inv.RARITY[it.rarity].name)}: ${tr(inv.itemName(it))}`, `item r${it.rarity}`);
+    audio.buy(); haptic('success');
+  }, 500);
+}
 
 function resolveHit(hit, cx, cy) {
   if (!hit) return;
@@ -500,6 +524,7 @@ function resolveHit(hit, cx, cy) {
     ui.popup(at.x, at.y + 22, `+${fmt(res.reward)} đ`, 'money');
     if (g.combo > 1) ui.popup(at.x, at.y - 40, `COMBO x${g.combo}`, 'combo');
     if (Math.random() < 0.5) ui.popup(at.x, at.y + 44, `"${tr(res.excuse)}"`, 'say');
+    if (!campaignRun) { const it = inv.maybeDrop(g, g.combo); if (it) announceItem(it, at); }
   } else if (res.kind === 'wrong') {
     haptic('wrong');
     audio.ouch(0.8);
@@ -598,7 +623,7 @@ function finishMini(kind, { score, max }) {
     const money = Math.round((250 * dm * score) / max / 10) * 10;
     g.money += money; g.lifetimeEarnings += money;
     msg.push(`+${fmt(money)} đ`);
-    if (score >= max) { addGems(g, 3); msg.push(tr('+{n} KIM CƯƠNG', { n: 3 })); }
+    if (score >= max) { addGems(g, 3); msg.push(tr('+{n} KIM CƯƠNG', { n: 3 })); if (Math.random() < inv.DROP.mini) announceItem(inv.addItem(g, inv.rollItem(g))); }
   } else if (kind === 'tabs') {
     const money = Math.round((120 * dm * score) / 10) * 10;
     g.money += money; g.lifetimeEarnings += money;
@@ -643,7 +668,10 @@ function finishLevel() {
   if (g.visit) showVisitResult(endVisit(g));
   const states = r.level.goals.map((goal) => campaign.goalState(g, r, goal, true));
   const stars = states.map((s) => s.ok);
+  const before = campaign.bestStars(r.main, r.id);
   const result = campaign.settle(r.main, r, stars);
+  // first time at 3 stars: a rare-or-better item for the real company's bag
+  if (result.count === 3 && before < 3) { result.item = inv.addItem(r.main, inv.rollItem(r.main, 1)); announceItem(result.item); }
   ui.blackout(-1);
   stars.filter(Boolean).length ? (audio.buy(), haptic('success')) : (audio.deny(), haptic('wrong'));
   saveGame();

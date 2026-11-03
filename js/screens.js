@@ -15,6 +15,7 @@ import { questList, questClaimable, allQuestsClaimed, dailyState } from './daily
 import { DAILY, PRESTIGE } from './config.js';
 import { sharesFor, canSell, shareBonus } from './prestige.js';
 import { LEVELS, CHAPTERS, bestStars, totalStars, unlocked, goalText } from './campaign.js';
+import { SLOTS, SLOT_NAME, RARITY, STATS, invState, worn, itemName, itemIconUrl, bossUrl, bonus, wornSig, INV_CAP } from './inventory.js';
 import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
@@ -255,6 +256,41 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       <a class="px-btn wide link" href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Chính sách quyền riêng tư')}</a>
     </div>`;
 
+  // --- Boss inventory (inventory.js) --------------------------------------------------------------
+  let invSel = 0;
+  const statLine = (it) => t(STATS[it.stat].text, { v: it.value });
+  const itemBox = (it, extra = '') => `<span class="inv-icon r${it.rarity}"><img src="${itemIconUrl(it)}" alt="">${extra}</span>`;
+  function inventoryScreen() {
+    const I = invState(g);
+    const wornIds = new Set(Object.values(I.eq));
+    const slotsHtml = SLOTS.map((s) => {
+      const it = worn(g, s);
+      return `<button class="inv-slot ${it ? 'r' + it.rarity : 'empty'}" data-a="${it ? 'invSelect' : ''}" data-arg="${it ? it.id : ''}">
+        ${it ? `<img src="${itemIconUrl(it)}" alt="">` : ''}<small>${t(SLOT_NAME[s])}</small></button>`;
+    }).join('');
+    const totals = Object.keys(STATS).map((k) => ({ k, v: bonus(g, k) })).filter((x) => x.v);
+    const sel = I.items.find((x) => x.id === invSel);
+    const items = [...I.items].sort((a, b) => b.rarity - a.rarity || SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot));
+    return `<div class="card screen inv-screen">
+      ${head(t('Kho đồ của sếp'), t('{n}/{max} món · quất nhân viên có thể rơi đồ', { n: I.items.length, max: INV_CAP }))}
+      <div class="inv-top">
+        <div class="inv-figure"><img src="${bossUrl(g, true)}" alt=""></div>
+        <div class="inv-slots">${slotsHtml}</div>
+      </div>
+      <div class="inv-bonus">${totals.length ? totals.map((x) => `<span class="chip">${t(STATS[x.k].text, { v: x.v })}</span>`).join('') : `<small>${t('Chưa mặc gì: chưa có chỉ số cộng thêm.')}</small>`}</div>
+      ${sel ? `<div class="inv-detail r${sel.rarity}">
+          ${itemBox(sel)}
+          <div class="info"><b>${t(itemName(sel))}</b><div class="rar">${t(RARITY[sel.rarity].name)} · ${t(SLOT_NAME[sel.slot])}</div><div>${statLine(sel)}</div></div>
+          <div class="acts">
+            ${wornIds.has(sel.id) ? `<button class="px-btn" data-a="invUnequip" data-arg="${sel.slot}">${t('Tháo')}</button>` : `<button class="px-btn big" data-a="invEquip" data-arg="${sel.id}">${t('Mặc')}</button>`}
+            <button class="px-btn danger" data-a="invSell" data-arg="${sel.id}">${t('Bán')}</button>
+          </div>
+        </div>` : `<p class="tip">${t('Chạm vào một món để xem, mặc hoặc bán.')}</p>`}
+      <div class="inv-grid">${items.length ? items.map((it) => `<button class="inv-item ${it.id === invSel ? 'sel' : ''}" data-a="invSelect" data-arg="${it.id}">${itemBox(it, wornIds.has(it.id) ? '<i>✓</i>' : '')}</button>`).join('')
+        : `<p class="empty">${t('Kho trống. Quất nhân viên lười để có cơ hội nhận đồ, hoặc hạ trùm tuần!')}</p>`}</div>
+    </div>`;
+  }
+
   // --- Campaign hub (campaign.js) ---------------------------------------------------------------
   const starRow3 = (n) => [0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}">★</i>`).join('');
   function levelsScreen() {
@@ -327,6 +363,8 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     vip: () => open('vip', vipScreen, vipSig),
     staff: () => open('staff', staffScreen, staffSig, staffLive),
     achievements: () => open('achievements', achScreen, achSig),
+    inventory: () => { invSel = 0; open('inventory', inventoryScreen, () => `${invSel}|${wornSig(g)}|${invState(g).items.length}`); },
+    invSelect: (id) => { invSel = id; paint(); },
     levels: () => open('levels', levelsScreen, () => `${totalStars(g)}|${g.day}`),
     levelInfo: (id) => open('levelInfo', () => levelInfoScreen(id), () => id),
     sell: () => open('sell', sellScreen, () => `${Math.floor((g.lifetimeEarnings || 0) / 1000)}|${g.shares}`),
