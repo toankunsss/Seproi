@@ -51,6 +51,8 @@ export const WHIPS = [
   { name: 'Roi Gai',      cost: 1500,  bonus: 35,  boost: 10, radius: 8,  rope: '#4a4a52', tip: '#c0c0cc', fx: 'metal' },
   { name: 'Roi Điện',     cost: 6000,  bonus: 90,  boost: 12, radius: 10, rope: '#2a3a6a', tip: '#8fe8ff', fx: 'elec' },
   { name: 'Roi Rồng Lửa', cost: 20000, bonus: 240, boost: 15, radius: 13, rope: '#6a1a10', tip: '#ffb030', fx: 'fire' },
+  // Premium (💎) whip: never sold for đ, unlocked by the "Roi Kim Cương" perk.
+  { name: 'Roi Kim Cương', cost: Infinity, premium: true, bonus: 600, boost: 18, radius: 15, rope: '#4fb8e8', tip: '#e8fbff', fx: 'elec' },
 ];
 
 export const COFFEE = [
@@ -93,4 +95,115 @@ export const RANKS = [
   { min: 60, title: 'Sếp Nghiêm Khắc' },
   { min: 75, title: 'Sếp Ác Quỷ' },
   { min: 90, title: 'Chúa Tể KPI' },
+];
+
+// --- Premium currency ---------------------------------------------------------------------
+// Kim cương (💎): earned from achievements, projects and rewarded ads; spent on premium items.
+export const GEMS_START = 10;
+
+// --- Recruitment (CV) -----------------------------------------------------------------------
+// Every day a few candidates send in a CV. Traits are 1..5 stars and change the simulation:
+//   skill → income & project work, lazy → how often they slack, grit → stress they take per whip.
+export const CANDIDATES_PER_DAY = 3;
+export const CV_NAMES = [
+  'An', 'Bảo', 'Chi', 'Dũng', 'Giang', 'Hà', 'Hải', 'Hân', 'Hiếu', 'Huy', 'Khang', 'Khánh', 'Lan', 'Long',
+  'Minh', 'My', 'Nga', 'Ngọc', 'Nhi', 'Phát', 'Phúc', 'Quân', 'Quyên', 'Sơn', 'Tâm', 'Thảo', 'Thịnh', 'Thư',
+  'Tú', 'Uyên', 'Vy', 'Yến',
+];
+export const CV_LOOKS = {
+  skin: ['#f1c7a0', '#f5d0b0', '#d9a57a', '#c98e62', '#e0ac80'],
+  hair: ['#2b1d14', '#1a1210', '#6b3a1e', '#c9643a', '#141014', '#40281a', '#8a8a96', '#e8c35a', '#5a3a8a'],
+  shirt: ['#3d6fd6', '#e0607e', '#46b37a', '#9a64d6', '#e3a33b', '#34a4c4', '#d65a3d', '#5a6ee0', '#3a3a48'],
+  style: ['short', 'long', 'spiky', 'bun', 'bald'],
+};
+// Hobby on the CV hints at how they slack (70% of their slacking is this kind).
+export const CV_HOBBIES = {
+  game: ['Leo rank game di động', 'Speedrun game cổ', 'Cày game online xuyên đêm'],
+  toptop: ['Lướt Tóp Tóp bắt trend', 'Quay vlog dạo phố', 'Săn deal livestream'],
+  sleep: ['Ngủ trưa 2 tiếng', 'Thiền (và ngủ quên)', 'Nằm dài nghe podcast'],
+  crypto: ['Đầu tư coin "chắc thắng"', 'Đọc biểu đồ nến', 'Đào coin bằng máy công ty'],
+};
+export const CV_LINES = {
+  dev: ['Thành thạo Ctrl+C, Ctrl+V', 'Biết 7 ngôn ngữ lập trình, nói được 1', 'Sửa bug bằng cách tắt máy bật lại', 'Từng code xuyên Tết'],
+  acc: ['Excel nhanh như chớp', 'Cân bảng lương trong 5 phút', 'Thuộc lòng luật thuế 2026', 'Không bao giờ lệch 1 đồng'],
+  des: ['Kéo font chữ bằng cảm xúc', 'Làm logo trong 1 đêm', 'Bậc thầy màu pastel', 'Photoshop không cần chuột'],
+};
+export const CV_QUOTES = [
+  'Em sẵn sàng làm thêm giờ (nếu có trà sữa).',
+  'Điểm yếu của em là quá cầu toàn.',
+  'Em muốn học hỏi môi trường chuyên nghiệp.',
+  'Lương không quan trọng, quan trọng là lương cao.',
+  'Em nghe nói sếp ở đây rất "nghiêm".',
+  'Em có thể bắt đầu ngay hôm nay!',
+];
+
+// --- Projects (nghiệp vụ) -------------------------------------------------------------------
+// Clients hand out contracts. Working staff add work points for their role; finish before the
+// deadline (end of day N) for money + 💎. One active project at a time.
+export const PROJECT_TYPES = [
+  { name: 'Website bán hàng', roles: { dev: 1, des: 0.6 } },
+  { name: 'Báo cáo thuế quý', roles: { acc: 1 } },
+  { name: 'App giao đồ ăn', roles: { dev: 1, des: 0.5 } },
+  { name: 'Bộ nhận diện thương hiệu', roles: { des: 1 } },
+  { name: 'Phần mềm quản lý kho', roles: { dev: 0.8, acc: 0.7 } },
+  { name: 'Chiến dịch quảng cáo Tết', roles: { des: 1, acc: 0.3 } },
+  { name: 'Kiểm toán cuối năm', roles: { acc: 1 } },
+  { name: 'Game di động', roles: { dev: 1, des: 0.8 } },
+  { name: 'Hệ thống tính lương', roles: { dev: 0.6, acc: 1 } },
+  { name: 'Landing page sự kiện', roles: { des: 1, dev: 0.4 } },
+];
+export const CLIENTS = [
+  'Bánh mì Cô Ba', 'Tập đoàn Vạn Lời', 'Shop Thời Trang Hồng', 'Phở Gia Truyền', 'Startup Kỳ Lân',
+  'Nhà sách Tri Thức', 'Trà sữa Mây', 'Xe ôm Siêu Tốc', 'Gym Cơ Bắp', 'Homestay Đà Lạt Mộng',
+];
+export const PROJECT_OFFERS = 3;
+export const WORK_RATE = 1; // work points per second per working employee (x skill, x boost)
+
+// --- Premium items (💎) ------------------------------------------------------------------------
+//   perk  — permanent, bought once
+//   boost — consumable, buy as often as you like
+export const PREMIUM_ITEMS = [
+  { id: 'aiClock', kind: 'perk', gems: 60, name: 'Máy chấm công AI', desc: '+15% thu nhập vĩnh viễn.' },
+  { id: 'massage', kind: 'perk', gems: 50, name: 'Ghế massage', desc: 'Áp lực của nhân viên giảm nhanh gấp đôi.' },
+  { id: 'secretary', kind: 'perk', gems: 120, name: 'Thư ký riêng', desc: 'Trợ lý quất kẻ lười mỗi 2 giây.', needs: 'Cần Trợ lý Lv4' },
+  { id: 'diamondWhip', kind: 'perk', gems: 200, name: 'Roi Kim Cương', desc: 'Thưởng bắt quả tang 600 đ, tầm quất rộng nhất.', needs: 'Cần Roi Rồng Lửa' },
+  { id: 'hotBonus', kind: 'boost', gems: 10, name: 'Thưởng nóng', desc: 'x2 thu nhập trong 60 giây.' },
+  { id: 'espresso', kind: 'boost', gems: 8, name: 'Cà phê thượng hạng', desc: 'Cả công ty hăng say 30 giây, hết sạch áp lực.' },
+  { id: 'starCv', kind: 'boost', gems: 25, name: 'Săn đầu người', desc: 'Làm mới CV, chắc chắn có 1 ứng viên ngôi sao.' },
+  { id: 'cash', kind: 'boost', gems: 20, name: 'Rút quỹ đầu tư', desc: 'Nhận ngay số tiền bằng doanh thu ngày tốt nhất.' },
+];
+
+// --- Rewarded ads ------------------------------------------------------------------------------
+export const ADS = {
+  gemsPerAd: 5,     // "Xem quảng cáo +5 💎"
+  gemAdsPerDay: 6,  // daily cap for the gem reward
+};
+
+// --- Achievements --------------------------------------------------------------------------------
+// stat(g) → current value; reaching `goal` lets the player claim `gems`.
+export const ACHIEVEMENTS = [
+  { id: 'catch10', name: 'Mắt diều hâu', desc: 'Bắt quả tang 10 lần', goal: 10, gems: 5, stat: (g) => g.records.catches },
+  { id: 'catch100', name: 'Thanh tra lão luyện', desc: 'Bắt quả tang 100 lần', goal: 100, gems: 15, stat: (g) => g.records.catches },
+  { id: 'catch1000', name: 'Bàn tay sắt', desc: 'Bắt quả tang 1.000 lần', goal: 1000, gems: 40, stat: (g) => g.records.catches },
+  { id: 'combo5', name: 'Liên hoàn roi', desc: 'Đạt combo x5', goal: 5, gems: 5, stat: (g) => g.records.bestCombo },
+  { id: 'combo12', name: 'Bão roi', desc: 'Đạt combo x12', goal: 12, gems: 20, stat: (g) => g.records.bestCombo },
+  { id: 'day3', name: 'Trụ vững', desc: 'Điều hành công ty tới ngày 3', goal: 3, gems: 5, stat: (g) => g.day },
+  { id: 'day10', name: 'Công ty có tiếng', desc: 'Điều hành công ty tới ngày 10', goal: 10, gems: 15, stat: (g) => g.day },
+  { id: 'day30', name: 'Doanh nghiệp lâu năm', desc: 'Điều hành công ty tới ngày 30', goal: 30, gems: 40, stat: (g) => g.day },
+  { id: 'staff6', name: 'Mở rộng nhân sự', desc: 'Có 6 nhân viên', goal: 6, gems: 10, stat: (g) => g.staff.length },
+  { id: 'staff8', name: 'Full biên chế', desc: 'Có 8 nhân viên', goal: 8, gems: 20, stat: (g) => g.staff.length },
+  { id: 'star', name: 'Săn nhân tài', desc: 'Tuyển 1 ứng viên ngôi sao', goal: 1, gems: 10, stat: (g) => g.records.starsHired },
+  { id: 'office2', name: 'Chuyển nhà', desc: 'Mở Văn phòng mở rộng', goal: 1, gems: 10, stat: (g) => g.officeLevel },
+  { id: 'office3', name: 'Trụ sở riêng', desc: 'Mở Trụ sở Sếp Roi', goal: 2, gems: 20, stat: (g) => g.officeLevel },
+  { id: 'whip5', name: 'Rồng lửa', desc: 'Sở hữu Roi Rồng Lửa', goal: 4, gems: 20, stat: (g) => g.whipLevel },
+  { id: 'decor6', name: 'Văn phòng sang chảnh', desc: 'Mua đủ 6 món nội thất', goal: 6, gems: 15, stat: (g) => g.decor.length },
+  { id: 'proj1', name: 'Hợp đồng đầu tiên', desc: 'Hoàn thành 1 dự án', goal: 1, gems: 5, stat: (g) => g.projects.done },
+  { id: 'proj10', name: 'Đối tác tin cậy', desc: 'Hoàn thành 10 dự án', goal: 10, gems: 25, stat: (g) => g.projects.done },
+  { id: 'proj30', name: 'Tập đoàn đa ngành', desc: 'Hoàn thành 30 dự án', goal: 30, gems: 50, stat: (g) => g.projects.done },
+  { id: 'earn10k', name: 'Có lãi', desc: 'Tổng doanh thu 10.000 đ', goal: 1e4, gems: 5, stat: (g) => g.lifetimeEarnings },
+  { id: 'earn100k', name: 'Đại gia', desc: 'Tổng doanh thu 100.000 đ', goal: 1e5, gems: 15, stat: (g) => g.lifetimeEarnings },
+  { id: 'earn1m', name: 'Tỷ phú KPI', desc: 'Tổng doanh thu 1.000.000 đ', goal: 1e6, gems: 40, stat: (g) => g.lifetimeEarnings },
+  { id: 'kpi95', name: 'Kỷ luật thép', desc: 'Kết thúc ngày với KPI ≥ 95%', goal: 95, gems: 10, stat: (g) => g.records.bestKpi },
+  { id: 'fair', name: 'Sếp công tâm', desc: 'Một ngày bắt ≥ 15 lần mà không quất oan ai', goal: 1, gems: 15, stat: (g) => g.records.fairDays },
+  { id: 'strike', name: 'Ác mộng công đoàn', desc: 'Lần đầu bị nhân viên đình công', goal: 1, gems: 5, stat: (g) => g.records.strikes },
 ];

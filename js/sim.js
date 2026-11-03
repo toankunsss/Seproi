@@ -1,14 +1,22 @@
 // Simulation: employee behaviour, economy, day cycle, coffee & assistant.
 // Pure-ish: mutates the game object and reports what happened through `emit`.
-import { ROLES, SLACKS, SLACK_KINDS, WHIPS, COFFEE, ASSISTANT, TUNING as T } from './config.js';
+import { ROLES, SLACKS, SLACK_KINDS, WHIPS, COFFEE, ASSISTANT, WORK_RATE, TUNING as T } from './config.js';
+import { skillMult, lazyMult, stressMult } from './cv.js';
+import { addWork } from './projects.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
+
+export const hasPerk = (g, id) => g.perks.includes(id);
 
 export function incomeOf(g, e) {
   if (e.state !== 'work' && e.state !== 'hurt') return 0;
   const boost = e.boost > 0 ? T.boostMult : 1;
-  return ROLES[e.role].income * boost * (1 + T.dayMult * (g.day - 1));
+  const perks = (hasPerk(g, 'aiClock') ? 1.15 : 1) * (g.hotBonus > 0 ? 2 : 1);
+  return ROLES[e.role].income * skillMult(e.cv) * boost * perks * (1 + T.dayMult * (g.day - 1));
 }
+
+/** Assistant whip interval (the "Thư ký riêng" perk makes it 2s). */
+export const assistantInterval = (g) => (hasPerk(g, 'secretary') ? 2 : ASSISTANT[g.assistantLevel].interval);
 
 export const isSlacking = (e) => e.state === 'slack';
 
@@ -18,13 +26,15 @@ export function update(g, dt, emit) {
   if (g.dayTime >= T.dayLength) { g.dayTime = T.dayLength; emit('dayEnd'); return; }
 
   const coffee = g.coffeeLevel >= 0 ? COFFEE[g.coffeeLevel] : null;
-  let working = 0, income = 0;
+  const decay = T.stressDecay * (hasPerk(g, 'massage') ? 2 : 1);
+  if (g.hotBonus > 0) g.hotBonus = Math.max(0, g.hotBonus - dt);
+  let working = 0, income = 0, finished = false;
 
   for (const e of g.staff) {
     e.t += dt;
     e.flash = Math.max(0, e.flash - dt);
     e.boost = Math.max(0, e.boost - dt);
-    e.stress = Math.max(0, e.stress - T.stressDecay * dt);
+    e.stress = Math.max(0, e.stress - decay * dt);
     if (coffee) e.energy = Math.min(100, e.energy + coffee.regen * dt);
 
     switch (e.state) {
@@ -32,10 +42,11 @@ export function update(g, dt, emit) {
         e.energy = Math.max(0, e.energy - T.energyDrain * dt * (e.boost > 0 ? 0.5 : 1));
         if (e.boost <= 0) {
           const tired = 1 - e.energy / 100;
-          const p = (T.slackBase + T.slackTired * tired * tired) * dt;
+          const p = (T.slackBase + T.slackTired * tired * tired) * lazyMult(e.cv) * dt;
           if (Math.random() < p) {
             e.state = 'slack'; e.t = 0; e.dur = rand(T.slackMin, T.slackMax);
-            e.slack = SLACK_KINDS[Math.floor(Math.random() * SLACK_KINDS.length)];
+            // the hobby on their CV gives their favourite way to slack away
+            e.slack = e.cv.fav && Math.random() < 0.7 ? e.cv.fav : SLACK_KINDS[Math.floor(Math.random() * SLACK_KINDS.length)];
             emit('slack', e);
           }
         }
@@ -57,13 +68,19 @@ export function update(g, dt, emit) {
     }
     if (e.state !== 'strike' && e.stress >= 100) {
       e.state = 'strike'; e.t = 0; e.slack = null;
+      g.records.strikes++;
       emit('strike', e);
     }
 
     const inc = incomeOf(g, e);
-    if (inc > 0) working++;
+    if (inc > 0) {
+      working++;
+      // project work: same people who earn money also push the active contract forward
+      if (addWork(g, e.role, WORK_RATE * skillMult(e.cv) * (e.boost > 0 ? T.boostMult : 1) * dt)) finished = true;
+    }
     income += inc;
   }
+  if (finished) emit('projectDone');
 
   const earned = income * dt;
   g.money += earned;
@@ -89,7 +106,7 @@ export function update(g, dt, emit) {
       const slackers = g.staff.filter(isSlacking);
       if (slackers.length) {
         const target = slackers.reduce((a, b) => (b.t > a.t ? b : a));
-        g.assistantCd = ASSISTANT[g.assistantLevel].interval;
+        g.assistantCd = assistantInterval(g);
         emit('assistant', target);
       } else {
         g.assistantCd = 0.5; // check again soon
@@ -116,8 +133,9 @@ export function whipEmployee(g, e, { auto = false } = {}) {
     e.state = 'hurt'; e.t = 0; e.slack = null;
     e.energy = Math.min(100, e.energy + 45);
     e.boost = w.boost;
-    e.stress += T.stressCatch;
+    e.stress += T.stressCatch * stressMult(e.cv);
     e.whips++;
+    g.records.catches++;
     let reward;
     if (auto) {
       reward = Math.round(w.bonus * 0.5);
@@ -137,7 +155,7 @@ export function whipEmployee(g, e, { auto = false } = {}) {
 
   // Innocent (working, already hurt, or angry): unfair!
   e.state = 'angry'; e.t = 0;
-  e.stress += T.stressWrong;
+  e.stress += T.stressWrong * stressMult(e.cv);
   e.wrong++;
   e.whips++;
   g.combo = 0; g.comboT = 0;

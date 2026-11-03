@@ -1,7 +1,12 @@
 // Boot, game loop and glue between simulation, view, whip and UI.
-import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, OFFICE_LEVELS, DECOR_ITEMS, hireCost, TUNING } from './config.js';
+import { WHIPS, COFFEE, ASSISTANT, OFFICE_LEVELS, DECOR_ITEMS, MAX_STAFF, ADS, TUNING } from './config.js';
 import { load, save, wipe, makeEmployee, freshDay, SAVE_KEY } from './state.js';
-import { update as simUpdate, whipEmployee, useCoffee } from './sim.js';
+import { update as simUpdate, whipEmployee, useCoffee, assistantInterval } from './sim.js';
+import { hirePrice, refillCandidates } from './cv.js';
+import * as projects from './projects.js';
+import { claim } from './achievements.js';
+import { buyPremium } from './premium.js';
+import { showRewarded } from './ads.js';
 import { createView } from './view.js';
 import { createWhip } from './whip.js';
 import { createUI, fmt } from './ui.js';
@@ -32,7 +37,16 @@ view.fineScale = mobile;
 const whip = createWhip();
 let pipWin = null;
 let paused = false;
+let adOpen = false; // the simulation waits while a rewarded ad is on screen
 let resetting = false;
+
+// Morning routine (also on first launch / old saves): fresh CVs, client offers, ad caps.
+function newMorning() {
+  if (g.candidatesDay !== g.day || !g.candidates.length) { refillCandidates(g); g.candidatesDay = g.day; }
+  projects.refreshOffers(g);
+  if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
+}
+newMorning();
 
 // --- Actions (buttons) -----------------------------------------------------------
 const act = {
@@ -45,11 +59,12 @@ const act = {
   quit() { save(g); shell && shell.quit(); },
   buy(kind) {
     let cost = 0, ok = false;
-    if (kind === 'whip' && WHIPS[g.whipLevel + 1]) { cost = WHIPS[g.whipLevel + 1].cost; ok = pay(cost) && (g.whipLevel++, true); }
+    const nextWhip = WHIPS[g.whipLevel + 1];
+    if (kind === 'whip' && nextWhip && !nextWhip.premium) { cost = nextWhip.cost; ok = pay(cost) && (g.whipLevel++, true); }
     if (kind === 'coffee' && COFFEE[g.coffeeLevel + 1]) { cost = COFFEE[g.coffeeLevel + 1].cost; ok = pay(cost) && (g.coffeeLevel++, g.coffeeCd = 0, true); }
     if (kind === 'assistant' && ASSISTANT[g.assistantLevel + 1]) {
       cost = ASSISTANT[g.assistantLevel + 1].cost;
-      ok = pay(cost) && (g.assistantLevel++, g.assistantCd = ASSISTANT[g.assistantLevel].interval, true);
+      ok = pay(cost) && (g.assistantLevel++, g.assistantCd = assistantInterval(g), true);
     }
     if (kind === 'office' && OFFICE_LEVELS[g.officeLevel + 1]) {
       const next = OFFICE_LEVELS[g.officeLevel + 1];
@@ -72,23 +87,71 @@ const act = {
     save(g);
     return true;
   },
-  acceptHire(profile) {
+  // --- Recruitment by CV (screens.js) ---
+  cvHire(i) {
+    const cv = g.candidates[Number(i)];
+    if (!cv) return;
     const index = g.staff.length;
-    if (!STAFF_POOL[index]) return { ok: false, message: 'Văn phòng đã kín chỗ.' };
-    if (index >= OFFICE_LEVELS[g.officeLevel].capacity) {
-      return { ok: false, message: 'Hãy mở rộng văn phòng để có thêm bàn làm việc.' };
-    }
-    const required = ['nickname', 'age', 'experience', 'motivation'];
-    if (required.some((key) => !String(profile[key] || '').trim())) {
-      return { ok: false, message: 'Hãy hoàn tất đầy đủ thông tin phỏng vấn.' };
-    }
-    const cost = hireCost(index);
-    if (!pay(cost)) return { ok: false, message: 'Quỹ công ty chưa đủ để tuyển ứng viên này.' };
-    g.staff.push(makeEmployee(index, { ...profile, interviewedAt: Date.now() }));
+    if (index >= MAX_STAFF || index >= OFFICE_LEVELS[g.officeLevel].capacity) { audio.deny(); return toast('Hết bàn trống, hãy mở rộng văn phòng!', 'wrong'); }
+    if (!pay(hirePrice(g, cv))) { audio.deny(); return toast('Quỹ chưa đủ tiền tuyển.', 'wrong'); }
+    g.staff.push(makeEmployee(index, cv));
+    if (cv.star) g.records.starsHired++;
+    g.candidates.splice(Number(i), 1);
     layout();
-    audio.buy();
-    save(g);
-    return { ok: true };
+    audio.buy(); haptic('success');
+    toast(`ĐÃ TUYỂN ${cv.name.toUpperCase()}!`, 'money');
+    save(g); ui.screens.repaint();
+  },
+  cvReject(i) {
+    g.candidates.splice(Number(i), 1);
+    save(g); ui.screens.repaint();
+  },
+  async adCv() {
+    if (await watchAd('cv')) { refillCandidates(g); toast('3 CV MỚI!', 'money'); save(g); }
+    ui.screens.repaint();
+  },
+  // --- Projects ---
+  projAccept(i) {
+    if (projects.acceptOffer(g, Number(i))) { audio.buy(); haptic('success'); toast('NHẬN DỰ ÁN!', 'money'); save(g); }
+    ui.screens.repaint();
+  },
+  projAbandon() {
+    if (!confirm('Huỷ dự án này? Dự án sẽ tính là thất bại.')) return;
+    projects.abandon(g); save(g); ui.screens.repaint();
+  },
+  async adExtend() {
+    if (await watchAd('extend') && projects.extend(g)) { toast('GIA HẠN +1 NGÀY', 'money'); save(g); }
+    ui.screens.repaint(); ui.refreshReport();
+  },
+  // --- 💎 ---
+  vipBuy(id) {
+    const name = buyPremium(g, id);
+    if (!name) { audio.deny(); return; }
+    audio.buy(); haptic('success');
+    toast(name.toUpperCase() + '!', 'coffee');
+    if (id === 'starCv') { ui.screens.cv(); }
+    save(g); ui.screens.repaint();
+  },
+  async adGems() {
+    if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
+    if (g.ads.gems >= ADS.gemAdsPerDay) return;
+    if (await watchAd('gems')) { g.ads.gems++; g.gems += ADS.gemsPerAd; toast(`+${ADS.gemsPerAd} KIM CƯƠNG`, 'coffee'); save(g); }
+    ui.screens.repaint();
+  },
+  achClaim(id) {
+    const gems = claim(g, id);
+    if (gems) { audio.buy(); haptic('success'); toast(`+${gems} KIM CƯƠNG`, 'coffee'); save(g); }
+    ui.screens.repaint();
+  },
+  // --- end of day ---
+  async adDouble() {
+    if (g.today.doubled) return;
+    if (await watchAd('double')) {
+      const bonus = Math.floor(g.today.revenue);
+      g.money += bonus; g.lifetimeEarnings += bonus; g.today.doubled = true;
+      toast(`+${fmt(bonus)} đ`, 'money'); save(g);
+    }
+    ui.refreshReport();
   },
   setNickname(id, nickname) {
     const employee = g.staff.find((e) => e.id === Number(id));
@@ -108,6 +171,22 @@ const act = {
   },
 };
 const pay = (cost) => { if (g.money < cost) return false; g.money -= cost; return true; };
+const toast = (text, cls) => ui.popup(innerWidth / 2, innerHeight * 0.32, text, cls);
+
+/** Show a rewarded ad (ads.js) with the game paused; true = reward earned. */
+async function watchAd(placement) {
+  adOpen = true;
+  audio.setMuted(true);
+  try {
+    const ok = await showRewarded(placement);
+    if (ok) g.records.adsWatched++;
+    return ok;
+  } finally {
+    adOpen = false;
+    audio.setMuted(g.muted);
+    last = performance.now();
+  }
+}
 
 const ui = createUI(root, g, act, { mobile });
 const canPip = () => !shell && !mobile && pipSupported();
@@ -246,7 +325,7 @@ canvas.addEventListener('pointerdown', (ev) => {
   // Fingers are less precise than a mouse: give touch a little extra reach.
   const reach = W.radius + (ev.pointerType === 'mouse' ? 0 : TUNING.touchSlop);
   // Portrait office: tapping a free desk opens hiring instead of swinging at a neighbour.
-  if (view.pickSlot(p.x, p.y)) { whip.visible = false; ui.openShop(); return; }
+  if (view.pickSlot(p.x, p.y)) { whip.visible = false; act.interview(); return; }
   const hit = view.pick(p.x, p.y, reach);
   // Aim the tip at the head of whoever is in reach, or at the empty spot clicked.
   const tx = hit ? hit.head.x : p.x, ty = hit ? hit.head.y + 4 : p.y;
@@ -307,6 +386,14 @@ function onEvent(type, e) {
       ui.popup(at.x, at.y + 18, `+${fmt(res.reward)} đ`, 'money');
       break;
     }
+    case 'projectDone': {
+      const p = projects.complete(g);
+      if (!p) break;
+      audio.bell(); haptic('success');
+      toast(`XONG DỰ ÁN! +${fmt(p.money)} đ · +${p.gems} KIM CƯƠNG`, 'money');
+      save(g);
+      break;
+    }
     case 'dayEnd':
       endDay();
       break;
@@ -319,13 +406,21 @@ function endDay() {
   audio.bell();
   const t = g.today;
   const kpi = Math.round((t.kpiN ? t.kpiSum / t.kpiN : g.kpi) * 100);
+  g.records.bestKpi = Math.max(g.records.bestKpi, kpi);
+  if (t.catches >= 15 && t.wrong === 0) g.records.fairDays++;
   g.records.bestDays = [...g.records.bestDays, { day: g.day, revenue: Math.floor(t.revenue), kpi }]
     .sort((a, b) => b.revenue - a.revenue).slice(0, 5);
   save(g);
   const next = () => {
+    // an overdue project fails when the new day starts (unless an ad extended it)
+    if (projects.overdue(g)) {
+      const p = projects.fail(g);
+      toast(`DỰ ÁN THẤT BẠI: ${p.name}`, 'wrong');
+    }
     g.day++;
     g.dayTime = 0;
     g.today = freshDay();
+    newMorning();
     for (const e of g.staff) { e.energy = 100; e.stress = Math.max(0, e.stress - 50); e.state = 'work'; e.slack = null; e.t = 0; }
     paused = false;
     save(g);
@@ -355,7 +450,7 @@ function frame(now) {
 
 function step(dt) {
   t += dt;
-  if (!paused) simUpdate(g, dt, onEvent);
+  if (!paused && !adOpen) simUpdate(g, dt, onEvent);
   whip.update(dt);
   if (touchHide > 0) { touchHide -= dt; if (touchHide <= 0) whip.visible = false; }
   view.render(g, whip, t);
@@ -429,4 +524,4 @@ await initPlatform({ onBack: handleBack, onPause: goAway, onResume: comeBack });
 
 setMode(g.mode);
 schedule();
-window.__game = { g, view, whip, act, ui }; // debugging + automated play tests (console only)
+window.__game = { g, view, whip, act, ui, projects }; // debugging + automated play tests (console only)

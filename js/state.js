@@ -1,25 +1,25 @@
 // Game state + persistence. Only durable fields are saved; transient ones
 // (animation timers, current slack) are rebuilt on load.
-import { STAFF_POOL, STARTING_STAFF } from './config.js';
+import { STARTING_STAFF, GEMS_START } from './config.js';
+import { cvFromPool } from './cv.js';
 import { backup } from './platform.js';
 
 export const SAVE_KEY = 'whipboss.save.v1';
 
-export function makeEmployee(i, profile = {}) {
-  const p = STAFF_POOL[i];
+/** Employee number `i` (= desk index) hired from `cv` (see cv.js). */
+export function makeEmployee(i, cv = cvFromPool(i), extra = {}) {
   return {
-    id: i, name: p.name, nickname: profile.nickname || '', role: p.role, look: p,
-    profile: {
-      age: profile.age || '',
-      experience: profile.experience || '',
-      motivation: profile.motivation || '',
-      interviewedAt: profile.interviewedAt || null,
-    },
+    id: i, name: cv.name, nickname: extra.nickname || '', role: cv.role, look: cv.look, cv,
     state: 'work', slack: null, t: 0, dur: 0,
     energy: 70 + Math.random() * 30, stress: 0, boost: 0,
     whips: 0, wrong: 0, flash: 0,
   };
 }
+
+const freshRecords = () => ({
+  bestCombo: 0, totalWhips: 0, bestDays: [],
+  catches: 0, bestKpi: 0, fairDays: 0, starsHired: 0, strikes: 0, adsWatched: 0,
+});
 
 export function newGame() {
   return {
@@ -30,13 +30,22 @@ export function newGame() {
     kpi: 1, combo: 0, comboT: 0,
     staff: Array.from({ length: STARTING_STAFF }, (_, i) => makeEmployee(i)),
     today: freshDay(),
-    records: { bestCombo: 0, totalWhips: 0, bestDays: [] },
+    records: freshRecords(),
+    // meta progression
+    gems: GEMS_START,
+    candidates: [],          // CVs waiting on the desk (cv.js)
+    candidatesDay: 0,        // day the pile was last refilled
+    projects: { offers: [], offersDay: 0, active: null, done: 0, failed: 0 },
+    claimed: [],             // achievement ids already rewarded
+    perks: [],               // premium perks owned (config PREMIUM_ITEMS)
+    hotBonus: 0,             // seconds of x2 income left (premium boost)
+    ads: { day: 0, gems: 0 },// rewarded-ad counters for daily caps
     muted: false, mode: 'office',
   };
 }
 
 export function freshDay() {
-  return { revenue: 0, catches: 0, wrong: 0, bestCombo: 0, kpiSum: 0, kpiN: 0 };
+  return { revenue: 0, catches: 0, wrong: 0, bestCombo: 0, kpiSum: 0, kpiN: 0, doubled: false };
 }
 
 export function load() {
@@ -44,12 +53,20 @@ export function load() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return newGame();
     const s = JSON.parse(raw);
-    const g = Object.assign(newGame(), s, { combo: 0, comboT: 0 });
+    const base = newGame();
+    const g = Object.assign(base, s, { combo: 0, comboT: 0 });
+    // nested objects: keep defaults for fields older saves don't have
+    g.records = { ...freshRecords(), ...(s.records || {}) };
+    g.projects = { ...newGame().projects, ...(s.projects || {}) };
+    g.ads = { ...newGame().ads, ...(s.ads || {}) };
+    g.today = { ...freshDay(), ...(s.today || {}) };
+    for (const k of ['candidates', 'claimed', 'perks']) if (!Array.isArray(g[k])) g[k] = [];
+    if (!Number.isFinite(g.gems)) g.gems = GEMS_START;
     g.officeLevel = Math.max(0, Math.min(2, Number(g.officeLevel) || 0));
     g.lifetimeEarnings = Math.max(0, Number(s.lifetimeEarnings ?? s.money) || 0);
     g.decor = Array.isArray(g.decor) ? g.decor : [];
-    g.staff = s.staff.map((e) => ({
-      ...makeEmployee(e.id, { nickname: e.nickname, ...(e.profile || {}) }),
+    g.staff = s.staff.map((e, i) => ({
+      ...makeEmployee(e.id ?? i, e.cv || cvFromPool(e.id ?? i), { nickname: e.nickname }),
       energy: e.energy, stress: e.stress, whips: e.whips, wrong: e.wrong,
     }));
     if (g.staff.length > 6) g.officeLevel = Math.max(g.officeLevel, 2);
@@ -68,7 +85,7 @@ export function save(g) {
     const data = {
       ...g,
       staff: g.staff.map((e) => ({
-        id: e.id, nickname: e.nickname || '', profile: e.profile || {},
+        id: e.id, nickname: e.nickname || '', cv: e.cv,
         energy: e.energy, stress: e.stress, whips: e.whips, wrong: e.wrong,
       })),
     };

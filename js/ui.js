@@ -1,6 +1,8 @@
 // DOM UI: HUD, shop, pressure leaderboard, day report and floating combat text.
 import { WHIPS, COFFEE, ASSISTANT, STAFF_POOL, MAX_STAFF, OFFICE_LEVELS, DECOR_ITEMS, ROLES, RANKS, SLACKS, hireCost, TUNING } from './config.js';
 import { incomeOf } from './sim.js';
+import { createScreens, projectSummary } from './screens.js';
+import { progressOf } from './projects.js';
 
 export const fmt = (n) => {
   n = Math.floor(n);
@@ -36,6 +38,10 @@ const ICON = {
   shop: svg(r(4, 1, 4, 1) + r(3, 2, 1, 1) + r(8, 2, 1, 1) + r(1, 3, 10, 7) + r(5, 6, 2, 1, 'cut')),
   decor: svg(r(2, 3, 8, 4) + r(0, 5, 2, 4) + r(10, 5, 2, 4) + r(2, 7, 8, 2) + r(1, 9, 1, 2) + r(10, 9, 1, 2)),
   board: svg(r(1, 10, 10, 1) + r(2, 6, 2, 4) + r(5, 2, 2, 8) + r(8, 5, 2, 5)),
+  projects: svg(r(2, 1, 8, 11) + r(4, 0, 4, 2, 'cut2') + r(3, 4, 6, 1, 'cut') + r(3, 6, 6, 1, 'cut') + r(3, 8, 4, 1, 'cut')),
+  vip: svg(r(3, 1, 6, 2) + r(1, 3, 10, 2) + r(2, 5, 8, 2) + r(3, 7, 6, 1) + r(4, 8, 4, 1) + r(5, 9, 2, 2) + r(4, 2, 2, 1, 'cut')),
+  achievements: svg(r(3, 1, 6, 5) + r(1, 2, 2, 3) + r(9, 2, 2, 3) + r(4, 6, 4, 1) + r(5, 7, 2, 2) + r(3, 9, 6, 2) + r(5, 2, 1, 2, 'cut')),
+  more: svg(r(1, 5, 2, 2) + r(5, 5, 2, 2) + r(9, 5, 2, 2)),
   sound: svg(r(1, 4, 2, 4) + r(3, 3, 1, 6) + r(4, 2, 1, 8)
     + r(7, 4, 1, 4, 'on') + r(9, 2, 1, 8, 'on')
     + [[7, 4], [8, 5], [9, 6], [10, 7], [10, 4], [9, 5], [8, 6], [7, 7]].map(([x, y]) => r(x, y, 1, 1, 'off')).join('')),
@@ -50,18 +56,22 @@ const MOBILE_HUD = `
       <div class="stat money"><span class="coin"></span><b data-k="money">0</b><small data-k="rate"></small></div>
       <div class="stat day"><span data-k="day">Ngày 1</span><b data-k="clock">09:00</b></div>
       <div class="stat kpi"><span>KPI</span><div class="meter"><i data-k="kpiBar"></i></div><b data-k="kpi">100%</b></div>
+      <button class="stat gems" data-a="vip"><span class="gem"></span><b data-k="gems">0</b></button>
       <div class="whipname" data-k="whip"></div>
       <div class="combo" data-k="combo"></div>
       <div class="assist" data-k="assist"></div>
     </div>
     <div class="side controls">
       <div class="hint" data-k="hint"></div>
+      <button class="projbar" data-a="projects"><span class="pj-name" data-k="projName">Chưa có dự án</span>
+        <span class="meter"><i data-k="projBar"></i></span><span class="pj-due" data-k="projDue">Chạm để nhận việc</span></button>
       <button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden>Cà phê sốc</button>
       <nav class="tabbar">
         <button class="tab" data-a="shop">${ICON.shop}<span>Quản lý</span></button>
-        <button class="tab" data-a="decor">${ICON.decor}<span>Nội thất</span></button>
-        <button class="tab" data-a="board">${ICON.board}<span>Áp lực</span></button>
-        <button class="tab sound" data-a="mute">${ICON.sound}<span data-k="mute">Âm: Bật</span></button>
+        <button class="tab" data-a="projects">${ICON.projects}<span>Dự án</span><i class="dot" data-k="dotProjects" hidden></i></button>
+        <button class="tab" data-a="vip">${ICON.vip}<span>Kim cương</span></button>
+        <button class="tab" data-a="achievements">${ICON.achievements}<span>Thành tựu</span><i class="dot" data-k="dotAch" hidden></i></button>
+        <button class="tab" data-a="more">${ICON.more}<span>Thêm</span></button>
       </nav>
     </div>
     <div class="tag" data-k="tag" hidden></div>`;
@@ -77,7 +87,7 @@ function hintText(g) {
 export function createUI(root, g, act, { mobile = false } = {}) {
   const { hud, fx, panel, modal } = root;
   let panelOpen = false, lastPanelSig = '';
-  let liveCheck = null; // open dialog that depends on money (interview), refreshed by update()
+  const screens = createScreens({ g, act, modal, fmt, esc });
 
   hud.innerHTML = mobile ? MOBILE_HUD : `
     <div class="bar top">
@@ -85,8 +95,11 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       <div class="stat money"><span class="coin"></span><b data-k="money">0</b><small data-k="rate"></small></div>
       <div class="stat kpi"><span>KPI</span><div class="meter"><i data-k="kpiBar"></i></div><b data-k="kpi">100%</b></div>
       <div class="stat day"><span data-k="day">Ngày 1</span><b data-k="clock">09:00</b></div>
+      <button class="stat gems" data-a="vip"><span class="gem"></span><b data-k="gems">0</b></button>
       <div class="spacer"></div>
       <button class="px-btn" data-a="shop">Quản lý</button>
+      <button class="px-btn" data-a="projects">Dự án</button>
+      <button class="px-btn" data-a="achievements">Thành tựu <i class="dot" data-k="dotAch" hidden></i></button>
       <button class="px-btn" data-a="decor">Nội thất</button>
       <button class="px-btn" data-a="board">Áp lực</button>
       <button class="px-btn" data-a="mode" data-k="modeBtn">Thu nhỏ</button>
@@ -112,6 +125,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     const a = b.dataset.a;
     if (a === 'shop') togglePanel();
     else if (a === 'board') showBoard();
+    else if (screens[a] && ['projects', 'vip', 'achievements', 'more'].includes(a)) { ui.closePanel(); screens[a](); }
     else act[a] && act[a](b.dataset.arg);
   };
   hud.addEventListener('click', onClick);
@@ -148,8 +162,19 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       }
       const cd = Math.max(0, Math.ceil(g.assistantCd));
       set(K.assist, g.assistantLevel < 0 ? '' : mobile ? `Trợ lý: ${cd}s` : `Trợ lý Lv${g.assistantLevel + 1} · ${cd}s`);
+      set(K.gems, String(g.gems));
+      const pj = projectSummary(g);
+      if (K.projName) {
+        set(K.projName, pj ? pj.name : 'Chưa có dự án');
+        set(K.projDue, pj ? `${Math.floor(pj.frac * 100)}% · ${pj.due}` : 'Chạm để nhận việc');
+        K.projBar.style.width = pj ? Math.round(pj.frac * 100) + '%' : '0%';
+        K.projName.parentElement.classList.toggle('idle', !pj);
+      }
+      const badges = screens.badges();
+      if (K.dotAch) { K.dotAch.hidden = !badges.achievements; K.dotAch.textContent = badges.achievements || ''; }
+      if (K.dotProjects) K.dotProjects.hidden = !badges.projects;
       if (panelOpen) renderPanel();
-      if (liveCheck && !modal.hidden) liveCheck(); else liveCheck = null;
+      screens.tick();
     },
 
     /** Floating text at client coords. */
@@ -180,13 +205,35 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       K.tag.style.top = y - r.top + 'px';
     },
 
+    /** End-of-day card. extras: { overdue, canExtend } from main.js. Ad buttons re-render it. */
     showReport(done) {
-      const t = g.today;
-      const avg = t.kpiN ? t.kpiSum / t.kpiN : g.kpi;
-      const title = rankFor(avg);
-      modal.hidden = false;
-      modal.innerHTML = `
-        <div class="card">
+      reportDone = done;
+      renderReport();
+      act.nextDay = () => { modal.hidden = true; act.nextDay = null; reportDone = null; done(); };
+    },
+    refreshReport() { if (reportDone && !modal.hidden) renderReport(); },
+
+    closePanel() { panelOpen = false; panel.hidden = true; },
+    openShop() { if (!panelOpen) togglePanel(); },
+  };
+
+  let reportDone = null;
+  function renderReport() {
+    const t = g.today;
+    const avg = t.kpiN ? t.kpiSum / t.kpiN : g.kpi;
+    const title = rankFor(avg);
+    const p = g.projects.active;
+    let proj = '';
+    if (p) {
+      const pct = Math.floor(progressOf(p) * 100);
+      proj = g.day >= p.deadline
+        ? `<div class="report-proj warn">Dự án <b>${esc(p.name)}</b> mới xong ${pct}% và hết hạn hôm nay!
+            ${p.extended ? '<br>Đã gia hạn 1 lần, sang ngày mới dự án sẽ thất bại.' : '<br><button class="px-btn ad" data-a="adExtend">▶ Xem quảng cáo: gia hạn +1 ngày</button>'}</div>`
+        : `<div class="report-proj">Dự án <b>${esc(p.name)}</b>: ${pct}% · hạn hết ngày ${p.deadline}</div>`;
+    }
+    modal.hidden = false;
+    modal.innerHTML = `
+        <div class="card report">
           <h2>Tan ca · Ngày ${g.day}</h2>
           <div class="rank">${title}</div>
           <table>
@@ -196,14 +243,12 @@ export function createUI(root, g, act, { mobile = false } = {}) {
             <tr><td>Quất oan</td><td>${t.wrong}</td></tr>
             <tr><td>Combo cao nhất</td><td>x${t.bestCombo}</td></tr>
           </table>
+          ${proj}
+          ${t.doubled ? '<div class="report-bonus">Đã nhận thưởng quảng cáo ✓</div>'
+            : `<button class="px-btn ad wide" data-a="adDouble">▶ Xem quảng cáo: nhận thêm ${fmt(t.revenue)} đ</button>`}
           <button class="px-btn big" data-a="nextDay">Ngày làm việc mới</button>
         </div>`;
-      act.nextDay = () => { modal.hidden = true; act.nextDay = null; done(); };
-    },
-
-    closePanel() { panelOpen = false; panel.hidden = true; },
-    openShop() { if (!panelOpen) togglePanel(); },
-  };
+  }
 
   function togglePanel() {
     panelOpen = !panelOpen;
@@ -221,7 +266,8 @@ export function createUI(root, g, act, { mobile = false } = {}) {
   }
 
   function renderPanel() {
-    const wl = g.whipLevel, next = WHIPS[wl + 1];
+    // the 💎 whip is sold in the Kim cương shop, not here
+    const wl = g.whipLevel, next = WHIPS[wl + 1] && !WHIPS[wl + 1].premium ? WHIPS[wl + 1] : null;
     const cl = g.coffeeLevel, al = g.assistantLevel;
     const n = g.staff.length, hire = STAFF_POOL[n];
     const office = OFFICE_LEVELS[g.officeLevel], nextOffice = OFFICE_LEVELS[g.officeLevel + 1];
@@ -232,7 +278,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       ASSISTANT[al + 1] && g.money >= ASSISTANT[al + 1].cost,
       nextOffice && g.money >= nextOffice.cost,
     ].map(Boolean).join(',');
-    const sig = [wl, cl, al, n, g.officeLevel, !!officeReady, affordability].join('|');
+    const sig = [wl, cl, al, n, g.officeLevel, !!officeReady, affordability, g.candidates.length].join('|');
     if (sig === lastPanelSig) {
       const money = panel.querySelector('[data-panel-money]');
       if (money) money.textContent = `${fmt(g.money)} đ`;
@@ -251,11 +297,11 @@ export function createUI(root, g, act, { mobile = false } = {}) {
         next ? `Roi: ${WHIPS[wl].name} → ${next.name}` : `Roi: ${WHIPS[wl].name}`,
         next ? `Thưởng bắt quả tang ${WHIPS[wl].bonus} → ${next.bonus} đ · hăng say ${next.boost}s · tầm quất rộng hơn` : 'Cây roi tối thượng. Cả văn phòng run rẩy.',
         next ? next.cost : 0, true, !next),
-      hire && n < office.capacity ? `<div class="item">
-        <div class="info"><div class="title">Ứng viên: ${hire.name} (${ROLES[hire.role].label})</div>
-        <div class="desc">Phỏng vấn và hoàn tất hồ sơ trước khi nhận việc · phí tuyển ${fmt(hireCost(n))} đ.</div></div>
-        <button class="px-btn buy" data-a="interview">Phỏng vấn</button>
-      </div>` : item('hire', hire ? 'Cần mở rộng văn phòng' : 'Văn phòng đã kín chỗ', hire ? `${n}/${office.capacity} bàn đang sử dụng` : `${MAX_STAFF}/${MAX_STAFF} bàn`, 0, false, true, 'Hết chỗ'),
+      hire ? `<div class="item">
+        <div class="info"><div class="title">Tuyển dụng · ${g.candidates.length} CV đang chờ</div>
+        <div class="desc">${n < office.capacity ? `${n}/${office.capacity} bàn đã có người. Đọc CV và chọn người phù hợp.` : `Hết bàn (${n}/${office.capacity}). Mở rộng văn phòng để tuyển thêm.`}</div></div>
+        <button class="px-btn buy" data-a="interview">Xem CV</button>
+      </div>` : item('hire', 'Văn phòng đã kín chỗ', `${MAX_STAFF}/${MAX_STAFF} bàn`, 0, false, true, 'Hết chỗ'),
       item('coffee',
         cl < 0 ? 'Mua máy pha cà phê' : COFFEE[cl + 1] ? `Máy cà phê Lv${cl + 1} → Lv${cl + 2}` : `Máy cà phê Lv${cl + 1}`,
         COFFEE[cl + 1] ? `Nút "Cà phê sốc": +55 năng lượng, −30 áp lực, đánh thức kẻ ngủ gật. Hồi chiêu ${COFFEE[cl + 1].cooldown}s.` : 'Espresso cấp công nghiệp.',
@@ -338,64 +384,8 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     form.elements.nickname.focus();
   }
 
-  function showInterview() {
-    const candidate = STAFF_POOL[g.staff.length];
-    if (!candidate) return;
-    const cost = hireCost(g.staff.length);
-    modal.hidden = false;
-    modal.innerHTML = `
-      <div class="card interview">
-        <div class="panel-head"><h2>Phỏng vấn ứng viên</h2><button class="px-btn icon" data-a="closeInterview">×</button></div>
-        <div class="candidate"><span class="dot" style="background:${candidate.shirt}"></span>
-          <b>${candidate.name}</b> · ${ROLES[candidate.role].label}
-        </div>
-        <p>Hoàn tất buổi phỏng vấn, sau đó chính bạn quyết định tuyển hay từ chối ứng viên.</p>
-        <form id="interview-form">
-          <label>Biệt danh muốn gọi <input name="nickname" maxlength="20" required placeholder="Ví dụ: Tuấn Code"></label>
-          <label>Tuổi <input name="age" type="number" min="18" max="70" required placeholder="18–70"></label>
-          <label>Số năm kinh nghiệm <input name="experience" type="number" min="0" max="50" required placeholder="0–50"></label>
-          <label>Vì sao muốn vào công ty? <textarea name="motivation" maxlength="180" required placeholder="Câu trả lời của ứng viên"></textarea></label>
-          <div class="form-error" aria-live="polite"></div>
-          <div class="interview-actions">
-            <button class="px-btn danger" type="button" data-a="rejectInterview">Từ chối</button>
-            <button class="px-btn big accept" type="submit" disabled>Accept · ${fmt(cost)} đ</button>
-          </div>
-        </form>
-      </div>`;
-    const form = modal.querySelector('#interview-form');
-    const accept = form.querySelector('.accept');
-    const error = form.querySelector('.form-error');
-    const validate = () => {
-      const complete = form.checkValidity();
-      accept.disabled = !complete || g.money < cost;
-      error.textContent = complete && g.money < cost ? 'Quỹ công ty chưa đủ chi phí tuyển dụng.' : '';
-    };
-    form.addEventListener('input', validate);
-    liveCheck = validate; // money keeps changing while the form is open
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      if (!form.reportValidity()) return;
-      const data = Object.fromEntries(new FormData(form));
-      const result = act.acceptHire(data);
-      if (!result.ok) { error.textContent = result.message; validate(); return; }
-      modal.hidden = true;
-      ui.popup(innerWidth / 2, innerHeight * 0.3, `ĐÃ TUYỂN ${data.nickname.toUpperCase()}!`, 'money');
-      lastPanelSig = '';
-    });
-    const dismiss = () => {
-      modal.hidden = true;
-      act.closeInterview = null;
-      act.rejectInterview = null;
-    };
-    act.closeInterview = dismiss;
-    act.rejectInterview = () => {
-      dismiss();
-      ui.popup(innerWidth / 2, innerHeight * 0.3, `ĐÃ TỪ CHỐI ${candidate.name.toUpperCase()}`, 'say');
-    };
-    validate();
-  }
-
-  act.interview = showInterview;
+  act.interview = () => { ui.closePanel(); screens.cv(); };
+  ui.screens = screens;
   act.nickname = showNickname;
   act.decor = showDecorStore;
   act.buyDecor = (id) => { act.purchaseDecor(id); showDecorStore(); };
