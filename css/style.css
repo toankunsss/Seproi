@@ -1010,9 +1010,10 @@ body.in-level .roombar, body.in-level .rb-home, body.in-level .rb-step, body.in-
 .title-langs[hidden] { display: none; }
 .title-langs .px-btn { min-height: 40px; font-size: 16px; padding: 2px 4px; }
 .title-langs .px-btn.on, .lang-row .px-btn.on { background: var(--gold); color: #1d1826; }
-/* Scripts VT323 has no glyphs for fall back to the system font, which runs larger: tone it down. */
+/* Scripts VT323 has no glyphs for (CJK, Thai, Cyrillic) use the phone's system font for all text,
+   a touch smaller than the pixel font's nominal size so it fits the same boxes. */
 :root[data-script="cjk"], :root[data-script="thai"], :root[data-script="cyrillic"] {
-  --font: 'VT323', 'Noto Sans', system-ui, sans-serif;
-  --font-big: 'Press Start 2P', 'VT323', 'Noto Sans', system-ui, sans-serif;
+  --font: system-ui, 'Noto Sans', sans-serif;
+  --font-big: 'Press Start 2P', system-ui, 'Noto Sans', sans-serif;
 }
-:root[data-script="cjk"] body, :root[data-script="thai"] body, :root[data-script="cyrillic"] body { font-size-adjust: 0.4; }
+:root[data-script="cjk"] body, :root[data-script="thai"] body, :root[data-script="cyrillic"] body { font-size-adjust: 0.47; }
