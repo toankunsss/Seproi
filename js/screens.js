@@ -141,6 +141,36 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     }
   }
 
+  // --- One employee's info card (whip switched off → tap someone) ---------------------------------
+  function empInfoScreen(id) {
+    const e = g.staff.find((x) => x.id === id);
+    if (!e) return '';
+    const T = typeOf(e.cv);
+    return `<div class="card screen emp-info">
+      ${head(esc(e.nickname || e.name), `${t(ROLES[e.role].label)}${isHead(g, e) ? ' · ' + t('Trưởng phòng') : ''}`)}
+      <div class="cv-top">
+        <img class="face big" src="${faceUrl(e.look, e.cv.star)}" alt="">
+        <div class="cv-who">${e.nickname ? `<small>${esc(e.name)}</small>` : ''}${typeBadge(e.cv)}${e.cv.star ? ` <span class="badge-star">${t('NGÔI SAO')}</span>` : ''}
+          <div>${t('Trạng thái')}: <b data-state="${e.id}">${t(STATE[e.state] || 'Đang làm')}</b></div>
+          <div>${t('Lương bậc {n}', { n: (e.wage || 0) + 1 })} · ${fmt(salaryOf(g, e))} đ/${t('ngày')}</div>
+          <div class="mini-stars">★${e.cv.skill} ${t('Kỹ năng')} · ★${e.cv.lazy} ${t('Độ lười')} · ★${e.cv.grit} ${t('Chịu áp lực')}</div></div>
+      </div>
+      ${T && (!T.hidden || e.cv.revealed) ? `<div class="type-note">${t(T.desc)}</div>` : ''}
+      <div class="staff-bars">
+        <span>${t('Động lực')}</span>${bar('motiv', e.id, 'motiv')}
+        <span>${t('Áp lực')}</span>${bar('stress', e.id, 'stress')}
+        <span>${t('Năng lượng')}</span>${bar('energy', e.id, 'energy')}
+      </div>
+      <ul class="cv-lines"><li>${t('Sở thích:')} ${esc(t(e.cv.hobby))}</li><li>${t('Bị quất: {n} lần · quất oan: {w}', { n: e.whips || 0, w: e.wrong || 0 })}</li><li><q>${esc(t(e.cv.quote))}</q></li></ul>
+      <div class="staff-actions">
+        ${staffBtn('praise', e, 'Khen ngợi')}
+        ${staffBtn('gift', e, 'Tặng trà sữa')}
+        <button class="px-btn" data-a="nickname" data-arg="${e.id}">${t('Đặt tên')}</button>
+        <button class="px-btn" data-a="staff">${t('Nhân sự')}</button>
+      </div>
+    </div>`;
+  }
+
   // --- Projects -------------------------------------------------------------------------
   const roleBar = (p, r) => `<div class="req"><span>${t(ROLES[r].label)}</span><div class="meter"><i data-prog="${r}"></i></div><b data-progtxt="${r}">${Math.floor(p.prog[r])}/${p.req[r]}</b></div>`;
   function projectsScreen() {
@@ -351,6 +381,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       ${SKILLS.map((k) => {
         const r = skillRank(g, k.id);
         return `<div class="sk-row ${r ? 'on' : ''}">
+          <div class="item-art sk-art"><img src="${itemArtUrl('sk' + k.id)}" alt=""></div>
           <div class="info"><div class="title">${t(k.name)} ${k.active ? `<span class="chip">${t('Chủ động')}</span>` : ''}</div>
             <div class="desc">${t(k.desc)}${k.id === 'roar' && r ? ` (${t('hồi chiêu {n}s', { n: roarCooldown(g) })})` : ''}</div>
             <div class="pips">${Array.from({ length: k.max }, (_, i) => `<i class="${i < r ? 'on' : ''}"></i>`).join('')}</div></div>
@@ -464,6 +495,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     projects: () => open('projects', projectsScreen, projSig, projLive),
     vip: () => open('vip', vipScreen, vipSig),
     staff: () => open('staff', staffScreen, staffSig, staffLive),
+    empInfo: (id) => open('empInfo', () => empInfoScreen(id), () => { const e = g.staff.find((x) => x.id === id); return e ? `${e.nickname}|${e.praisedDay}|${e.wage}|${g.money >= 0 ? Math.floor(g.money / 50) : 0}|${e.room}` : 'x'; }, staffLive),
     achievements: () => open('achievements', achScreen, achSig),
     inventory: () => { invSel = 0; open('inventory', inventoryScreen, () => `${invSel}|${invTab}|${wornSig(g)}|${invState(g).items.length}|${JSON.stringify(skState(g))}`); },
     invTab: (tab) => { invTab = tab; paint(); },

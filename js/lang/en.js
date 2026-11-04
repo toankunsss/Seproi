@@ -821,4 +821,13 @@ export default {
   "Cấp sếp": "Boss level",
   "Công ty của tôi trong Whip Boss, ai lười là ăn roi!": "My company in Whip Boss: slack off and you get the whip!",
   "Đã lưu ảnh": "Picture saved",
+  // whip toggle
+  "Bật / tắt roi": "Whip on / off",
+  "BẬT": "ON",
+  "TẮT": "OFF",
+  "Roi: BẬT · chạm để quất": "Whip ON · tap to whip",
+  "Roi: TẮT · chạm nhân viên để xem thông tin": "Whip OFF · tap staff to see their info",
+  "Trạng thái": "Status",
+  "Bị quất: {n} lần · quất oan: {w}": "Whipped {n} times · wrongly: {w}",
+  "Trưởng phòng": "Department head",
 };

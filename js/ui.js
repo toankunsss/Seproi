@@ -6,7 +6,8 @@ import { loginGift } from './daily.js';
 import { goalState, goalText, CHAPTERS } from './campaign.js';
 import { bossUrl, wornSig, invState } from './inventory.js';
 import { rank as skillRank, skState } from './skills.js';
-import { DAILY, BOSS } from './config.js';
+import { DAILY, BOSS, WHIP_SKINS } from './config.js';
+const WHIP_SKIN_INDEX = (id) => Math.max(0, WHIP_SKINS.findIndex((s) => s.id === id));
 import { createScreens, projectSummary } from './screens.js';
 import { progressOf, penaltyOf } from './projects.js';
 import { VISITS } from './config.js';
@@ -68,7 +69,7 @@ const MOBILE_HUD = `
       <div class="stat day"><span data-k="day"></span><b data-k="clock">09:00</b></div>
       <div class="stat kpi"><span>KPI</span><div class="meter"><i data-k="kpiBar"></i></div><b data-k="kpi">100%</b></div>
       <button class="stat gems" data-a="vip"><span class="gem"></span><b data-k="gems">0</b></button>
-      <div class="whipname" data-k="whip"></div>
+      <button class="whipname whipbtn" data-a="whipToggle" data-k="whip" title="${t('Bật / tắt roi')}"></button>
       <div class="combo" data-k="combo"></div>
       <div class="assist" data-k="assist"></div>
     </div>
@@ -152,6 +153,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
   function set(el, text) { if (el && el.textContent !== text) el.textContent = text; }
 
   const ui = {
+    whipOn: true, // HUD whip button: off → tapping someone shows their info (main.js)
     setPipAvailable(ok) { if (K.pipBtn) K.pipBtn.hidden = !ok; },
 
     update() {
@@ -175,7 +177,15 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       K.kpiBar.className = kpi >= 75 ? 'good' : kpi >= 50 ? 'mid' : 'bad';
       set(K.day, t('Ngày {n}', { n: g.day }));
       set(K.clock, clockText(g));
-      set(K.whip, t(WHIPS[g.whipLevel].name));
+      if (K.whip && K.whip.tagName === 'BUTTON') {
+        const on = ui.whipOn !== false, key = `${on}|${g.whipLevel}|${(g.cos && g.cos.skin) || ''}`;
+        if (K.whip.dataset.key !== key) {
+          K.whip.dataset.key = key;
+          const art = g.cos && g.cos.skin ? 'skin:' + WHIP_SKIN_INDEX(g.cos.skin) : 'whip:' + Math.min(g.whipLevel, 5);
+          K.whip.innerHTML = `<img src="${itemArtUrl(art)}" alt=""><span>${t(WHIPS[g.whipLevel].name)}</span><em>${on ? t('BẬT') : t('TẮT')}</em>`;
+          K.whip.classList.toggle('on', on);
+        }
+      } else set(K.whip, t(WHIPS[g.whipLevel].name));
       set(K.combo, g.combo > 1 ? `COMBO x${g.combo}` : '');
       set(K.modeBtn, g.mode === 'office' ? t('Thu nhỏ') : t('Văn phòng'));
       set(K.mute, g.muted ? '×' : '♪');

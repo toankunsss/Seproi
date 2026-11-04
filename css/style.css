@@ -275,7 +275,7 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 /* Info card */
 .mobile .side.info {
   display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 6px; padding: 8px;
-  grid-template-areas: "avatar money money day" "avatar kpi kpi gems" "avatar whip combo assist";
+  grid-template-areas: "avatar money money day" "avatar kpi kpi gems" "avatar whip whip assist";
   background: var(--panel); box-shadow: 0 0 0 3px var(--edge), 0 6px 0 3px rgba(0, 0, 0, 0.35);
 }
 .mobile .stat { padding: 4px 8px; gap: 0 6px; }
@@ -955,3 +955,17 @@ body.in-level .stat.gems { visibility: hidden; }
 .album-card.locked { opacity: .5; }
 .album-card.locked b { color: var(--muted); }
 .px-btn.share { background: #2a5a9a; }
+.sk-row .sk-art { width: 56px; height: 56px; flex: none; } .sk-row:not(.on) .sk-art img { filter: grayscale(.7) brightness(.8); }
+/* whip on/off button (info card) */
+.mobile .whipbtn { display: flex; align-items: center; gap: 6px; padding: 2px 6px; border: 0; cursor: pointer; pointer-events: auto; font: inherit; font-size: 18px; color: var(--muted);
+  background: #1d1830; box-shadow: 0 0 0 2px var(--edge), inset 0 0 0 2px #342b50; overflow: hidden; }
+.mobile .whipbtn img { width: 26px; height: 26px; image-rendering: pixelated; filter: grayscale(1) brightness(.6); }
+.mobile .whipbtn span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.mobile .whipbtn em { font-style: normal; font-size: 14px; padding: 0 4px; background: #3a3550; color: #8a86a0; }
+.mobile .whipbtn.on { color: var(--gold); box-shadow: 0 0 0 2px var(--edge), inset 0 0 0 2px var(--gold), 0 0 12px 2px rgba(255, 211, 77, .45); animation: whip-glow 1.4s steps(2) infinite; }
+.mobile .whipbtn.on img { filter: drop-shadow(0 0 3px #ffd34d); }
+.mobile .whipbtn.on em { background: #2f8a4a; color: #fff; }
+@keyframes whip-glow { 50% { box-shadow: 0 0 0 2px var(--edge), inset 0 0 0 2px #fff3a0, 0 0 16px 4px rgba(255, 211, 77, .6); } }
+.emp-info .face.big { width: 72px; height: 72px; image-rendering: pixelated; }
+.emp-info q { color: var(--muted); }
+.mobile .side.info .combo { display: none; }

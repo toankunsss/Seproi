@@ -160,6 +160,45 @@ const DRAW = {
   // Office pets
   cat(c) { drawCat(c, 12, 20, 0); },
   dog(c) { drawDog(c, 11, 21, 0, true); },
+  // --- Boss skills (skills.js) -------------------------------------------------------------
+  // Hawk eye: a sharp eye with a "!" spotting a slacker
+  skhawk(c) {
+    rect(c, 2, 8, 20, 9, '#1d1826'); rect(c, 4, 7, 16, 11, '#1d1826');
+    rect(c, 4, 9, 16, 7, '#f4f1ea'); rect(c, 6, 8, 12, 9, '#f4f1ea');
+    rect(c, 9, 9, 6, 7, '#c8862a'); rect(c, 10, 10, 4, 5, '#ffd34d'); rect(c, 11, 11, 2, 3, '#111'); px(c, 10, 10, '#ffffff');
+    rect(c, 3, 5, 6, 1, '#ffd34d'); rect(c, 15, 5, 6, 1, '#ffd34d'); px(c, 12, 4, '#ffd34d'); // sharp brows
+    rect(c, 20, 0, 3, 5, '#ff3d4a'); rect(c, 20, 6, 3, 2, '#ff3d4a'); // "!"
+  },
+  // Inspiring leader: megaphone with hearts
+  skcharisma(c) {
+    rect(c, 3, 9, 4, 6, '#3d6fd6'); rect(c, 7, 7, 3, 10, '#5a8ae6'); rect(c, 10, 5, 3, 14, '#7aa8ff'); rect(c, 13, 3, 2, 18, '#a8c8ff');
+    rect(c, 4, 15, 2, 4, '#2a4a9a');
+    const h = (x, y) => { rect(c, x, y, 2, 1, '#ff5a7a'); rect(c, x + 3, y, 2, 1, '#ff5a7a'); rect(c, x - 1, y + 1, 7, 2, '#ff5a7a'); rect(c, x, y + 3, 5, 1, '#ff5a7a'); rect(c, x + 1, y + 4, 3, 1, '#ff5a7a'); px(c, x + 2, y + 5, '#ff5a7a'); };
+    h(17, 2); h(18, 11);
+  },
+  // Soft discipline: a shield crossed by a whip
+  skdiscipline(c) {
+    rect(c, 5, 2, 14, 2, '#1d1826'); rect(c, 4, 4, 16, 10, '#1d1826'); rect(c, 6, 14, 12, 4, '#1d1826'); rect(c, 9, 18, 6, 3, '#1d1826'); rect(c, 11, 21, 2, 1, '#1d1826');
+    rect(c, 6, 3, 12, 10, '#46b37a'); rect(c, 7, 13, 10, 4, '#46b37a'); rect(c, 10, 17, 4, 3, '#46b37a');
+    rect(c, 6, 3, 6, 10, '#5cc88a');
+    line(c, 4, 20, 20, 4, '#6b3f1d'); line(c, 5, 20, 21, 4, '#c89a5a'); rect(c, 2, 20, 4, 3, '#ffd34d');
+  },
+  // Negotiator: handshake over a rising chart
+  skbusiness(c) {
+    rect(c, 2, 20, 20, 1, '#8a86a0'); rect(c, 3, 15, 3, 5, '#3c9a5a'); rect(c, 8, 12, 3, 8, '#3c9a5a'); rect(c, 13, 8, 3, 12, '#3c9a5a'); rect(c, 18, 4, 3, 16, '#3c9a5a');
+    line(c, 2, 13, 20, 2, '#ffd34d'); rect(c, 18, 1, 3, 3, '#ffd34d');
+    rect(c, 4, 9, 7, 4, '#f1c7a0'); rect(c, 11, 9, 8, 4, '#d9a57a'); rect(c, 2, 8, 3, 6, '#3d6fd6'); rect(c, 18, 8, 4, 6, '#2a2a3a');
+    rect(c, 9, 10, 4, 2, '#e3b48a');
+  },
+  // Roar: a shouting boss face with sound waves
+  skroar(c) {
+    rect(c, 3, 5, 12, 13, '#f1c7a0'); rect(c, 3, 3, 12, 3, '#1a1210'); rect(c, 3, 9, 12, 2, '#111');
+    px(c, 5, 9, '#9fd8ff'); px(c, 11, 9, '#9fd8ff');
+    rect(c, 6, 12, 6, 5, '#7a1a1a'); rect(c, 7, 13, 4, 3, '#d02030'); rect(c, 6, 12, 6, 1, '#ffffff');
+    rect(c, 4, 6, 3, 1, '#1a1210'); rect(c, 11, 6, 3, 1, '#1a1210');
+    for (const [x, y, h] of [[17, 8, 7], [19, 6, 11], [21, 4, 15]]) rect(c, x, y, 1, h, '#ffd34d');
+    rect(c, 5, 18, 8, 4, '#d02030');
+  },
   // Org chart (departments)
   dept(c) {
     rect(c, 8, 2, 8, 5, '#ffd34d'); rect(c, 9, 3, 6, 3, '#fff3a0');

@@ -242,6 +242,13 @@ const act = {
     ui.screens.invSelect(0);
     saveGame();
   },
+  whipToggle() {
+    ui.whipOn = !ui.whipOn;
+    whip.visible = false;
+    haptic('light');
+    if (ui.whipOn) audio.whip(g.whipLevel, 0.05, (cos.skinOf(g) || {}).sound || ''); else audio.deny();
+    toast(ui.whipOn ? tr('Roi: BẬT · chạm để quất') : tr('Roi: TẮT · chạm nhân viên để xem thông tin'), ui.whipOn ? 'money' : 'say');
+  },
   roar() {
     const n = skills.roar(g);
     if (!skills.rank(g, 'roar')) return;
@@ -537,6 +544,13 @@ canvas.addEventListener('pointerdown', (ev) => {
   const W = WHIPS[g.whipLevel];
   // Fingers are less precise than a mouse: give touch a little extra reach.
   const reach = W.radius + (ev.pointerType === 'mouse' ? 0 : TUNING.touchSlop) + inv.bonus(g, 'reach');
+  // Whip switched off: a tap shows who that is instead of swinging.
+  if (!ui.whipOn) {
+    whip.visible = false;
+    const h = view.pick(p.x, p.y, 4);
+    if (h) { haptic('light'); ui.screens.empInfo(h.e.id); }
+    return;
+  }
   // The weekly boss takes priority over everything else under the finger.
   if (g.boss && view.hitsBoss(p.x, p.y, ev.pointerType === 'mouse' ? 2 : 8)) {
     const r = view.bossHit, bx = (r.x0 + r.x1) / 2, by = r.y0 + 20;
