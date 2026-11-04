@@ -31,8 +31,9 @@ export const STAFF_POOL = [
   { name: 'Hoa',   role: 'acc', skin: '#f1c7a0', hair: '#e8c35a', shirt: '#5a6ee0', style: 'bun' },
 ];
 export const STARTING_STAFF = 3;
-export const MAX_STAFF = STAFF_POOL.length;
-export const hireCost = (count) => Math.round(300 * Math.pow(1.85, count - STARTING_STAFF));
+// Hiring gets steeply dearer up to a full room (8 desks), then more gently per extra head
+// (a bigger building needs people, but every hire is still a salary for life).
+export const hireCost = (count) => Math.round(300 * Math.pow(1.85, Math.min(count, 8) - STARTING_STAFF) * Math.pow(1.22, Math.max(0, count - 8)));
 
 // Office growth is driven by total revenue, then paid from the current company fund.
 export const OFFICE_LEVELS = [
@@ -40,6 +41,23 @@ export const OFFICE_LEVELS = [
   { name: 'Văn phòng mở rộng', capacity: 6, unlockRevenue: 9000, cost: 8000 },
   { name: 'Trụ sở Whip Boss', capacity: 8, unlockRevenue: 150000, cost: 120000 },
 ];
+
+// The building (rooms.js): the company starts in one room and buys more, two per floor.
+// A new room needs total revenue ≥ unlockRevenue, then costs `cost` from the fund. Every room
+// is upgraded on its own (OFFICE_LEVELS: 4 → 6 → 8 desks); room r pays x(1 + upgradeStep·r).
+export const BUILD = {
+  perFloor: 2,
+  rooms: [
+    null, // room 1: the starter office
+    { unlockRevenue: 40000, cost: 30000 },
+    { unlockRevenue: 150000, cost: 100000 },
+    { unlockRevenue: 400000, cost: 250000 },
+    { unlockRevenue: 1000000, cost: 600000 },
+    { unlockRevenue: 2500000, cost: 1500000 },
+  ],
+  upgradeStep: 0.5,
+};
+export const MAX_STAFF = BUILD.rooms.length * 8;
 
 export const DECOR_ITEMS = [
   { id: 'rug', name: 'Thảm KPI', desc: 'Thảm đỏ chạy giữa văn phòng.', cost: 900, level: 0 },
@@ -249,6 +267,10 @@ export const ACHIEVEMENTS = [
   { id: 'coffeeMax', name: 'Barista công nghiệp', desc: 'Nâng máy cà phê lên Lv4', goal: 3, gems: 15, stat: (g) => g.coffeeLevel },
   { id: 'assistMax', name: 'Trợ lý toàn năng', desc: 'Nâng Trợ lý lên Lv4', goal: 3, gems: 20, stat: (g) => g.assistantLevel },
   { id: 'coffee25', name: 'Nghiện cà phê', desc: 'Dùng Cà phê sốc 25 lần', goal: 25, gems: 10, stat: (g) => g.records.coffees },
+  // the building (rooms.js)
+  { id: 'rooms2', name: 'Thêm một phòng', desc: 'Xây phòng thứ 2 của toà nhà', goal: 2, gems: 15, stat: (g) => (g.rooms ? g.rooms.length : 1) },
+  { id: 'rooms4', name: 'Toà nhà 2 tầng', desc: 'Có 4 phòng trong toà nhà', goal: 4, gems: 40, stat: (g) => (g.rooms ? g.rooms.length : 1) },
+  { id: 'rooms6', name: 'Cao ốc Whip Boss', desc: 'Xây kín cả 6 phòng', goal: 6, gems: 100, stat: (g) => (g.rooms ? g.rooms.length : 1) },
   // projects
   { id: 'proj50', name: 'Đế chế kinh doanh', desc: 'Hoàn thành 50 dự án', goal: 50, gems: 80, stat: (g) => g.projects.done },
   { id: 'streak5', name: 'Uy tín vàng', desc: 'Hoàn thành 5 dự án liên tiếp không thất bại', goal: 5, gems: 20, stat: (g) => g.records.bestProjStreak },

@@ -12,6 +12,8 @@ import { TUNING, COFFEE, dayLen } from './config.js';
 import { aboutToSlack } from './skills.js';
 import { isHead } from './depts.js';
 import { portraitLayout, drawPortraitOffice } from './portrait.js';
+import { buildingLayout, drawBuilding } from './building.js';
+import { roomScope } from './rooms.js';
 
 // Desk slots in hiring order (grid coords of the desk anchor).
 export const SLOTS = [[5, 2.4], [7.5, 2.4], [5, 6.1], [7.5, 6.1], [2.5, 2.4], [10, 2.4], [2.5, 6.1], [10, 6.1]];
@@ -22,6 +24,8 @@ export function createView(canvas) {
   const v = {
     canvas, ctx, mode: 'office', scale: 1, W: ROOM_SIZE.w, H: ROOM_SIZE.h,
     portrait: false, // phone held upright: draw the cubicle grid instead of the iso room
+    overview: false, // building cross-section (building.js) instead of one room
+    roomHits: [],    // overview: [{ r, kind, x0, y0, x1, y1 }]
     capacity: 4,     // desks in the current office (portrait grid size)
     layout: null,
     hits: [],  // [{e, x0,y0,x1,y1, head}]
@@ -30,7 +34,10 @@ export function createView(canvas) {
   };
 
   v.resize = (cw, ch) => {
-    if (v.mode === 'office' && v.portrait) {
+    if (v.mode === 'office' && v.overview) {
+      v.layout = buildingLayout();
+      v.W = v.layout.W; v.H = v.layout.H;
+    } else if (v.mode === 'office' && v.portrait) {
       v.layout = portraitLayout(v.capacity, cw, ch);
       v.W = v.layout.W; v.H = v.layout.H;
     } else if (v.mode === 'office') {
@@ -64,6 +71,9 @@ export function createView(canvas) {
   /** Portrait: empty desk under a buffer-space point (tap → hire), or null. */
   v.pickSlot = (x, y) => v.slots.find((s) => x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1) || null;
 
+  /** Overview: the room slot under a buffer-space point, or null. */
+  v.pickRoom = (x, y) => v.roomHits.find((h) => x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1) || null;
+
   /** Employee under a buffer-space point, allowing `slop` pixels of whip reach. */
   v.pick = (x, y, slop = 0) => {
     let best = null, bestD = Infinity;
@@ -90,9 +100,14 @@ export function createView(canvas) {
     ctx.translate(sx, sy);
     v.hits = [];
     v.slots = [];
-    if (v.mode === 'office' && v.portrait) renderPortrait(g, whip, t);
-    else if (v.mode === 'office') renderOffice(g, whip, t);
-    else renderMini(g, t);
+    v.roomHits = [];
+    v.bossHit = null;
+    // a room is drawn from a view of g holding only that room's staff (rooms.js)
+    const rg = g.rooms ? roomScope(g, Math.max(0, Math.min(g.rooms.length - 1, g.viewRoom || 0))) : g;
+    if (v.mode === 'office' && v.overview) v.roomHits = drawBuilding(ctx, v.layout, g, t);
+    else if (v.mode === 'office' && v.portrait) renderPortrait(rg, whip, t);
+    else if (v.mode === 'office') renderOffice(rg, whip, t);
+    else renderMini(rg, t);
     whip.drawFx(ctx);
     whip.drawWhip(ctx, g.whipLevel);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -139,7 +154,8 @@ export function createView(canvas) {
   function drawBossAt(g, t, pos) {
     v.bossHit = null;
     const b = g.boss;
-    const h = b && v.hits[Math.min(b.at, v.hits.length - 1)];
+    const target = b && v.g.staff[b.at]; // index into the whole company; drawn only in his room
+    const h = target && v.hits.find((x) => x.e === target);
     if (!h) return;
     const p = pos(h);
     v.bossHit = drawBoss(ctx, p.x, p.y, t, b.hp / b.max, b.dodge > 0);

@@ -118,6 +118,7 @@ export function levelState(level) {
   g.tutorial = 99;
   g.mode = 'office';
   g.officeLevel = s.office;
+  g.rooms[0].level = s.office; // levels are played in a single room
   g.whipLevel = s.whip;
   g.coffeeLevel = s.coffee;
   g.assistantLevel = s.assistant;
@@ -127,15 +128,16 @@ export function levelState(level) {
   for (const e of g.staff) { e.energy = 100; if (s.stress) e.stress = s.stress; }
   g.mods = { ...level.rules };
   g.candidates = [];
-  g.projects.offers = [];
+  const room = g.rooms[0];
+  room.offers = []; room.offersDay = g.day;
   if (s.project) {
     // a project sized for this team and this (shorter) day
-    const p = projects.makeOffer(g);
+    const p = projects.makeOffer(g, 0);
     const scale = s.project * (g.mods.dayLength || 150) / 150 / (p.days * 0.55);
     for (const r in p.req) p.req[r] = Math.max(20, Math.round(p.req[r] * scale / 5) * 5);
-    g.projects.offers = [p];
-    projects.acceptOffer(g, 0);
-    g.projects.active.deadline = g.day;
+    room.offers = [p];
+    projects.acceptOffer(g, 0, 0);
+    room.project.deadline = g.day;
   }
   return g;
 }

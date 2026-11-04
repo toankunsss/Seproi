@@ -35,6 +35,7 @@ import { rankFor } from './ui.js';
 import { OFFICE_LEVELS as OFFICES, SLACKS as SLACK_INFO } from './config.js';
 import * as campaign from './campaign.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
+import * as rooms from './rooms.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage'), canvas = $('game');
@@ -116,16 +117,59 @@ const act = {
       cost = ASSISTANT[g.assistantLevel + 1].cost;
       ok = pay(cost) && (g.assistantLevel++, g.assistantCd = assistantInterval(g), true);
     }
-    if (kind === 'office' && OFFICE_LEVELS[g.officeLevel + 1]) {
-      const next = OFFICE_LEVELS[g.officeLevel + 1];
-      if ((g.lifetimeEarnings || 0) >= next.unlockRevenue) {
-        cost = next.cost;
-        ok = pay(cost) && (g.officeLevel++, true);
-      }
+    if (kind === 'office') { // upgrade the room being viewed (or room 1 from the overview)
+      const r = Math.max(0, g.viewRoom);
+      ok = rooms.upgradeRoom(g, r);
+      if (ok) { layout(); toast(tr('{room} LÊN CẤP: {n} BÀN', { room: rooms.roomName(r).toUpperCase(), n: rooms.capOf(g, r) }), 'money'); }
     }
     ok ? audio.buy() : audio.deny();
     haptic(ok ? 'success' : 'light');
     saveGame();
+  },
+  // --- the building (rooms.js) ---
+  /** Go into room r (detail view); -1 = the building overview. */
+  roomGo(r) {
+    r = Number(r);
+    if (!(r >= -1 && r < g.rooms.length) || campaignRun) return;
+    g.viewRoom = r;
+    whip.visible = false; view.hover = null;
+    ui.closePanel();
+    haptic('light'); audio.coin(1);
+    layout(); fitMobile(true);
+  },
+  overview() { act.roomGo(g.viewRoom === -1 ? Math.max(0, lastRoom) : -1); },
+  roomStep(d) {
+    const n = g.rooms.length;
+    if (n < 2) return;
+    act.roomGo((Math.max(0, g.viewRoom) + Number(d) + n) % n);
+  },
+  roomBuild() {
+    const r = rooms.buildRoom(g);
+    if (r < 0) { audio.deny(); haptic('light'); return; }
+    audio.buy(); audio.bell(); haptic('success');
+    toast(tr('KHAI TRƯƠNG {room}!', { room: rooms.roomName(r).toUpperCase() }), 'money');
+    setTimeout(() => toast(tr('Tuyển người vào phòng mới để nhận dự án'), 'say'), 1300);
+    ui.screens.close && ui.screens.close();
+    saveGame();
+    act.roomGo(r);
+  },
+  roomUpgrade(r) {
+    r = Number(r);
+    if (!rooms.upgradeRoom(g, r)) { audio.deny(); return; }
+    audio.buy(); haptic('success');
+    toast(tr('{room} LÊN CẤP: {n} BÀN', { room: rooms.roomName(r).toUpperCase(), n: rooms.capOf(g, r) }), 'money');
+    layout(); saveGame(); ui.screens.repaint();
+  },
+  buildInfo() { ui.closePanel(); ui.screens.building(); },
+  /** Move an employee: arg "id:room". */
+  moveStaff(arg) {
+    const [id, r] = String(arg).split(':').map(Number);
+    const e = g.staff.find((x) => x.id === id);
+    if (!rooms.moveStaff(g, e, r)) { audio.deny(); toast(tr('Phòng đó hết bàn trống'), 'wrong'); return; }
+    projects.refreshOffers(g);
+    audio.buy(); haptic('light');
+    toast(tr('{name} chuyển sang {room}', { name: e.nickname || e.name, room: rooms.roomName(r) }), 'money');
+    layout(); saveGame(); ui.screens.repaint();
   },
   purchaseDecor(id) {
     const item = DECOR_ITEMS.find((x) => x.id === id);
@@ -141,10 +185,12 @@ const act = {
   cvHire(i) {
     const cv = g.candidates[Number(i)];
     if (!cv) return;
-    const index = g.staff.length;
-    if (index >= MAX_STAFF || index >= OFFICE_LEVELS[g.officeLevel].capacity) { audio.deny(); return toast(tr('Hết bàn trống, hãy mở rộng văn phòng!'), 'wrong'); }
+    // new people sit in the room being viewed if it has a free desk, else the first room with one
+    const room = rooms.freeRoom(g, g.viewRoom);
+    if (room < 0) { audio.deny(); return toast(tr('Hết bàn trống, hãy mở rộng văn phòng!'), 'wrong'); }
     if (!pay(hirePrice(g, cv))) { audio.deny(); return toast(tr('Quỹ chưa đủ tiền tuyển.'), 'wrong'); }
-    g.staff.push(makeEmployee(staffCare.nextStaffId(g), cv, { hiredDay: g.day }));
+    g.staff.push(makeEmployee(staffCare.nextStaffId(g), cv, { hiredDay: g.day, room }));
+    projects.refreshOffers(g); // an empty room that just got someone gets its first offers
     if (cv.album !== undefined && cos.addCard(g, cv.album)) setTimeout(() => toast(tr('Thẻ mới trong album: {name}!', { name: cv.name }), 'money'), 1400);
     if (cv.type === 'nephew') { // comes with a thank-you from the big boss
       const gift = Math.round(STAFF_TYPES.nephew.gift * (1 + TUNING.dayMult * (g.day - 1)) / 10) * 10;
@@ -155,7 +201,7 @@ const act = {
     g.candidates.splice(Number(i), 1);
     layout();
     audio.buy(); haptic('success');
-    toast(tr('ĐÃ TUYỂN {name}!', { name: cv.name.toUpperCase() }), 'money');
+    toast(g.rooms.length > 1 ? tr('ĐÃ TUYỂN {name} · {room}', { name: cv.name.toUpperCase(), room: rooms.roomName(room).toUpperCase() }) : tr('ĐÃ TUYỂN {name}!', { name: cv.name.toUpperCase() }), 'money');
     saveGame(); ui.screens.repaint();
   },
   cvReject(i) {
@@ -185,24 +231,34 @@ const act = {
     if (!r) { audio.deny(); return; }
     audio.strike(); haptic('heavy');
     toast(tr('ĐÃ SA THẢI {name} · −{m} đ', { name: e.name.toUpperCase(), m: fmt(r.severance) }), 'wrong');
+    projects.refreshOffers(g);
     layout();
     saveGame(); ui.screens.repaint();
   },
   // --- Projects ---
-  projAccept(i) {
-    if (projects.acceptOffer(g, Number(i))) { audio.buy(); haptic('success'); toast(tr('NHẬN DỰ ÁN!'), 'money'); saveGame(); }
+  // projects live per room: args are "room:offer" / room
+  projAccept(arg) {
+    const [r, i] = String(arg).includes(':') ? String(arg).split(':').map(Number) : [Math.max(0, g.viewRoom), Number(arg)];
+    if (projects.acceptOffer(g, r, i)) {
+      audio.buy(); haptic('success');
+      toast(g.rooms.length > 1 ? tr('{room} NHẬN DỰ ÁN!', { room: rooms.roomName(r).toUpperCase() }) : tr('NHẬN DỰ ÁN!'), 'money');
+      saveGame();
+    }
     ui.screens.repaint();
   },
-  projAbandon() {
-    const p = g.projects.active;
+  projRoom(r) { ui.screens.projects(Number(r)); },
+  projAbandon(arg) {
+    const r = arg === undefined || arg === '' ? Math.max(0, g.viewRoom) : Number(arg);
+    const p = projects.activeOf(g, r);
     if (!p || !confirm(tr('Huỷ dự án này? Dự án sẽ tính là thất bại và bị phạt hợp đồng {m} đ.', { m: fmt(projects.penaltyOf(p)) }))) return;
-    const r = projects.abandon(g);
+    const res = projects.abandon(g, r);
     audio.deny(); haptic('wrong');
-    toast(tr('HUỶ DỰ ÁN · PHẠT {m} đ', { m: fmt(r.fine) }), 'wrong');
+    toast(tr('HUỶ DỰ ÁN · PHẠT {m} đ', { m: fmt(res.fine) }), 'wrong');
     saveGame(); ui.screens.repaint();
   },
-  async adExtend() {
-    if (await watchAd('extend') && projects.extend(g)) { toast(tr('GIA HẠN +1 NGÀY'), 'money'); saveGame(); }
+  async adExtend(arg) {
+    const r = arg === undefined || arg === '' ? (projects.activeList(g)[0] || { r: 0 }).r : Number(arg);
+    if (await watchAd('extend') && projects.extend(g, r)) { toast(tr('GIA HẠN +1 NGÀY'), 'money'); saveGame(); }
     ui.screens.repaint(); ui.refreshReport();
   },
   // --- 💎 ---
@@ -461,6 +517,7 @@ if (shell) {
   addEventListener('blur', () => { if (dragging) { dragging = false; document.body.classList.remove('dragging'); shell.dragEnd(); } });
 }
 let lastMiniW = 0;
+let lastRoom = 0; // room to go back to from the overview
 
 function layout() {
   const doc = stage.ownerDocument;
@@ -470,7 +527,9 @@ function layout() {
     b.classList.toggle('mode-mini', g.mode === 'mini');
   }
   view.mode = g.mode;
-  view.staffCount = g.staff.length;
+  if (g.viewRoom >= 0) lastRoom = g.viewRoom;
+  view.overview = g.mode === 'office' && g.viewRoom === -1;
+  view.staffCount = rooms.roomStaff(g, Math.max(0, g.viewRoom)).length;
   if (mobile) {
     fitMobile(true);
   } else if (g.mode === 'office') {
@@ -503,8 +562,9 @@ function fitMobile(force = false) {
     if (row) w -= el.offsetWidth + gap; else h -= el.offsetHeight + gap;
   }
   view.portrait = !row;
-  view.capacity = OFFICE_LEVELS[g.officeLevel].capacity;
-  const sig = `${Math.round(w)}x${Math.round(h)}|${row}|${view.capacity}|${g.staff.length}`;
+  view.overview = g.viewRoom === -1;
+  view.capacity = rooms.capOf(g, Math.max(0, g.viewRoom));
+  const sig = `${Math.round(w)}x${Math.round(h)}|${row}|${view.capacity}|${g.staff.length}|${g.viewRoom}|${g.rooms.length}`;
   if (!force && sig === lastFit) return;
   lastFit = sig;
   view.resize(Math.max(120, w), Math.max(80, h));
@@ -544,6 +604,16 @@ canvas.addEventListener('pointerdown', (ev) => {
   const W = WHIPS[g.whipLevel];
   // Fingers are less precise than a mouse: give touch a little extra reach.
   const reach = W.radius + (ev.pointerType === 'mouse' ? 0 : TUNING.touchSlop) + inv.bonus(g, 'reach');
+  // Building overview: a tap goes into a room (or opens the build card); nobody gets whipped here.
+  if (view.overview) {
+    whip.visible = false;
+    const h = view.pickRoom(p.x, p.y);
+    if (!h) return;
+    if (h.kind === 'room') act.roomGo(h.r);
+    else if (h.kind === 'build') { haptic('light'); act.buildInfo(); }
+    else { audio.deny(); toast(tr('Xây các phòng bên dưới trước'), 'say'); }
+    return;
+  }
   // Whip switched off: a tap shows who that is instead of swinging.
   if (!ui.whipOn) {
     whip.visible = false;
@@ -659,7 +729,10 @@ function onEvent(type, e) {
       ui.popup(at.x, at.y - 20, tr('Quay lại làm...'), 'say');
       break;
     case 'assistant': {
-      if (!hit) break;
+      if (!hit) { // the slacker is in another room (or you are on the overview): the assistant still deals with it
+        whipEmployee(g, e, { auto: true });
+        break;
+      }
       const from = g.mode === 'office' && view.assistantHand ? view.assistantHand : { x: view.W - 4, y: 4 };
       whip.autoLash(from.x, from.y, hit.head.x, hit.head.y + 4, g.whipLevel);
       audio.whip(Math.min(g.whipLevel, 1), 0.02);
@@ -670,7 +743,7 @@ function onEvent(type, e) {
       break;
     }
     case 'projectDone': {
-      if (!projects.finish(g)) break;
+      if (!projects.finish(g, e)) break;
       audio.bell(); haptic('success');
       saveGame();
       showProjectReward();
@@ -744,7 +817,7 @@ function startRival() {
     const r = rival.resolve(g, e, choice) || rival.resolve(g, e, 'go');
     miniOpen = false; last = performance.now();
     if (r.kept) { audio.buy(); toast(tr('{name} Ở LẠI!', { name: (e.nickname || e.name).toUpperCase() }), 'money'); }
-    else { audio.deny(); toast(tr('{name} đã sang Lười Corp · +{m} đ phí', { name: e.nickname || e.name, m: fmt(r.fee || 0) }), 'wrong'); layout(); }
+    else { audio.deny(); toast(tr('{name} đã sang Lười Corp · +{m} đ phí', { name: e.nickname || e.name, m: fmt(r.fee || 0) }), 'wrong'); projects.refreshOffers(g); layout(); }
     saveGame(); ui.screens.repaint();
   });
 }
@@ -912,6 +985,7 @@ function collectProject(mult) {
   toast(`+${fmt(r.money)} đ`, 'money');
   saveGame();
   ui.screens.repaint();
+  if (g.projects.reward) setTimeout(showProjectReward, 500); // another room finished too
 }
 
 /** Toast the outcome of a surprise visit (events.js → endVisit). */
@@ -948,11 +1022,11 @@ function endDay() {
   saveGame();
   const next = () => {
     // an overdue project fails when the new day starts (unless an ad extended it)
-    if (projects.overdue(g)) {
-      const { p, fine } = projects.fail(g);
+    projects.overdueRooms(g).forEach((r, i) => {
+      const { p, fine } = projects.fail(g, r);
       audio.deny(); haptic('wrong');
-      toast(tr('DỰ ÁN THẤT BẠI: {name} · PHẠT {m} đ', { name: tr(p.name), m: fmt(fine) }), 'wrong');
-    }
+      setTimeout(() => toast(tr('DỰ ÁN THẤT BẠI: {name} · PHẠT {m} đ', { name: tr(p.name), m: fmt(fine) }), 'wrong'), i * 1300);
+    });
     g.day++;
     g.dayTime = 0;
     g.today = freshDay();
@@ -1084,6 +1158,7 @@ function handleBack() {
     return true;
   }
   if (!root.panel.hidden) { ui.closePanel(); return true; }
+  if (g.rooms.length > 1 && g.viewRoom >= 0 && !campaignRun) { act.roomGo(-1); return true; } // room → building
   if (mobile) { pauseGame(); return true; }
   return false;
 }
@@ -1112,4 +1187,4 @@ if (onTitle) {
     },
   });
 } else { music.play('office'); showProjectReward(); if (mobile) startDay(); else runDailyFlow(); }
-window.__game = { g, view, whip, act, ui, projects }; // debugging + automated play tests (console only)
+window.__game = { g, view, whip, act, ui, projects, rooms }; // debugging + automated play tests (console only)

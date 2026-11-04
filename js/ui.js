@@ -6,10 +6,11 @@ import { loginGift } from './daily.js';
 import { goalState, goalText, CHAPTERS } from './campaign.js';
 import { bossUrl, wornSig, invState } from './inventory.js';
 import { rank as skillRank, skState } from './skills.js';
-import { DAILY, BOSS, WHIP_SKINS } from './config.js';
+import { DAILY, BOSS, WHIP_SKINS, BUILD } from './config.js';
 const WHIP_SKIN_INDEX = (id) => Math.max(0, WHIP_SKINS.findIndex((s) => s.id === id));
 import { createScreens, projectSummary } from './screens.js';
-import { progressOf, penaltyOf } from './projects.js';
+import { progressOf, penaltyOf, activeList, activeOf, openOffers } from './projects.js';
+import { roomName, capOf, roomStaff, roomAlert, redRooms, nextRoom, upgradeOf, totalCap, freeRoom } from './rooms.js';
 import { VISITS } from './config.js';
 import { t, locale } from './i18n.js';
 import { itemArtUrl } from './item-art.js';
@@ -74,6 +75,12 @@ const MOBILE_HUD = `
       <div class="assist" data-k="assist"></div>
     </div>
     <div class="side controls">
+      <div class="roombar">
+        <button class="px-btn rb-home" data-a="overview" data-k="rbHome"></button>
+        <button class="px-btn rb-step" data-a="roomStep" data-arg="-1" data-k="rbPrev">◀</button>
+        <span class="rb-name" data-k="rbName"></span>
+        <button class="px-btn rb-step" data-a="roomStep" data-arg="1" data-k="rbNext">▶</button>
+      </div>
       <div class="hint" data-k="hint"></div>
       <div class="visitbar" data-k="visit" hidden></div>
       <button class="projbar" data-a="projects"><span class="pj-name" data-k="projName"></span>
@@ -92,6 +99,7 @@ const MOBILE_HUD = `
 
 /** Short coaching line under the office for new players (mobile only). */
 function hintText(g) {
+  if (g.viewRoom === -1) return t('Chạm vào một phòng để vào giám sát');
   const n = g.records.totalWhips;
   if (n < 3) return t('Chạm vào người có bong bóng để quất!');
   if (n < 8) return t('Đừng quất oan người đang làm việc!');
@@ -125,6 +133,10 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     <div class="bar bottom">
       <div class="whipname" data-k="whip"></div>
       <div class="combo" data-k="combo"></div>
+      <button class="px-btn rb-home" data-a="overview" data-k="rbHome"></button>
+      <button class="px-btn rb-step" data-a="roomStep" data-arg="-1" data-k="rbPrev">◀</button>
+      <span class="rb-name" data-k="rbName"></span>
+      <button class="px-btn rb-step" data-a="roomStep" data-arg="1" data-k="rbNext">▶</button>
       <div class="spacer"></div>
       <div class="assist" data-k="assist"></div>
       <div class="visitbar" data-k="visit" hidden></div>
@@ -199,13 +211,23 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       const cd = Math.max(0, Math.ceil(g.assistantCd));
       set(K.assist, g.assistantLevel < 0 ? '' : mobile ? t('Trợ lý: {s}s', { s: cd }) : t('Trợ lý Lv{lv} · {s}s', { lv: g.assistantLevel + 1, s: cd }));
       set(K.gems, String(g.gems));
-      const pj = projectSummary(g);
+      updateRoomBar();
+      const room = Math.max(0, g.viewRoom);
+      const pj = g.viewRoom === -1 ? null : projectSummary(g, room);
       if (K.projName) {
-        set(K.projName, pj ? t(pj.name) : t('Chưa có dự án'));
-        const offers = g.projects.offers.length;
-        set(K.projDue, pj ? `${Math.floor(pj.frac * 100)}% · ${pj.due}` : offers ? t('{n} hợp đồng đang chờ', { n: offers }) : t('Hết hợp đồng hôm nay'));
-        K.projBar.style.width = pj ? Math.round(pj.frac * 100) + '%' : '0%';
-        K.projName.parentElement.classList.toggle('idle', !pj);
+        const running = activeList(g).length;
+        if (g.viewRoom === -1) {
+          set(K.projName, t('{n}/{m} phòng đang chạy dự án', { n: running, m: g.rooms.length }));
+          set(K.projDue, openOffers(g) ? t('{n} hợp đồng đang chờ', { n: openOffers(g) }) : '');
+          K.projBar.style.width = Math.round((running / g.rooms.length) * 100) + '%';
+          K.projName.parentElement.classList.toggle('idle', running < g.rooms.length && openOffers(g) > 0);
+        } else {
+          const offers = g.rooms[room] ? g.rooms[room].offers.length : 0;
+          set(K.projName, pj ? t(pj.name) : t('Chưa có dự án'));
+          set(K.projDue, pj ? `${Math.floor(pj.frac * 100)}% · ${pj.due}` : offers ? t('{n} hợp đồng đang chờ', { n: offers }) : roomStaff(g, room).length ? t('Hết hợp đồng hôm nay') : t('Phòng trống: tuyển người trước'));
+          K.projBar.style.width = pj ? Math.round(pj.frac * 100) + '%' : '0%';
+          K.projName.parentElement.classList.toggle('idle', !pj && offers > 0);
+        }
       }
       const badges = screens.badges();
       if (K.dotAch) { K.dotAch.hidden = !badges.achievements; K.dotAch.textContent = badges.achievements || ''; }
@@ -413,15 +435,44 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     hideProjectReward() { const el = document.getElementById('reward'); if (el) el.hidden = true; },
   };
 
+  /** Room bar under the office: building button, ◀ room ▶, and how many other rooms are on red. */
+  let lastRb = '';
+  function updateRoomBar() {
+    if (!K.rbName) return;
+    const over = g.viewRoom === -1, n = g.rooms.length;
+    const reds = redRooms(g, over ? -2 : g.viewRoom).length;
+    let name;
+    if (over) name = t('Toà nhà · {n} phòng · {s}/{c} bàn', { n, s: g.staff.length, c: totalCap(g) });
+    else {
+      const r = g.viewRoom, a = roomAlert(g, r);
+      name = `${roomName(r)} · ${roomStaff(g, r).length}/${capOf(g, r)} · KPI ${a.kpi}%`;
+    }
+    const sig = `${over}|${name}|${reds}|${n}`;
+    if (sig === lastRb) return;
+    lastRb = sig;
+    K.rbName.textContent = name;
+    K.rbHome.innerHTML = over ? `◀ ${t('Vào phòng')}` : `${t('Toà nhà')}${reds ? ` <i class="rb-alert">${reds}</i>` : ''}`;
+    K.rbHome.classList.toggle('alarm', !over && reds > 0);
+    K.rbPrev.hidden = K.rbNext.hidden = over || n < 2;
+  }
+
   /** Weekly boss: HP + time left, pinned to the top of the office. */
   function updateBossBar() {
     let el = document.getElementById('bossbar');
     const b = g.boss;
     if (!b) { if (el) el.remove(); return; }
-    if (!el) { el = document.createElement('div'); el.id = 'bossbar'; document.body.appendChild(el); }
+    if (!el) {
+      el = document.createElement('div'); el.id = 'bossbar'; document.body.appendChild(el);
+      // boss in another room: tap the bar to go there
+      el.addEventListener('pointerdown', (e) => { if (!el.classList.contains('away')) return; e.stopPropagation(); act.roomGo(Number(el.dataset.room)); });
+    }
     const r = document.getElementById('game').getBoundingClientRect();
     Object.assign(el.style, { left: r.left + 6 + 'px', top: r.top + 6 + 'px', width: r.width - 12 + 'px' });
-    el.innerHTML = `<b>${t('TRÙM TUẦN')}</b><span class="hp"><i style="width:${Math.round((b.hp / b.max) * 100)}%"></i></span>
+    const bossRoom = g.staff[b.at] ? g.staff[b.at].room || 0 : 0;
+    const away = g.rooms && g.rooms.length > 1 && bossRoom !== g.viewRoom;
+    el.classList.toggle('away', away);
+    el.dataset.room = bossRoom;
+    el.innerHTML = `<b>${away ? t('TRÙM Ở {room}!', { room: roomName(bossRoom).toUpperCase() }) : t('TRÙM TUẦN')}</b><span class="hp"><i style="width:${Math.round((b.hp / b.max) * 100)}%"></i></span>
       <em>${Math.ceil(b.hp)}/${b.max}</em><em>⏱ ${Math.max(0, Math.ceil(BOSS.stay - b.t))}s</em>`;
   }
 
@@ -444,16 +495,16 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     const day = g.today;
     const avg = day.kpiN ? day.kpiSum / day.kpiN : g.kpi;
     const title = rankFor(avg);
-    const p = g.projects.active;
-    let proj = '';
-    if (p) {
+    const many = g.rooms.length > 1;
+    const proj = activeList(g).map(({ r, p }) => {
       const pct = Math.floor(progressOf(p) * 100);
-      proj = g.day >= p.deadline
-        ? `<div class="report-proj warn">${t('Dự án <b>{name}</b> mới xong {pct}% và hết hạn hôm nay!', { name: esc(t(p.name)), pct })}
+      const where = many ? `<small class="report-room">${esc(roomName(r))}</small> ` : '';
+      return g.day >= p.deadline
+        ? `<div class="report-proj warn">${where}${t('Dự án <b>{name}</b> mới xong {pct}% và hết hạn hôm nay!', { name: esc(t(p.name)), pct })}
             <br><b class="penalty">${t('Nếu thất bại: phạt hợp đồng {m} đ', { m: fmt(Math.min(g.money, penaltyOf(p))) })}</b>
-            ${p.extended ? '<br>' + t('Đã gia hạn 1 lần, sang ngày mới dự án sẽ thất bại.') : `<br><button class="px-btn ad" data-a="adExtend">▶ ${t('Xem quảng cáo: gia hạn +1 ngày')}</button>`}</div>`
-        : `<div class="report-proj">${t('Dự án <b>{name}</b>: {pct}% · hạn hết ngày {d}', { name: esc(t(p.name)), pct, d: p.deadline })}</div>`;
-    }
+            ${p.extended ? '<br>' + t('Đã gia hạn 1 lần, sang ngày mới dự án sẽ thất bại.') : `<br><button class="px-btn ad" data-a="adExtend" data-arg="${r}">▶ ${t('Xem quảng cáo: gia hạn +1 ngày')}</button>`}</div>`
+        : `<div class="report-proj">${where}${t('Dự án <b>{name}</b>: {pct}% · hạn hết ngày {d}', { name: esc(t(p.name)), pct, d: p.deadline })}</div>`;
+    }).join('');
     modal.hidden = false;
     modal.innerHTML = `
         <div class="card report">
@@ -527,16 +578,20 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     // the 💎 whip is sold in the Kim cương shop, not here
     const wl = g.whipLevel, next = WHIPS[wl + 1] && !WHIPS[wl + 1].premium ? WHIPS[wl + 1] : null;
     const cl = g.coffeeLevel, al = g.assistantLevel;
-    const n = g.staff.length, hire = STAFF_POOL[n];
-    const office = OFFICE_LEVELS[g.officeLevel], nextOffice = OFFICE_LEVELS[g.officeLevel + 1];
+    const n = g.staff.length, cap = totalCap(g), hire = freeRoom(g, g.viewRoom) >= 0;
+    // "office" = the room being viewed (room 1 from the overview), upgraded on its own
+    const room = Math.max(0, g.viewRoom), many = g.rooms.length > 1;
+    const office = OFFICE_LEVELS[g.rooms[room].level], nextOffice = upgradeOf(g, room);
     const officeReady = nextOffice && (g.lifetimeEarnings || 0) >= nextOffice.unlockRevenue;
+    const nr = nextRoom(g), roomReady = nr && (g.lifetimeEarnings || 0) >= nr.unlockRevenue;
     const affordability = [
       next && g.money >= next.cost,
       COFFEE[cl + 1] && g.money >= COFFEE[cl + 1].cost,
       ASSISTANT[al + 1] && g.money >= ASSISTANT[al + 1].cost,
       nextOffice && g.money >= nextOffice.cost,
+      nr && g.money >= nr.cost,
     ].map(Boolean).join(',');
-    const sig = [wl, cl, al, n, g.officeLevel, !!officeReady, affordability, g.candidates.length, g.day, monthBill(g).total].join('|');
+    const sig = [wl, cl, al, n, room, g.rooms.map((x) => x.level).join(''), !!officeReady, !!roomReady, affordability, g.candidates.length, g.day, monthBill(g).total].join('|');
     if (sig === lastPanelSig) {
       const money = panel.querySelector('[data-panel-money]');
       if (money) money.textContent = `${fmt(g.money)} đ`;
@@ -545,22 +600,28 @@ export function createUI(root, g, act, { mobile = false } = {}) {
     const html = [
       `<div class="panel-head"><h2>${t('Nâng cấp & Quản lý')}</h2><button class="px-btn icon" data-a="shop">×</button></div>`,
       `<div class="money-line">${t('Quỹ:')} <b data-panel-money>${fmt(g.money)} đ</b></div>`,
+      `<div class="item has-art">
+        ${artBox('tower:' + g.rooms.length)}
+        <div class="info"><div class="title">${t('Toà nhà · {n}/{m} phòng', { n: g.rooms.length, m: BUILD.rooms.length })}</div>
+        <div class="desc">${nr ? (roomReady ? t('Đã đạt mốc doanh thu · xây {room} với {m} đ.', { room: roomName(nr.index), m: fmt(nr.cost) }) : t('Phòng tiếp theo cần tổng doanh thu {need} đ · hiện có {have} đ.', { need: fmt(nr.unlockRevenue), have: fmt(g.lifetimeEarnings || 0) })) : t('Toà nhà đã kín phòng. Đế chế hoàn chỉnh!')}</div></div>
+        <button class="px-btn buy" data-a="buildInfo">${t('Mở')}</button>
+      </div>`,
       item('office',
-        nextOffice ? `${t(office.name)} → ${t(nextOffice.name)}` : t(office.name),
+        (many ? roomName(room) + ': ' : '') + (nextOffice ? `${t(office.name)} → ${t(nextOffice.name)}` : t(office.name)),
         nextOffice
           ? (officeReady ? t('Đã đạt mốc doanh thu · mở {n} bàn làm việc.', { n: nextOffice.capacity }) : t('Cần tổng doanh thu {need} đ · hiện có {have} đ.', { need: fmt(nextOffice.unlockRevenue), have: fmt(g.lifetimeEarnings || 0) }))
           : t('Trụ sở tối đa · {n} bàn làm việc.', { n: office.capacity }),
-        nextOffice ? nextOffice.cost : 0, true, !nextOffice || !officeReady, nextOffice ? t('Chưa đạt') : t('Tối đa'), `office:${nextOffice ? g.officeLevel + 1 : g.officeLevel}`),
+        nextOffice ? nextOffice.cost : 0, true, !nextOffice || !officeReady, nextOffice ? t('Chưa đạt') : t('Tối đa'), `office:${nextOffice ? nextOffice.level : g.rooms[room].level}`),
       item('whip',
         next ? `${t('Roi:')} ${t(WHIPS[wl].name)} → ${t(next.name)}` : `${t('Roi:')} ${t(WHIPS[wl].name)}`,
         next ? t('Thưởng bắt quả tang {a} → {b} đ · hăng say {s}s · tầm quất rộng hơn', { a: WHIPS[wl].bonus, b: next.bonus, s: next.boost }) : t('Cây roi tối thượng. Cả văn phòng run rẩy.'),
         next ? next.cost : 0, true, !next, undefined, `whip:${next ? wl + 1 : wl}`),
-      hire ? `<div class="item has-art">
+      `<div class="item has-art">
         ${artBox('hire')}
         <div class="info"><div class="title">${t('Tuyển dụng · {n} CV đang chờ', { n: g.candidates.length })}</div>
-        <div class="desc">${n < office.capacity ? t('{n}/{cap} bàn đã có người. Đọc CV và chọn người phù hợp.', { n, cap: office.capacity }) : t('Hết bàn ({n}/{cap}). Mở rộng văn phòng để tuyển thêm.', { n, cap: office.capacity })}</div></div>
+        <div class="desc">${hire ? t('{n}/{cap} bàn đã có người. Đọc CV và chọn người phù hợp.', { n, cap }) : t('Hết bàn ({n}/{cap}). Nâng cấp phòng hoặc xây phòng mới để tuyển thêm.', { n, cap })}</div></div>
         <button class="px-btn buy" data-a="interview">${t('Xem CV')}</button>
-      </div>` : item('hire', t('Văn phòng đã kín chỗ'), t('{n}/{n} bàn', { n: MAX_STAFF }), 0, false, true, t('Hết chỗ')),
+      </div>`,
       `<div class="item has-art">
         ${artBox('dept')}
         <div class="info"><div class="title">${t('Phòng ban')}</div>

@@ -3,7 +3,7 @@
 // hire and every raise is an ongoing cost, so growing too fast can leave you unable to pay.
 //
 //   salary / day  = PAYROLL.daily[role] × skill × (1 + raiseStep × raise level) × day multiplier
-//   rent / day    = PAYROLL.rent[office level]
+//   rent / day    = Σ PAYROLL.rent[room level] over the rooms of the building
 //   pay day       = end of day N × monthDays → pays monthDays days of salaries + rent
 //
 // If the fund can't cover it, everything left is paid and the staff take the rest badly
@@ -18,7 +18,9 @@ const dayMult = (g) => 1 + TUNING.dayMult * (g.day - 1);
 export const salaryOf = (g, e) =>
   Math.round((PAYROLL.daily[e.role] * skillMult(e.cv) * (1 + PAYROLL.raiseStep * (e.wage || 0)) * ((typeOf(e.cv) || {}).salary || 1) * headSalary(g, e) * dayMult(g)) / 5) * 5;
 
-export const rentOf = (g) => PAYROLL.rent[g.officeLevel] || 0;
+/** Daily rent: every room of the building pays by its own level (rooms.js). */
+import { rentOf } from './rooms.js';
+export { rentOf };
 
 /** Days of this month employee e has worked so far (today included); new hires count from their first day. */
 export function daysWorked(g, e) {

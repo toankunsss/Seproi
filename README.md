@@ -1,6 +1,6 @@
 # Whip Boss
 
-Game mobile idle văn phòng pixel-art cho **Android và iOS**. Bạn là sếp; nhân viên lén chơi game, lướt Tóp Tóp, ngủ gật, xem coin… Chạm vào kẻ đang lười để quất họ quay lại làm việc, giữ KPI, kiếm tiền, nâng cấp roi, tuyển thêm người và mở rộng văn phòng. Quất oan người đang làm thì bị phạt, và họ có thể đình công.
+Game mobile idle văn phòng pixel-art cho **Android và iOS**. Bạn là sếp; nhân viên lén chơi game, lướt Tóp Tóp, ngủ gật, xem coin… Chạm vào kẻ đang lười để quất họ quay lại làm việc, giữ KPI, kiếm tiền, nâng cấp roi, tuyển thêm người và mở rộng công ty thành cả toà nhà nhiều phòng. Quất oan người đang làm thì bị phạt, và họ có thể đình công.
 
 ## Cấu trúc
 
@@ -11,7 +11,7 @@ Game mobile idle văn phòng pixel-art cho **Android và iOS**. Bạn là sếp;
 | `desktop/` | bản PC phụ (Electron, thanh nhỏ nằm trên taskbar Windows/macOS), dùng chung mã nguồn game |
 | `docs/` | tài liệu phát triển |
 
-**Tính năng chính:** quất nhân viên lười để giữ KPI; tuyển dụng bằng CV (chỉ số ảnh hưởng gameplay); khen thưởng, tăng lương, liên hoan và sa thải nhân viên (động lực); đoàn thanh tra thuế, thanh tra lao động, khách VIP ghé thăm bất ngờ; nhận dự án từ khách hàng (nghiệp vụ); trả lương nhân viên mỗi tháng; thu nhập khi vắng mặt, quà đăng nhập 7 ngày, nhiệm vụ hằng ngày; bán công ty lấy cổ phần (chơi lại mạnh hơn); 50 thành tựu có huy chương; chế độ Chiến dịch 15 màn; trùm tuần; mini-game; trang phục sếp và rơi đồ; cây kỹ năng sếp; nhân viên đặc biệt (thực tập sinh, trưởng nhóm, con ông cháu cha, gián điệp); 8 kiểu lười; phòng ban; đối thủ lôi kéo nhân viên; skin roi, thú cưng, album nhân viên; chia sẻ ảnh lên mạng xã hội; tiền cao cấp 💎 Kim cương mua đặc quyền và vật phẩm; quảng cáo có thưởng; đa ngôn ngữ (Tiếng Việt, English).
+**Tính năng chính:** quất nhân viên lười để giữ KPI; tuyển dụng bằng CV (chỉ số ảnh hưởng gameplay); khen thưởng, tăng lương, liên hoan và sa thải nhân viên (động lực); đoàn thanh tra thuế, thanh tra lao động, khách VIP ghé thăm bất ngờ; toà nhà nhiều phòng (xem toàn cảnh mặt cắt, cảnh báo đỏ từng phòng, mỗi phòng một dự án song song); nhận dự án từ khách hàng (nghiệp vụ); trả lương nhân viên mỗi tháng; thu nhập khi vắng mặt, quà đăng nhập 7 ngày, nhiệm vụ hằng ngày; bán công ty lấy cổ phần (chơi lại mạnh hơn); 53 thành tựu có huy chương; chế độ Chiến dịch 15 màn; trùm tuần; mini-game; trang phục sếp và rơi đồ; cây kỹ năng sếp; nhân viên đặc biệt (thực tập sinh, trưởng nhóm, con ông cháu cha, gián điệp); 8 kiểu lười; phòng ban; đối thủ lôi kéo nhân viên; skin roi, thú cưng, album nhân viên; chia sẻ ảnh lên mạng xã hội; tiền cao cấp 💎 Kim cương mua đặc quyền và vật phẩm; quảng cáo có thưởng; đa ngôn ngữ (Tiếng Việt, English).
 
 App mobile đóng gói mã nguồn game vào trong app native. Game chạy offline hoàn toàn, có rung (haptics), nút Back Android, toàn màn hình, chơi màn hình dọc (khóa xoay), và có bản sao lưu save trong bộ nhớ native.
 

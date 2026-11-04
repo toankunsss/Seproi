@@ -135,6 +135,18 @@ const DRAW = {
       rect(c, 11, 0, 2, 2, '#ff3d4a');
     }
   },
+  // The building in cross-section: n rooms lit (rooms.js), a "+" on the next empty one.
+  tower(c, n = 1) {
+    rect(c, 1, 22, 22, 2, '#3a3550');
+    rect(c, 2, 3, 20, 19, '#2a2340'); rect(c, 1, 2, 22, 2, '#1d1826');
+    rect(c, 7, 0, 10, 2, '#a52d43'); rect(c, 8, 0, 8, 1, '#ffd34d');
+    for (let i = 0; i < 6; i++) {
+      const f = Math.floor(i / 2), x = 3 + (i % 2) * 10, y = 16 - f * 6;
+      if (i < n) { rect(c, x, y, 8, 5, ['#574d7d', '#4a5f8f', '#6a4d7d'][i % 3]); rect(c, x + 1, y + 3, 2, 2, '#f1c7a0'); rect(c, x + 4, y + 3, 2, 2, '#f1c7a0'); rect(c, x + 5, y + 1, 2, 1, '#5aa7e8'); }
+      else if (i === n) { rect(c, x, y, 8, 5, '#1d1826'); rect(c, x + 3, y + 1, 2, 3, '#ffd34d'); rect(c, x + 2, y + 2, 4, 1, '#ffd34d'); }
+      else rect(c, x, y, 8, 5, '#241d36');
+    }
+  },
   // A CV on the desk with a photo and a gold star stamp.
   hire(c) {
     rect(c, 5, 2, 14, 20, '#f4f1ea'); rect(c, 5, 2, 14, 1, '#ffffff'); rect(c, 18, 3, 1, 19, '#c8c0a8');
@@ -316,7 +328,7 @@ function glyphFor(id) {
   if (/^day/.test(id)) return 'calendar';
   if (/^(staff|nick)/.test(id)) return 'person';
   if (/^star/.test(id)) return 'star';
-  if (/^office/.test(id)) return 'building';
+  if (/^(office|rooms)/.test(id)) return 'building';
   if (/^whip/.test(id)) return 'whip';
   if (/^decor/.test(id)) return 'lamp';
   if (/^(proj|streak|bigProj)/.test(id)) return 'case';

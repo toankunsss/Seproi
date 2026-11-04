@@ -3,6 +3,7 @@
 import { STARTING_STAFF, GEMS_START, MOTIVATION } from './config.js';
 import { cvFromPool } from './cv.js';
 import { backup } from './platform.js';
+import { ensureRooms, freshRoom } from './rooms.js';
 
 export const SAVE_KEY = 'whipboss.save.v1';
 
@@ -15,6 +16,7 @@ export function makeEmployee(i, cv = cvFromPool(i), extra = {}) {
     whips: 0, wrong: 0, flash: 0,
     motiv: MOTIVATION.start, wage: 0, praisedDay: 0, // staff care (staff.js)
     hiredDay: extra.hiredDay || 0,  // payroll: first month paid pro rata (payroll.js)
+    room: extra.room || 0,          // room of the building they sit in (rooms.js)
   };
 }
 
@@ -28,7 +30,7 @@ const freshRecords = () => ({
 });
 
 export function newGame() {
-  return {
+  const g = {
     money: 0, day: 1, dayTime: 0,
     lifetimeEarnings: 0, officeLevel: 0, decor: [],
     whipLevel: 0, coffeeLevel: -1, assistantLevel: -1,
@@ -41,7 +43,10 @@ export function newGame() {
     gems: GEMS_START,
     candidates: [],          // CVs waiting on the desk (cv.js)
     candidatesDay: 0,        // day the pile was last refilled
-    projects: { offers: [], offersDay: 0, active: null, reward: null, done: 0, failed: 0 },
+    // contracts live per room (rooms.js: g.rooms[r].project / offers); finished ones wait here
+    projects: { reward: null, queue: [], done: 0, failed: 0 },
+    rooms: [freshRoom(0)],   // the building (rooms.js)
+    viewRoom: 0,             // room shown in detail, -1 = building overview
     claimed: [],             // achievement ids already rewarded
     perks: [],               // premium perks owned (config PREMIUM_ITEMS)
     partyDay: 0,             // last day of a team party (staff.js)
@@ -52,6 +57,7 @@ export function newGame() {
     tutorial: 0,             // first-time tutorial step (tutorial.js; 99 = done)
     shares: 0, sold: 0, bestRun: 0, // selling the company (prestige.js)
   };
+  return g;
 }
 
 export function freshDay() {
@@ -69,6 +75,7 @@ export function load() {
     g.records = { ...freshRecords(), ...(s.records || {}) };
     g.records.caught = { ...freshRecords().caught, ...(g.records.caught || {}) };
     g.projects = { ...newGame().projects, ...(s.projects || {}) };
+    if (!Array.isArray(s.rooms)) delete g.rooms; // old save: rebuilt from officeLevel below
     // saves from before the tutorial existed: only brand-new games get it
     if (s.tutorial === undefined) g.tutorial = g.day > 1 || g.records.totalWhips > 0 ? 99 : 0;
     g.ads = { ...newGame().ads, ...(s.ads || {}) };
@@ -81,11 +88,13 @@ export function load() {
     g.staff = s.staff.map((e, i) => ({
       ...makeEmployee(e.id ?? i, e.cv || cvFromPool(e.id ?? i), { nickname: e.nickname }),
       energy: e.energy, stress: e.stress, whips: e.whips, wrong: e.wrong,
-      motiv: e.motiv ?? MOTIVATION.start, wage: e.wage || 0, praisedDay: e.praisedDay || 0, hiredDay: e.hiredDay || 0,
+      motiv: e.motiv ?? MOTIVATION.start, wage: e.wage || 0, praisedDay: e.praisedDay || 0, hiredDay: e.hiredDay || 0, room: e.room || 0,
     }));
-    if (g.staff.length > 6) g.officeLevel = Math.max(g.officeLevel, 2);
-    else if (g.staff.length > 4) g.officeLevel = Math.max(g.officeLevel, 1);
-    return g;
+    if (!g.rooms) {
+      if (g.staff.length > 6) g.officeLevel = Math.max(g.officeLevel, 2);
+      else if (g.staff.length > 4) g.officeLevel = Math.max(g.officeLevel, 1);
+    }
+    return ensureRooms(g);
   } catch (err) {
     console.warn('[save] could not read', err);
     return newGame();
@@ -101,7 +110,7 @@ export function save(g) {
       staff: g.staff.map((e) => ({
         id: e.id, nickname: e.nickname || '', cv: e.cv,
         energy: e.energy, stress: e.stress, whips: e.whips, wrong: e.wrong,
-        motiv: e.motiv, wage: e.wage, praisedDay: e.praisedDay, hiredDay: e.hiredDay || 0,
+        motiv: e.motiv, wage: e.wage, praisedDay: e.praisedDay, hiredDay: e.hiredDay || 0, room: e.room || 0,
       })),
     };
     const json = JSON.stringify(data);

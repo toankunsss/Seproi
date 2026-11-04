@@ -34,9 +34,11 @@ export function updateBoss(g, dt, emit) {
   b.move -= dt;
   if (b.move <= 0) {
     b.move = BOSS.moveEvery * (0.7 + Math.random() * 0.6);
-    let next = Math.floor(Math.random() * g.staff.length);
-    if (g.staff.length > 1 && next === b.at) next = (next + 1) % g.staff.length;
-    b.at = next;
+    // he hops between desks of the room he is in (rooms.js), never to another room
+    const here = g.staff[b.at] ? g.staff[b.at].room || 0 : 0;
+    const desks = g.staff.map((e, i) => ((e.room || 0) === here ? i : -1)).filter((i) => i >= 0 && i !== b.at);
+    if (desks.length) b.at = desks[Math.floor(Math.random() * desks.length)];
+    else if (!g.staff[b.at]) b.at = 0;
     if (Math.random() < BOSS.dodgeChance) b.dodge = BOSS.dodgeTime;
     emit('bossMove', b);
   }

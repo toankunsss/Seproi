@@ -28,7 +28,9 @@ js/
 ├── staff.js      chăm sóc nhân sự: động lực, khen ngợi/thưởng/quà/tăng lương/liên hoan, sa thải, cấp mã nhân viên
 ├── ads.js        quảng cáo có thưởng: showRewarded(); AdMob khi có, nếu không thì quảng cáo giả lập
 ├── i18n.js       đa ngôn ngữ: t('câu tiếng Việt'), chọn/nhớ ngôn ngữ; từ điển trong js/lang/ (en.js…)
-├── view.js       vẽ các chế độ (office isometric / văn phòng dọc / mini taskbar), tỷ lệ phóng, tọa độ, chọn đối tượng
+├── rooms.js      toà nhà: các phòng (g.rooms), xây phòng mới theo mốc doanh thu, nâng cấp từng phòng, xếp chỗ / chuyển phòng, KPI và đèn cảnh báo từng phòng, tiền thuê
+├── building.js   vẽ toàn cảnh toà nhà (mặt cắt 3 tầng × 2 phòng): người tí hon, KPI, khung đỏ cảnh báo, ô "+" xây phòng
+├── view.js       vẽ các chế độ (toàn cảnh toà nhà / office isometric / văn phòng dọc / mini taskbar), tỷ lệ phóng, tọa độ, chọn đối tượng
 ├── portrait.js   văn phòng cho điện thoại cầm dọc: bức tường + lưới ô làm việc, bàn trống để tuyển
 ├── sprites.js    sprite thủ tục: phòng, bàn, màn hình, nhân viên, bong bóng, nội thất…
 ├── pixel.js      hàm vẽ cơ bản: rect, px, line, poly, iso, isoBox, glyphs, hash
@@ -88,7 +90,8 @@ main.js
 | `day`, `dayTime` | ngày thứ mấy / số giây đã trôi trong ngày (0 → `TUNING.dayLength`) |
 | `whipLevel`, `coffeeLevel`, `assistantLevel` | chỉ số trong `WHIPS` / `COFFEE` / `ASSISTANT` (−1 = chưa mua) |
 | `coffeeCd`, `assistantCd` | thời gian hồi chiêu |
-| `officeLevel`, `decor[]` | cấp văn phòng (0–2), id các món nội thất đã mua |
+| `rooms[]`, `viewRoom` | toà nhà: mỗi phòng `{ level 0–2, project, offers, offersDay, kpi }`; phòng đang xem chi tiết (−1 = toàn cảnh). Nhân viên ngồi ở `staff[].room` |
+| `officeLevel`, `decor[]` | cấp phòng cao nhất (tự tính từ `rooms`, dùng cho thành tựu và nội thất), id các món nội thất đã mua |
 | `kpi`, `combo`, `comboT` | KPI (0–1, trung bình trượt), combo hiện tại |
 | `staff[]` | nhân viên, xem bên dưới |
 | `today` | thống kê ngày hiện tại (doanh thu, số lần bắt, số lần oan, combo…) |
@@ -153,7 +156,7 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 | Hệ thống | Dữ liệu (`config.js`) | Logic | Giao diện | Trường trong save |
 |---|---|---|---|---|
 | Tuyển dụng bằng CV | `CV_*`, `CANDIDATES_PER_DAY` | `cv.js` | `screens.js → cvScreen` | `candidates`, `candidatesDay`, `staff[].cv` |
-| Dự án (nghiệp vụ) | `PROJECT_TYPES`, `CLIENTS`, `WORK_RATE` | `projects.js` + `sim.js` (`addWork`) | `screens.js → projectsScreen`, thanh dự án trên HUD | `projects { offers, offersDay, active, reward, done, failed }` |
+| Dự án (nghiệp vụ) | `PROJECT_TYPES`, `CLIENTS`, `WORK_RATE` | `projects.js` + `sim.js` (`addWork`) | `screens.js → projectsScreen`, thanh dự án trên HUD | `rooms[r].project`, `rooms[r].offers`, `projects { reward, queue, done, failed }` |
 | Thành tựu | `ACHIEVEMENTS` (mỗi cái có `stat(g)`, `goal`, `gems`) | `achievements.js` | `screens.js → achScreen` | `claimed`, các bộ đếm trong `records` |
 | Kim cương 💎 | `GEMS_START`, `PREMIUM_ITEMS` | `premium.js`, `sim.js` (`hasPerk`) | `screens.js → vipScreen` | `gems`, `perks`, `hotBonus` |
 | Khen thưởng & sa thải | `MOTIVATION`, `STAFF_ACTIONS` | `staff.js`, `sim.js` (`motivFactor`) | `screens.js → staffScreen`, ♥/mây trên đầu nhân viên (`sprites.js → drawMood`, gọi từ `view.js`) | `staff[].motiv`, `staff[].wage`, `staff[].praisedDay`, `partyDay` |
@@ -163,6 +166,8 @@ mọi trạng thái ──(stress ≥ 100)──▶ strike ──15s──▶ wo
 - **Mỗi sáng** (`main.js → newMorning`): CV mới, 3 hợp đồng mới, đặt lại lượt quảng cáo trong ngày.
 - **CV ảnh hưởng gameplay** (`cv.js`): Kỹ năng ×0,8–1,4 thu nhập và điểm dự án; Độ lười ×0,6–1,4 xác suất lười; Chịu áp lực ×1,4–0,6 áp lực mỗi lần bị quất; Sở thích quyết định 70% kiểu lười của người đó.
 - **Dự án**: yêu cầu = sản lượng của đội cho nghề đó × số ngày × độ khó (0,4–0,7). Vì vậy với KPI tốt luôn làm kịp, KPI kém thì trễ. Hạn là hết ngày `deadline`; sang ngày mới mà chưa xong thì thất bại (trừ khi đã gia hạn bằng quảng cáo, chỉ được 1 lần mỗi dự án). Thất bại (trễ hạn hoặc tự huỷ) bị **phạt hợp đồng** bằng `PROJECT_PENALTY` = 40% giá trị hợp đồng (`projects.js → penaltyOf`), trừ tối đa số quỹ đang có (không để âm); mức phạt hiện trên từng hợp đồng, dự án đang làm, báo cáo tan ca và hộp xác nhận huỷ.
+- **Toà nhà** (`rooms.js`, `building.js`): công ty bắt đầu với 1 phòng. Phòng mới (tối đa 6, 2 phòng mỗi tầng) cần **tổng doanh thu** đạt `BUILD.rooms[i].unlockRevenue` rồi trả `cost` từ quỹ (30K, 100K, 250K, 600K, 1,5M). Mỗi phòng tự nâng cấp 4 → 6 → 8 bàn (giá `OFFICE_LEVELS` × (1 + 0,5 × số thứ tự phòng)) và tự trả tiền thuê theo cấp của nó. Màn **toàn cảnh** (nút *Toà nhà*, hoặc Back Android khi đang ở trong phòng) vẽ mặt cắt toà nhà: người tí hon ở từng bàn, KPI từng phòng, kẹp hồ sơ + thanh tiến độ dự án, khung **vàng** (có người lười / KPI < 85% / dự án sắp trễ) hoặc **đỏ nhấp nháy** (≥ 2 người lười, có người lười lâu, đình công, trùm tuần hoặc KPI < 65%). Chạm một phòng để vào xem chi tiết (cảnh văn phòng như cũ, chỉ có nhân viên của phòng đó, `rooms.roomScope`); ở toàn cảnh không quất được ai. Thanh phòng dưới văn phòng có ◀ ▶ để chuyển phòng, nút *Toà nhà* nhấp nháy đỏ kèm số phòng đang báo đỏ. Tuyển người: vào phòng đang xem nếu còn bàn, không thì phòng đầu tiên còn bàn; chuyển phòng ở màn Nhân sự hoặc thẻ thông tin nhân viên. Trợ lý vẫn quất kẻ lười ở mọi phòng. Trùm tuần chỉ nhảy giữa các bàn trong một phòng; thanh máu báo "TRÙM Ở PHÒNG N", chạm vào để tới đó. Thanh tra đến phòng đang xem.
+- **Dự án theo phòng**: mỗi phòng có 3 hợp đồng riêng mỗi sáng (cỡ theo đội của phòng đó) và chạy 1 hợp đồng, nên nhiều phòng = nhiều dự án song song. Chỉ nhân viên trong phòng góp điểm cho dự án của phòng (`addWork(g, room, role, n)`). Màn Dự án có tab theo phòng (xanh = đang chạy, vàng = có hợp đồng chờ). Chuyển/sa thải người làm phòng mất nghề nào thì hợp đồng cần nghề đó bị bỏ và phòng nhận hợp đồng mới. Nhiều dự án xong cùng lúc thì vào hàng chờ `projects.queue`, popup thưởng hiện lần lượt. Tan ca: mọi dự án quá hạn đều thất bại.
 - **Nhận thưởng dự án**: làm xong thì `projects.finish` chuyển dự án sang `projects.reward` (chưa cộng gì) và hiện **popup thưởng** (`ui.showProjectReward`): cúp vàng, tên dự án, khách hàng, xong sớm mấy ngày, số tiền (đếm tăng dần; dự án chỉ trả tiền, không trả 💎). Game tạm dừng tới khi người chơi bấm **Nhận thưởng** (`projects.collect(g, 1)`) hoặc **Xem quảng cáo: nhận x2 tiền** (`collect(g, 2)`). Nút Back Android = nhận thưởng thường. Thoát game khi chưa nhận thì lần sau mở lại popup hiện lại. Ở thanh taskbar (bản PC) không có chỗ cho popup nên tiền được cộng luôn.
 - **Động lực** (`e.motiv`, 0–100, mặc định 50): nhân với xác suất lười, 100 → ×0,6, 0 → ×1,4; mỗi bậc lương giảm thêm 12%. Động lực tự trôi về mức nền (50 + 10 × bậc lương) với tốc độ 0,08/giây. Mỗi lần bị bắt quả tang −2, bị quất oan −15, sau đình công tối đa còn 20. Sa thải làm người ở lại −8 động lực, +10 áp lực.
 - **Mã nhân viên** (`e.id`) luôn duy nhất: khi tuyển dùng `nextStaffId()` (mã lớn nhất + 1), vì sau khi sa thải số người không còn bằng mã. Vị trí bàn là thứ tự trong mảng `g.staff`.

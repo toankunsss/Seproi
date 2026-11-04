@@ -10,6 +10,7 @@ import { updateBoss } from './boss.js';
 import { bonus } from './inventory.js';
 import { catchMult, motivBonus, wrongStressMult, tickSkills } from './skills.js';
 import { deptIncome, deptSlack, trackDepts } from './depts.js';
+import { tickRooms } from './rooms.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -40,10 +41,15 @@ export function update(g, dt, emit) {
   const coffee = g.coffeeLevel >= 0 ? COFFEE[g.coffeeLevel] : null;
   const decay = T.stressDecay * (hasPerk(g, 'massage') ? 2 : 1);
   if (g.hotBonus > 0) g.hotBonus = Math.max(0, g.hotBonus - dt);
-  let working = 0, income = 0, finished = false;
+  let working = 0, income = 0;
+  const finished = new Set();
   // team leads keep the people next to them in line (special staff, cv.js)
+  // (neighbours = the desks either side, in the same room)
   const leadAt = new Set();
-  g.staff.forEach((e, i) => { if (e.cv && e.cv.type === 'lead' && e.state === 'work') { leadAt.add(i - 1); leadAt.add(i + 1); } });
+  g.staff.forEach((e, i) => {
+    if (!(e.cv && e.cv.type === 'lead' && e.state === 'work')) return;
+    for (const j of [i - 1, i + 1]) if (g.staff[j] && (g.staff[j].room || 0) === (e.room || 0)) leadAt.add(j);
+  });
 
   for (const [idx, e] of g.staff.entries()) {
     e.t += dt;
@@ -99,11 +105,12 @@ export function update(g, dt, emit) {
     if (inc > 0) {
       working++;
       // project work: same people who earn money also push the active contract forward
-      if (addWork(g, e.role, WORK_RATE * skillMult(e.cv) * (e.boost > 0 ? T.boostMult : 1) * dt)) finished = true;
+      if (addWork(g, e.room || 0, e.role, WORK_RATE * skillMult(e.cv) * (e.boost > 0 ? T.boostMult : 1) * dt)) finished.add(e.room || 0);
     }
     income += inc;
   }
-  if (finished) emit('projectDone');
+  for (const r of finished) emit('projectDone', r);
+  if (g.rooms) tickRooms(g, dt);
   updateVisit(g, dt, emit);
   updateBoss(g, dt, emit);
   tickSkills(g, dt);

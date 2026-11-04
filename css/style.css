@@ -969,3 +969,38 @@ body.in-level .stat.gems { visibility: hidden; }
 .emp-info .face.big { width: 72px; height: 72px; image-rendering: pixelated; }
 .emp-info q { color: var(--muted); }
 .mobile .side.info .combo { display: none; }
+
+/* --- Building: room bar, room tabs, building screen (rooms.js / building.js) --- */
+.roombar { display: none; }
+.mobile .roombar { display: flex; align-items: center; gap: 6px; }
+.mobile .roombar .rb-name { flex: 1; min-width: 0; text-align: center; font-size: 17px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rb-home { position: relative; white-space: nowrap; }
+.rb-home.alarm { background: #8a1d24; color: #fff; animation: rb-alarm 0.8s steps(2) infinite; }
+.rb-home .rb-alert { display: inline-block; min-width: 18px; padding: 0 4px; margin-left: 4px; font-style: normal; background: var(--red); color: #fff; box-shadow: 0 0 0 2px var(--edge); }
+.rb-step { min-width: 34px; }
+.rb-step[hidden] { display: none; }
+.bar.bottom .rb-name { color: var(--ink); white-space: nowrap; }
+body.in-level .roombar, body.in-level .rb-home, body.in-level .rb-step, body.in-level .bar .rb-name { display: none !important; }
+@keyframes rb-alarm { 50% { background: #ff2d3d; } }
+#bossbar.away { pointer-events: auto; cursor: pointer; background: #5a1030; animation: rb-alarm 0.8s steps(2) infinite; }
+.room-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.room-tab { position: relative; font: inherit; font-size: 17px; padding: 3px 10px 3px 18px; border: 0; cursor: pointer; background: #1d1830; color: var(--muted); box-shadow: 0 0 0 2px var(--edge); }
+.room-tab i { position: absolute; left: 6px; top: 50%; width: 7px; height: 7px; margin-top: -4px; background: #4a4068; }
+.room-tab.run i { background: #7fd0ff; }
+.room-tab.offer i { background: var(--gold); animation: rb-alarm 1.2s steps(2) infinite; }
+.room-tab.late i { background: var(--red); }
+.room-tab.sel { background: var(--panel-2); color: var(--ink); box-shadow: 0 0 0 2px var(--edge), inset 0 -3px 0 var(--gold); }
+.room-pick { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; color: var(--muted); flex-wrap: wrap; }
+.chip-btn { font: inherit; font-size: 16px; min-width: 28px; padding: 1px 6px; border: 0; cursor: pointer; background: #1d1830; color: var(--ink); box-shadow: 0 0 0 2px var(--edge); }
+.chip-btn.on { background: var(--gold); color: #1d1826; }
+.chip-btn:disabled:not(.on) { opacity: .4; cursor: default; }
+.room-row .room-btns { display: flex; gap: 6px; grid-column: 2 / -1; }
+.room-row .room-btns .buy { min-width: 0; }
+.room-row.alert1 { box-shadow: inset 3px 0 0 var(--orange); }
+.room-row.alert2 { box-shadow: inset 3px 0 0 var(--red); }
+.build-next { display: grid; grid-template-columns: 48px 1fr auto; gap: 10px; align-items: center; padding: 8px; margin: 6px 0 10px; background: #1d1830; box-shadow: 0 0 0 2px var(--edge); }
+.build-next.ready { box-shadow: 0 0 0 2px var(--edge), inset 0 0 0 2px var(--gold); }
+.build-next img { width: 48px; height: 48px; image-rendering: pixelated; }
+.build-next small { color: var(--muted); display: block; }
+.build-next .meter { margin: 3px 0; }
+.report-room { color: #7fd0ff; }

@@ -4,7 +4,9 @@
 // so a re-render never swallows a tap.
 import { ROLES, OFFICE_LEVELS, PREMIUM_ITEMS, ADS, MAX_STAFF, PRIVACY_URL, SLACKS } from './config.js';
 import { faceUrl, hirePrice, skillMult, typeOf } from './cv.js';
-import { progressOf, penaltyOf } from './projects.js';
+import { progressOf, penaltyOf, activeOf, openOffers } from './projects.js';
+import { roomName, capOf, roomStaff, freeDesks, freeRoom, totalCap, nextRoom, upgradeOf, roomAlert } from './rooms.js';
+import { BUILD } from './config.js';
 import { achievementList, claimableCount } from './achievements.js';
 import { blockedReason } from './premium.js';
 import { itemArtUrl, badgeTier } from './item-art.js';
@@ -46,9 +48,9 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
 
   // --- CV recruitment -------------------------------------------------------------------
   function cvScreen() {
-    const cap = OFFICE_LEVELS[g.officeLevel].capacity;
-    const free = cap - g.staff.length;
-    const full = g.staff.length >= MAX_STAFF;
+    const into = freeRoom(g, g.viewRoom);
+    const free = g.rooms.reduce((n, _, r) => n + Math.max(0, freeDesks(g, r)), 0);
+    const full = !nextRoom(g) && free <= 0 && g.rooms.every((_, r) => !upgradeOf(g, r));
     const cards = g.candidates.map((cv, i) => {
       const price = hirePrice(g, cv);
       const can = free > 0 && g.money >= price;
@@ -73,8 +75,9 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
         </div>
       </div>`;
     }).join('');
-    const note = full ? t('Công ty đã đủ 8 nhân viên.')
-      : free <= 0 ? t('Hết bàn trống. Mở rộng văn phòng (Quản lý) để tuyển thêm.')
+    const note = full ? t('Toà nhà đã kín người.')
+      : free <= 0 ? t('Hết bàn trống. Nâng cấp phòng hoặc xây phòng mới (Quản lý) để tuyển thêm.')
+      : g.rooms.length > 1 ? t('Còn {n} bàn trống · người mới vào {room}.', { n: free, room: roomName(into) })
       : t('Còn {n} bàn trống.', { n: free });
     return `<div class="card screen cv-screen">
       ${head(t('Hồ sơ ứng viên'), `${note} ${t('Quỹ')} ${fmt(g.money)} đ`)}
@@ -84,7 +87,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       </div>
     </div>`;
   }
-  const cvSig = () => [g.candidates.length, g.staff.length, g.officeLevel, ...g.candidates.map((cv) => g.money >= hirePrice(g, cv))].join('|');
+  const cvSig = () => [g.candidates.length, g.staff.length, g.rooms.map((r) => r.level).join(''), g.viewRoom, ...g.candidates.map((cv) => g.money >= hirePrice(g, cv))].join('|');
 
   // --- Staff care: rewards & firing ------------------------------------------------------
   const bar = (k, id, cls) => `<div class="meter"><i class="${cls}" data-bar="${k}:${id}"></i></div>`;
@@ -96,8 +99,8 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     return `<button class="px-btn ${cls}" data-a="staffDo" data-arg="${kind}:${e ? e.id : ''}" ${why ? 'disabled' : ''}>${t(label)}<small>${price}</small></button>`;
   }
   function staffScreen() {
-    const cap = OFFICE_LEVELS[g.officeLevel].capacity;
-    const cards = g.staff.map((e) => `<div class="staff-card ${e.cv.star ? 'star' : ''}">
+    const cap = totalCap(g);
+    const cards = g.staff.map((e) => `<div class="staff-card ${e.cv.star ? 'star' : ''}">${g.rooms.length > 1 ? roomPicker(e) : ''}
         <div class="cv-top">
           <img class="face" src="${faceUrl(e.look, e.cv.star)}" alt="">
           <div class="cv-who"><b>${esc(e.nickname || e.name)}</b>${e.nickname ? ` <small>(${esc(e.name)})</small>` : ''}${typeBadge(e.cv)}
@@ -129,7 +132,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       <div class="staff-list">${cards}</div>
     </div>`;
   }
-  const staffSig = () => [g.staff.length, g.day, g.partyDay, ...g.staff.map((e) => `${e.id}:${e.wage}:${e.praisedDay}:${e.nickname}:${['praise', 'bonus', 'gift', 'raise'].map((k) => staffBlocked(g, k, e)).join('')}`), staffBlocked(g, 'party')].join('|');
+  const staffSig = () => [g.staff.length, g.day, g.partyDay, g.rooms.length, ...g.staff.map((e) => `${e.id}:${e.room}:${e.wage}:${e.praisedDay}:${e.nickname}:${['praise', 'bonus', 'gift', 'raise'].map((k) => staffBlocked(g, k, e)).join('')}`), staffBlocked(g, 'party')].join('|');
   function staffLive() {
     for (const e of g.staff) {
       for (const k of ['motiv', 'stress', 'energy']) {
@@ -141,13 +144,21 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     }
   }
 
+  /** Room chips on a staff card: tap another room (with a free desk) to move them there. */
+  function roomPicker(e) {
+    return `<div class="room-pick"><span>${t('Phòng')}:</span>${g.rooms.map((_, r) => {
+      const here = (e.room || 0) === r, can = !here && freeDesks(g, r) > 0;
+      return `<button class="chip-btn ${here ? 'on' : ''}" data-a="moveStaff" data-arg="${e.id}:${r}" ${can ? '' : 'disabled'}>${r + 1}</button>`;
+    }).join('')}</div>`;
+  }
+
   // --- One employee's info card (whip switched off → tap someone) ---------------------------------
   function empInfoScreen(id) {
     const e = g.staff.find((x) => x.id === id);
     if (!e) return '';
     const T = typeOf(e.cv);
     return `<div class="card screen emp-info">
-      ${head(esc(e.nickname || e.name), `${t(ROLES[e.role].label)}${isHead(g, e) ? ' · ' + t('Trưởng phòng') : ''}`)}
+      ${head(esc(e.nickname || e.name), `${t(ROLES[e.role].label)}${isHead(g, e) ? ' · ' + t('Trưởng phòng') : ''}${g.rooms.length > 1 ? ' · ' + roomName(e.room || 0) : ''}`)}
       <div class="cv-top">
         <img class="face big" src="${faceUrl(e.look, e.cv.star)}" alt="">
         <div class="cv-who">${e.nickname ? `<small>${esc(e.name)}</small>` : ''}${typeBadge(e.cv)}${e.cv.star ? ` <span class="badge-star">${t('NGÔI SAO')}</span>` : ''}
@@ -162,6 +173,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
         <span>${t('Năng lượng')}</span>${bar('energy', e.id, 'energy')}
       </div>
       <ul class="cv-lines"><li>${t('Sở thích:')} ${esc(t(e.cv.hobby))}</li><li>${t('Bị quất: {n} lần · quất oan: {w}', { n: e.whips || 0, w: e.wrong || 0 })}</li><li><q>${esc(t(e.cv.quote))}</q></li></ul>
+      ${g.rooms.length > 1 ? roomPicker(e) : ''}
       <div class="staff-actions">
         ${staffBtn('praise', e, 'Khen ngợi')}
         ${staffBtn('gift', e, 'Tặng trà sữa')}
@@ -173,50 +185,98 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
 
   // --- Projects -------------------------------------------------------------------------
   const roleBar = (p, r) => `<div class="req"><span>${t(ROLES[r].label)}</span><div class="meter"><i data-prog="${r}"></i></div><b data-progtxt="${r}">${Math.floor(p.prog[r])}/${p.req[r]}</b></div>`;
+  let projRoom = 0; // room whose contracts the projects screen shows
   function projectsScreen() {
-    const pr = g.projects, a = pr.active;
+    const pr = g.projects, r = Math.min(projRoom, g.rooms.length - 1), room = g.rooms[r], a = room.project;
     const team = { dev: 0, acc: 0, des: 0 };
-    for (const e of g.staff) team[e.role]++;
+    for (const e of roomStaff(g, r)) team[e.role]++;
+    // one tab per room: blue = contract running, gold = offers waiting, grey = empty room
+    const tabs = g.rooms.length > 1 ? `<div class="room-tabs">${g.rooms.map((x, i) => {
+      const st = x.project ? 'run' : x.offers.length ? 'offer' : 'idle';
+      const al = roomAlert(g, i).late ? ' late' : '';
+      return `<button class="room-tab ${st}${al} ${i === r ? 'sel' : ''}" data-a="projRoom" data-arg="${i}">${esc(roomName(i))}<i></i></button>`;
+    }).join('')}</div>` : '';
     let body;
     if (a) {
       const left = a.deadline - g.day;
       body = `<div class="proj active">
         <div class="proj-name">${esc(t(a.name))}</div>
         <small>${t('Khách hàng: {c} · Hạn: hết ngày {d}', { c: esc(a.client), d: a.deadline })} (${left <= 0 ? `<b class="warn">${t('hôm nay!')}</b>` : t('còn {n} ngày', { n: left + 1 })})</small>
-        ${Object.keys(a.req).map((r) => roleBar(a, r)).join('')}
+        ${Object.keys(a.req).map((k) => roleBar(a, k)).join('')}
         <div class="reward">${t('Thưởng:')} <b>${fmt(a.money)} đ</b></div>
         <div class="penalty">${t('Thất bại / huỷ: phạt hợp đồng {m} đ', { m: fmt(penaltyOf(a)) })}</div>
-        <p class="tip">${t('Nhân viên đang làm việc sẽ góp điểm theo nghề của họ. Giữ KPI cao để kịp hạn!')}</p>
+        <p class="tip">${g.rooms.length > 1 ? t('Chỉ nhân viên của {room} góp điểm cho dự án này.', { room: roomName(r) }) : t('Nhân viên đang làm việc sẽ góp điểm theo nghề của họ. Giữ KPI cao để kịp hạn!')}</p>
         <div class="proj-actions">
-          ${a.extended ? '' : `<button class="px-btn ad" data-a="adExtend">▶ ${t('Quảng cáo: gia hạn +1 ngày')}</button>`}
-          <button class="px-btn danger" data-a="projAbandon">${t('Huỷ dự án')}</button>
+          ${a.extended ? '' : `<button class="px-btn ad" data-a="adExtend" data-arg="${r}">▶ ${t('Quảng cáo: gia hạn +1 ngày')}</button>`}
+          <button class="px-btn danger" data-a="projAbandon" data-arg="${r}">${t('Huỷ dự án')}</button>
         </div>
       </div>`;
+    } else if (!roomStaff(g, r).length) {
+      body = `<p class="empty">${t('{room} chưa có ai. Tuyển nhân viên vào phòng này để nhận hợp đồng.', { room: roomName(r) })}</p>
+        <button class="px-btn wide" data-a="interview">${t('Xem CV')}</button>`;
     } else {
-      body = `<p class="tip">${t('Chọn 1 hợp đồng. Mỗi nghề cần đủ điểm trước khi hết hạn.')}</p>` + pr.offers.map((p, i) => `<div class="proj">
+      body = `<p class="tip">${t('Chọn 1 hợp đồng. Mỗi nghề cần đủ điểm trước khi hết hạn.')}</p>` + (room.offers.map((p, i) => `<div class="proj">
         <div class="proj-name">${esc(t(p.name))}</div>
         <small>${esc(p.client)} · ${t('{n} ngày', { n: p.days })}</small>
-        <div class="chips">${Object.entries(p.req).map(([r, n]) => `<span class="chip">${t(ROLES[r].label)} ${fmt(n)} <i>(${t('{n} người', { n: team[r] })})</i></span>`).join('')}</div>
+        <div class="chips">${Object.entries(p.req).map(([k, n]) => `<span class="chip">${t(ROLES[k].label)} ${fmt(n)} <i>(${t('{n} người', { n: team[k] })})</i></span>`).join('')}</div>
         <div class="penalty">${t('Trễ hạn phạt {m} đ', { m: fmt(penaltyOf(p)) })}</div>
         <div class="proj-row"><span class="reward">${fmt(p.money)} đ</span>
-          <button class="px-btn big accept" data-a="projAccept" data-arg="${i}">${t('Nhận')}</button></div>
-      </div>`).join('');
+          <button class="px-btn big accept" data-a="projAccept" data-arg="${r}:${i}">${t('Nhận')}</button></div>
+      </div>`).join('') || `<p class="empty">${t('Hết hợp đồng hôm nay. Sáng mai sẽ có khách mới.')}</p>`);
     }
     return `<div class="card screen proj-screen">
       ${head(t('Dự án · Nghiệp vụ'), t('Hoàn thành {d} · Thất bại {f}', { d: pr.done, f: pr.failed }))}
+      ${tabs}
       ${body}
     </div>`;
   }
-  const projSig = () => [g.projects.active ? g.projects.active.deadline + ':' + g.projects.active.extended : 'none', g.projects.offers.length, g.day].join('|');
+  const projSig = () => [projRoom, g.rooms.length, g.day, ...g.rooms.map((x) => (x.project ? x.project.deadline + ':' + x.project.extended : 'none') + ':' + x.offers.length), roomStaff(g, Math.min(projRoom, g.rooms.length - 1)).length].join('|');
   function projLive() {
-    const a = g.projects.active;
+    const a = activeOf(g, Math.min(projRoom, g.rooms.length - 1));
     if (!a) return;
-    for (const r of Object.keys(a.req)) {
-      const bar = modal.querySelector(`[data-prog="${r}"]`), txt = modal.querySelector(`[data-progtxt="${r}"]`);
-      if (bar) bar.style.width = Math.min(100, (a.prog[r] / a.req[r]) * 100) + '%';
-      if (txt) txt.textContent = `${Math.floor(a.prog[r])}/${a.req[r]}`;
+    for (const k of Object.keys(a.req)) {
+      const bar = modal.querySelector(`[data-prog="${k}"]`), txt = modal.querySelector(`[data-progtxt="${k}"]`);
+      if (bar) bar.style.width = Math.min(100, (a.prog[k] / a.req[k]) * 100) + '%';
+      if (txt) txt.textContent = `${Math.floor(a.prog[k])}/${a.req[k]}`;
     }
   }
+
+  // --- The building: rooms, upgrades, the next room ----------------------------------------------
+  function buildingScreen() {
+    const nr = nextRoom(g), have = g.lifetimeEarnings || 0;
+    const rows = g.rooms.map((room, r) => {
+      const u = upgradeOf(g, r), a = roomAlert(g, r), ready = u && have >= u.unlockRevenue;
+      return `<div class="item has-art room-row alert${a.level}">
+        <div class="item-art"><img src="${itemArtUrl('office:' + room.level)}" alt=""></div>
+        <div class="info"><div class="title">${esc(roomName(r))} · ${t(OFFICE_LEVELS[room.level].name)}</div>
+          <div class="desc">${t('{n}/{cap} bàn · KPI {k}%', { n: roomStaff(g, r).length, cap: capOf(g, r), k: a.kpi })}${room.project ? ' · ' + t('Dự án: {name}', { name: esc(t(room.project.name)) }) : ''}
+          ${u ? '<br>' + (ready ? t('Nâng lên {name}: {n} bàn', { name: t(u.name), n: u.capacity }) : t('Nâng cấp cần tổng doanh thu {need} đ', { need: fmt(u.unlockRevenue) })) : ''}</div></div>
+        <div class="room-btns">
+          <button class="px-btn" data-a="roomGo" data-arg="${r}">${t('Vào')}</button>
+          ${u ? `<button class="px-btn buy" data-a="roomUpgrade" data-arg="${r}" ${ready && g.money >= u.cost ? '' : 'disabled'}>${fmt(u.cost)} đ</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    const next = nr ? (() => {
+      const ready = have >= nr.unlockRevenue;
+      return `<div class="build-next ${ready ? 'ready' : ''}">
+        <img src="${itemArtUrl('tower:' + g.rooms.length)}" alt="">
+        <div><b>${t('Xây {room}', { room: esc(roomName(nr.index)) })}</b>
+          <div>${t('Mốc doanh thu: {have}/{need} đ', { have: fmt(have), need: fmt(nr.unlockRevenue) })}</div>
+          <div class="meter"><i style="width:${Math.min(100, Math.round((have / nr.unlockRevenue) * 100))}%"></i></div>
+          <small>${t('Phòng mới có 4 bàn, nhận dự án riêng và tốn tiền thuê mỗi tháng.')}</small></div>
+        <button class="px-btn big" data-a="roomBuild" ${ready && g.money >= nr.cost ? '' : 'disabled'}>${ready ? `${fmt(nr.cost)} đ` : t('Chưa đạt')}</button>
+      </div>`;
+    })() : `<div class="build-next ready"><b>${t('Toà nhà đã kín phòng. Đế chế hoàn chỉnh!')}</b></div>`;
+    return `<div class="card screen building-screen">
+      ${head(t('Toà nhà'), t('{n}/{m} phòng · {s}/{c} bàn · Quỹ {money} đ', { n: g.rooms.length, m: BUILD.rooms.length, s: g.staff.length, c: totalCap(g), money: fmt(g.money) }))}
+      ${next}
+      <h3>${t('Các phòng')}</h3>
+      ${rows}
+      <button class="px-btn wide" data-a="roomGo" data-arg="-1">${t('Xem toàn cảnh toà nhà')}</button>
+    </div>`;
+  }
+  const buildSig = () => [g.rooms.length, g.rooms.map((x) => x.level + (x.project ? 'p' : '')).join(''), g.staff.length, Math.floor(g.money / 500), Math.floor((g.lifetimeEarnings || 0) / 1000), ...g.rooms.map((_, r) => roomAlert(g, r).level)].join('|');
 
   // --- 💎 shop ------------------------------------------------------------------------------
   function vipScreen() {
@@ -492,7 +552,14 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
 
   const screens = {
     cv: () => open('cv', cvScreen, cvSig),
-    projects: () => open('projects', projectsScreen, projSig, projLive),
+    projects: (r) => {
+      // default: the room being viewed, else the first room that can take a contract
+      if (r === undefined || Number.isNaN(r)) { const free = g.rooms.findIndex((x) => !x.project && x.offers.length); r = g.viewRoom >= 0 ? g.viewRoom : Math.max(0, free); }
+      projRoom = Math.max(0, Math.min(g.rooms.length - 1, r));
+      if (current && current.name === 'projects') { paint(); return; }
+      open('projects', projectsScreen, projSig, projLive);
+    },
+    building: () => open('building', buildingScreen, buildSig),
     vip: () => open('vip', vipScreen, vipSig),
     staff: () => open('staff', staffScreen, staffSig, staffLive),
     empInfo: (id) => open('empInfo', () => empInfoScreen(id), () => { const e = g.staff.find((x) => x.id === id); return e ? `${e.nickname}|${e.praisedDay}|${e.wage}|${g.money >= 0 ? Math.floor(g.money / 50) : 0}|${e.room}` : 'x'; }, staffLive),
@@ -517,15 +584,15 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     close,
     get open() { return current && current.name; },
     // projects: how many contracts can be taken right now (none while one is in progress)
-    badges: () => ({ achievements: claimableCount(g) + questClaimable(g) + albumClaimable(g), projects: g.projects.active ? 0 : g.projects.offers.length }),
+    badges: () => ({ achievements: claimableCount(g) + questClaimable(g) + albumClaimable(g), projects: openOffers(g) }),
   };
   act.closeScreen = close;
   return screens;
 }
 
 /** Small summary for the HUD project bar: { text, frac } or null. */
-export function projectSummary(g) {
-  const a = g.projects.active;
+export function projectSummary(g, r = Math.max(0, g.viewRoom || 0)) {
+  const a = activeOf(g, r);
   if (!a) return null;
   const left = a.deadline - g.day;
   return { name: a.name, frac: progressOf(a), due: left <= 0 ? t('hạn hôm nay') : t('còn {n} ngày', { n: left + 1 }) };

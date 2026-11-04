@@ -97,7 +97,7 @@ export function createTutorial({ g, view, onSave, onGems, slackFor }) {
       text: () => t('Roi mới đây rồi! Giờ nhận một dự án: nhân viên làm việc sẽ đẩy tiến độ, xong trước hạn được thưởng tiền. Mở mục Dự án.'),
       target: () => el('#modal:not([hidden]) [data-a="projAccept"]') || el('.tab[data-a="projects"]'),
       text2: () => (el('#modal:not([hidden]) [data-a="projAccept"]') ? t('Chọn một hợp đồng và bấm Nhận. Để ý số ngày và mức phạt nếu trễ hạn!') : null),
-      done: () => !!g.projects.active,
+      done: () => g.rooms.some((r) => r.project),
     },
     { // 5
       enter() { if (!document.querySelector('#modal[hidden]')) document.querySelector('#modal [data-a="closeScreen"]')?.click(); },
