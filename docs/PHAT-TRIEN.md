@@ -87,11 +87,14 @@ Thêm vào `PROJECT_TYPES` (`roles` = trọng số từng nghề), `CLIENTS`, `C
 
 ### Đa ngôn ngữ
 
-- **Thêm chữ mới vào giao diện:** viết tiếng Việt trong `t('...')`, rồi thêm dòng tương ứng vào `js/lang/en.js`. Không ghép chuỗi kiểu `'Ngày ' + n`; hãy dùng `t('Ngày {n}', { n })` để người dịch đổi được thứ tự từ.
-- **Thêm ngôn ngữ mới** (ví dụ tiếng Nhật):
-  1. Chép `js/lang/en.js` thành `js/lang/ja.js` và dịch phần giá trị, giữ nguyên `{biến}`.
-  2. Trong `js/i18n.js`: `import ja from './lang/ja.js';` rồi thêm `ja: { name: '日本語', dict: ja, locale: 'ja-JP' }` vào `LANGS`. Nút chọn sẽ tự xuất hiện trong menu Thêm.
-  3. Kiểm tra font: VT323 và Press Start 2P chỉ có chữ Latin (có dấu tiếng Việt). Ngôn ngữ dùng chữ khác (Nhật, Hàn, Trung, Thái…) cần thêm font pixel hỗ trợ bộ chữ đó vào `fonts/` và `css/fonts.css`.
+Game có 12 ngôn ngữ: Tiếng Việt (gốc), English, Español, Português (Brasil), Français, Deutsch, Bahasa Indonesia, Русский, ไทย, 简体中文, 日本語, 한국어. Lần đầu mở game tự chọn theo ngôn ngữ của máy (không có thì English); người chơi đổi ở màn tiêu đề (nút 🌐) hoặc **Thêm → Ngôn ngữ**. Chỉ từ điển của ngôn ngữ đang chọn được tải (`await import` trong `js/i18n.js`); đổi ngôn ngữ thì game lưu rồi tải lại.
+
+- **Thêm chữ mới vào giao diện:** viết tiếng Việt trong `t('...')`, rồi thêm dòng tương ứng vào `js/lang/en.js` **và mọi file `js/lang/*.js` khác** (thiếu thì câu đó hiện tiếng Việt). Không ghép chuỗi kiểu `'Ngày ' + n`; hãy dùng `t('Ngày {n}', { n })` để người dịch đổi được thứ tự từ.
+- **Kiểm tra một bản dịch:** `node tools/i18n-check.mjs <mã>` (ví dụ `ja`): báo khoá thiếu/thừa so với `en.js`, `{biến}` hoặc thẻ HTML bị đổi.
+- **Thêm ngôn ngữ mới** (ví dụ tiếng Ý):
+  1. Chép `js/lang/en.js` thành `js/lang/it.js` và dịch phần giá trị, giữ nguyên khoá tiếng Việt, `{biến}` và thẻ HTML; chạy `node tools/i18n-check.mjs it`.
+  2. Thêm `it: { name: 'Italiano', locale: 'it-IT', script: 'latin' }` vào `LANGS` trong `js/i18n.js`. Nút chọn tự xuất hiện ở màn tiêu đề và menu Thêm.
+  3. Font: VT323 chỉ có chữ Latin (có dấu tiếng Việt), Press Start 2P có thêm Kirin. Chữ Trung/Nhật/Hàn/Thái/Nga hiện bằng font hệ thống (`script` ≠ `latin` bật bộ font dự phòng trong `css/style.css`). Chữ vẽ trên canvas (biển WHIP BOSS, KPI trong toàn cảnh toà nhà) không phụ thuộc ngôn ngữ.
 - **Kiểm tra sót chữ:** mở game với trình duyệt đặt tiếng Anh, đi qua mọi màn hình, xem còn câu tiếng Việt nào không (tên người và tên thương hiệu được giữ nguyên).
 
 ### Hành động chăm sóc nhân viên mới
@@ -182,7 +185,6 @@ Các con số này đo bằng `tools/balance/econ.cjs` (cần `node serve.cjs` �
 - [ ] Script Playwright chụp màn hình mobile ở các kích thước phổ biến, chạy trong CI.
 - [ ] Chuẩn hóa phiên bản cho cả 3 nơi (`mobile/package.json`, `desktop/package.json`, `build.gradle`) bằng một script.
 - [ ] Nhạc nền (Web Audio, theo cùng cách tổng hợp như `audio.js`), có nút tắt riêng.
-- [ ] Đa ngôn ngữ: gom chuỗi trong `ui.js` và `config.js` vào một file `i18n`.
 
 ## Kiểm thử thủ công trước khi phát hành
 

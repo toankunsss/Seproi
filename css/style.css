@@ -517,8 +517,8 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 .fake-ad-bar { height: 8px; background: #e8d8c0; margin: 14px 0; }
 .fake-ad-bar i { display: block; height: 100%; width: 0; background: #2f6a3f; }
 .fake-ad-box .px-btn { margin: 4px; }
-.lang-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
-.lang-row .px-btn { flex: 1; margin: 0; padding: 10px; }
+.lang-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 10px; }
+.lang-row .px-btn { margin: 0; padding: 8px 4px; font-size: 17px; }
 .lang-row .px-btn.on { background: #2f6a3f; }
 
 /* 💎 shop item pictures (js/item-art.js) */
@@ -1004,3 +1004,15 @@ body.in-level .roombar, body.in-level .rb-home, body.in-level .rb-step, body.in-
 .build-next small { color: var(--muted); display: block; }
 .build-next .meter { margin: 3px 0; }
 .report-room { color: #7fd0ff; }
+
+/* --- Language pickers (title screen + More) --- */
+.title-langs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px; background: rgba(29, 24, 38, .94); box-shadow: 0 0 0 2px var(--edge); }
+.title-langs[hidden] { display: none; }
+.title-langs .px-btn { min-height: 40px; font-size: 16px; padding: 2px 4px; }
+.title-langs .px-btn.on, .lang-row .px-btn.on { background: var(--gold); color: #1d1826; }
+/* Scripts VT323 has no glyphs for fall back to the system font, which runs larger: tone it down. */
+:root[data-script="cjk"], :root[data-script="thai"], :root[data-script="cyrillic"] {
+  --font: 'VT323', 'Noto Sans', system-ui, sans-serif;
+  --font-big: 'Press Start 2P', 'VT323', 'Noto Sans', system-ui, sans-serif;
+}
+:root[data-script="cjk"] body, :root[data-script="thai"] body, :root[data-script="cyrillic"] body { font-size-adjust: 0.4; }

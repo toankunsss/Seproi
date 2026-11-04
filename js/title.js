@@ -82,10 +82,11 @@ export function showTitle({ g, fmt, onStart, onToggleSound, onToggleMusic, onLan
       <div class="title-row">
         <button class="px-btn" data-k="sound"></button>
         <button class="px-btn" data-k="music"></button>
-        <button class="px-btn" data-k="lang">${LANGS[langs[(langs.indexOf(getLang()) + 1) % langs.length]].name}</button>
+        <button class="px-btn" data-k="lang">🌐 ${LANGS[getLang()].name}</button>
       </div>
+      <div class="title-langs" hidden>${langs.map((c) => `<button class="px-btn ${c === getLang() ? 'on' : ''}" data-k="pick" data-lang="${c}">${LANGS[c].name}</button>`).join('')}</div>
     </div>
-    <div class="title-foot">v1.0.5 · © Whip Boss · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Quyền riêng tư')}</a></div>`;
+    <div class="title-foot">v1.0.6 · © Whip Boss · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Quyền riêng tư')}</a></div>`;
   document.body.appendChild(el);
 
   const labels = () => {
@@ -125,7 +126,8 @@ export function showTitle({ g, fmt, onStart, onToggleSound, onToggleMusic, onLan
     const k = e.target.closest('[data-k]')?.dataset.k;
     if (k === 'sound') { onToggleSound(); labels(); }
     if (k === 'music') { onToggleMusic(); labels(); }
-    if (k === 'lang') onLang(langs[(langs.indexOf(getLang()) + 1) % langs.length]);
+    if (k === 'lang') { const box = el.querySelector('.title-langs'); box.hidden = !box.hidden; }
+    if (k === 'pick') { const c = e.target.closest('[data-lang]').dataset.lang; if (c !== getLang()) onLang(c); else el.querySelector('.title-langs').hidden = true; }
     if (k === 'play' && !closing) {
       closing = true;
       el.classList.add('leaving');
