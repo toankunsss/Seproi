@@ -23,6 +23,7 @@ import { DEPT, deptHead, isHead, deptKpi } from './depts.js';
 import { cosState, albumState, hasCard, setCards, setDone, albumClaimable } from './cosmetics.js';
 import { WHIP_SKINS, PETS, ALBUM, ALBUM_SETS, ALBUM_REWARD } from './config.js';
 import { incomeOf } from './sim.js';
+import * as diag from './diag.js';
 import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
@@ -39,7 +40,8 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
   function paint() {
     if (!current) return;
     current.last = current.sig();
-    modal.innerHTML = current.render();
+    // images decode off the main thread so long lists (staff, achievements) open without a hitch
+    modal.innerHTML = current.render().replaceAll('<img ', '<img decoding="async" ');
     if (current.live) current.live();
   }
   // Sticky header (CSS): title, subtitle, optional right-side chip, close button.
@@ -356,6 +358,9 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       ${mobile ? `<button class="px-btn wide" data-a="music">${g.musicOff ? t('Bật nhạc nền') : t('Tắt nhạc nền')}</button>` : ''}
       <h3>🌐 ${t('Ngôn ngữ')}${getLang() === 'en' ? '' : ' · Language'}</h3><div class="lang-row">${Object.entries(LANGS).map(([code, l]) => `<button class="px-btn ${code === getLang() ? 'on' : ''}" data-a="setLang" data-arg="${code}">${l.name}</button>`).join('')}</div><button class="px-btn wide danger" data-a="reset">${t('Chơi lại từ đầu')}</button>
       <a class="px-btn wide link" href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Chính sách quyền riêng tư')}</a>
+      <h3>${t('Hỗ trợ')}</h3>
+      <button class="px-btn wide" data-a="fpsToggle">${diag.meterOn() ? t('Ẩn FPS') : t('Hiện FPS')}</button>
+      <button class="px-btn wide" data-a="bugReport">${t('Gửi báo lỗi')}${diag.entries().length ? ` · ${diag.entries().length}` : ''}</button>
     </div>`;
 
   /** Special staff badge; a spy only shows once caught. */
@@ -572,7 +577,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     levels: () => open('levels', levelsScreen, () => `${totalStars(g)}|${g.day}`),
     levelInfo: (id) => open('levelInfo', () => levelInfoScreen(id), () => id),
     sell: () => open('sell', sellScreen, () => `${Math.floor((g.lifetimeEarnings || 0) / 1000)}|${g.shares}`),
-    more: () => open('more', moreScreen, () => `${g.muted}/${g.musicOff}`),
+    more: () => open('more', moreScreen, () => `${g.muted}/${g.musicOff}/${diag.meterOn()}/${diag.entries().length}`),
     /** Called ~10x/s by ui.update. */
     tick() {
       if (!current) return;

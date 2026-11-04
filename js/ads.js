@@ -40,6 +40,13 @@ export let lastAdFailure = '';
 
 let busy = false;
 
+/**
+ * Never let an ad hang the game: the SDK, the consent form or a bad network can leave a promise
+ * pending forever, and the game stays paused while it waits. Resolves to `fallback` after `ms`.
+ */
+const within = (promise, ms, fallback) => Promise.race([promise, new Promise((r) => setTimeout(() => r(fallback), ms))]);
+export const AD_LIMITS = { init: 8000, load: 12000, show: 90000 };
+
 /** Show a rewarded ad. Resolves true only if the player watched it to the end. */
 export async function showRewarded(placement = '') {
   if (busy) return false;
@@ -91,11 +98,10 @@ function prepare(AdMob) {
 }
 
 async function showAdMob(AdMob) {
-  await initAds();
-  try {
-    await (prepared || prepare(AdMob));
-  } catch {
-    try { await prepare(AdMob); } catch { lastAdFailure = 'unavailable'; prepared = null; return false; }
+  await within(initAds(), AD_LIMITS.init);
+  const loaded = async (p) => { try { return (await within(p.then(() => true), AD_LIMITS.load, false)) === true; } catch { return false; } };
+  if (!(await loaded(prepared || prepare(AdMob))) && !(await loaded(prepare(AdMob)))) {
+    lastAdFailure = 'unavailable'; prepared = null; return false;
   }
   // showRewardVideoAd() only resolves when the reward is earned (it never settles if the player
   // closes early), so the outcome comes from the Rewarded / Dismissed events.
@@ -112,6 +118,8 @@ async function showAdMob(AdMob) {
     ]).then(() => {
       AdMob.showRewardVideoAd().then(() => { rewarded = true; }).catch(() => { lastAdFailure = 'unavailable'; done(false); });
     });
+    // safety net: no dismiss event at all (SDK glitch) → give the game back after a while
+    setTimeout(() => { if (!rewarded) lastAdFailure = 'unavailable'; done(rewarded); }, AD_LIMITS.show);
   });
   handles.forEach((h) => h.remove());
   if (!result && !lastAdFailure) lastAdFailure = 'closed';
@@ -137,7 +145,7 @@ export async function showInterstitial({ simulate = false } = {}) {
   const AdMob = admob();
   if (!AdMob) return simulate ? showSimulatedInter() : false;
   if (busy) return false;
-  await initAds();
+  await within(initAds(), 1500);
   const ok = interPrepared && await Promise.race([interPrepared.then(() => true, () => false), new Promise((r) => setTimeout(() => r(false), 300))]);
   if (!ok) { if (!interPrepared) prepareInter(AdMob); return false; }
   busy = true;
@@ -151,7 +159,7 @@ export async function showInterstitial({ simulate = false } = {}) {
         listen('interstitialAdDismissed', () => done(true)),
         listen('interstitialAdFailedToShow', () => done(false)),
       ]).then(() => AdMob.showInterstitial().catch(() => done(false)));
-      setTimeout(() => done(true), 120000); // safety net: never leave the game paused forever
+      setTimeout(() => done(true), AD_LIMITS.show); // safety net: never leave the game paused forever
     });
   } finally {
     handles.forEach((h) => h.remove());

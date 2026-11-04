@@ -2,7 +2,7 @@
 // a big start button, plus sound / music / language toggles. The simulation waits until the
 // player taps start (main.js → onTitle).
 import { drawLogo, drawTitle, titleSize } from './brand.js';
-import { PRIVACY_URL } from './config.js';
+import { PRIVACY_URL, VERSION } from './config.js';
 import { t, getLang, LANGS } from './i18n.js';
 import { hash } from './pixel.js';
 
@@ -86,7 +86,7 @@ export function showTitle({ g, fmt, onStart, onToggleSound, onToggleMusic, onLan
       </div>
       <div class="title-langs" hidden>${langs.map((c) => `<button class="px-btn ${c === getLang() ? 'on' : ''}" data-k="pick" data-lang="${c}">${LANGS[c].name}</button>`).join('')}</div>
     </div>
-    <div class="title-foot">v1.0.7 · © Whip Boss · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Quyền riêng tư')}</a></div>`;
+    <div class="title-foot">v${VERSION} · © Whip Boss · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Quyền riêng tư')}</a></div>`;
   document.body.appendChild(el);
 
   const labels = () => {

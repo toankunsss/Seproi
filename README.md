@@ -42,5 +42,6 @@ Muốn xem nhanh giao diện điện thoại trên máy tính khi đang sửa co
 - [docs/MOBILE.md](docs/MOBILE.md): build, chạy, ký và phát hành Android/iOS, gỡ lỗi trên máy thật.
 - [docs/KIEN-TRUC.md](docs/KIEN-TRUC.md): cấu trúc mã nguồn, vòng lặp game, lưu game, lớp nền tảng.
 - [docs/QUANG-CAO.md](docs/QUANG-CAO.md): các điểm đặt quảng cáo có thưởng và cách nối AdMob thật.
+- [docs/HIEU-NANG.md](docs/HIEU-NANG.md): bộ test hiệu năng / đơ màn, kết quả đo, công cụ cho người test (FPS, gửi báo lỗi).
 - [docs/PHAT-TRIEN.md](docs/PHAT-TRIEN.md): thêm nội dung (roi, nhân viên, nội thất…), cân bằng game, quy ước code, danh sách việc nên làm tiếp.
 - [desktop/MACOS.md](desktop/MACOS.md): đóng gói bản PC cho macOS.

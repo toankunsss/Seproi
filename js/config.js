@@ -130,6 +130,8 @@ export const RANKS = [
 export const GEMS_START = 10;
 
 // Privacy policy (docs/privacy.html on GitHub Pages). Google Play requires a link in the app too.
+/** App version shown on the title screen and in bug reports (keep in step with build.gradle). */
+export const VERSION = '1.0.8';
 export const PRIVACY_URL = 'https://toankunsss.github.io/Seproi/privacy.html';
 
 // --- Recruitment (CV) -----------------------------------------------------------------------

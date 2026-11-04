@@ -30,6 +30,8 @@ js/
 ├── i18n.js       đa ngôn ngữ: t('câu tiếng Việt'), chọn/nhớ ngôn ngữ; từ điển trong js/lang/ (en.js…)
 ├── rooms.js      toà nhà: các phòng (g.rooms), xây phòng mới theo mốc doanh thu, nâng cấp từng phòng, xếp chỗ / chuyển phòng, KPI và đèn cảnh báo từng phòng, tiền thuê
 ├── building.js   vẽ toàn cảnh toà nhà (mặt cắt 3 tầng × 2 phòng): người tí hon, KPI, khung đỏ cảnh báo, ô "+" xây phòng
+├── monitor.js    màn hình máy tính chi tiết 20×14 cho từng việc (game, video, crypto, đồ ăn, gọi điện…) ở văn phòng dọc
+├── diag.js       chẩn đoán: nhật ký lỗi / đơ / watchdog, đồng hồ FPS, nội dung "Gửi báo lỗi" (docs/HIEU-NANG.md)
 ├── view.js       vẽ các chế độ (toàn cảnh toà nhà / office isometric / văn phòng dọc / mini taskbar), tỷ lệ phóng, tọa độ, chọn đối tượng
 ├── portrait.js   văn phòng cho điện thoại cầm dọc: bức tường + lưới ô làm việc, bàn trống để tuyển
 ├── sprites.js    sprite thủ tục: phòng, bàn, màn hình, nhân viên, bong bóng, nội thất…

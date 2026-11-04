@@ -1033,3 +1033,12 @@ body.in-level .roombar, body.in-level .rb-home, body.in-level .rb-step, body.in-
   --font-big: 'Press Start 2P', system-ui, 'Noto Sans', sans-serif;
 }
 :root[data-script="cjk"] body, :root[data-script="thai"] body, :root[data-script="cyrillic"] body { font-size-adjust: 0.47; }
+
+/* --- Performance: long lists only lay out / paint the cards that are on screen --- */
+.staff-card, .cv, .ach, .col-item, .room-row, .proj, .decor-row, .inv-item, .lvl-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
+}
+.ach, .decor-row, .room-row, .col-item, .inv-item { contain-intrinsic-size: auto 72px; }
+.staff-card, .cv { contain-intrinsic-size: auto 300px; }
+#fpsmeter { position: fixed; z-index: 90; left: 4px; top: calc(4px + var(--sa-top, 0px)); padding: 1px 6px; font: 14px var(--font); color: #5cff7a; background: rgba(0, 0, 0, .7); pointer-events: none; }

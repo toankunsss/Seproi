@@ -880,4 +880,10 @@ export default {
   // automatic ads
   "Văn phòng không quảng cáo": "Oficina sin anuncios",
   "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "Quita para siempre los anuncios automáticos entre días. Los anuncios con premio siguen disponibles cuando quieras.",
+  // diagnostics
+  "Hỗ trợ": "Soporte",
+  "Hiện FPS": "Mostrar FPS",
+  "Ẩn FPS": "Ocultar FPS",
+  "Gửi báo lỗi": "Enviar informe de error",
+  "Đã chép báo lỗi, hãy dán vào tin nhắn": "Informe copiado, pégalo en un mensaje",
 };

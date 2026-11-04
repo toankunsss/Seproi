@@ -36,6 +36,8 @@ import { OFFICE_LEVELS as OFFICES, SLACKS as SLACK_INFO } from './config.js';
 import * as campaign from './campaign.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 import * as rooms from './rooms.js';
+import * as diag from './diag.js';
+import { plugin } from './platform.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage'), canvas = $('game');
@@ -368,6 +370,22 @@ const act = {
     if (r === 'shared') { g.records.shares = (g.records.shares || 0) + 1; saveGame(); }
   },
   rivalStart() { if (!miniOpen) startRival(); },
+  // --- diagnostics for testers (diag.js) ---
+  fpsToggle() { diag.setMeter(!diag.meterOn()); ui.screens.repaint(); },
+  async bugReport() {
+    const text = diag.report({
+      State: `day ${g.day} · rooms ${g.rooms.length} · staff ${g.staff.length} · view ${g.viewRoom} · lang ${document.documentElement.lang}`,
+      Blocked: blockedBy() || '-',
+    });
+    const Share = plugin('Share');
+    try {
+      if (Share) await Share.share({ title: 'Whip Boss bug report', text, dialogTitle: tr('Gửi báo lỗi') });
+      else if (navigator.share) await navigator.share({ title: 'Whip Boss bug report', text });
+      else { await navigator.clipboard.writeText(text); toast(tr('Đã chép báo lỗi, hãy dán vào tin nhắn'), 'money'); }
+    } catch {
+      try { await navigator.clipboard.writeText(text); toast(tr('Đã chép báo lỗi, hãy dán vào tin nhắn'), 'money'); } catch { console.log(text); }
+    }
+  },
   miniStart(kind) { if (!miniOpen) startMini(kind || 'mouse'); },
   // --- campaign (campaign.js) ---
   levels() { ui.closePanel(); ui.screens.levels(); },
@@ -588,8 +606,18 @@ addEventListener('resize', layout);
  * whatever space the stage has left. Portrait draws the phone office (cubicle grid, portrait.js).
  */
 let lastFit = '';
+// Measuring the HUD forces the browser to lay the page out, so it only happens when something
+// actually changed size (ResizeObserver on the stage and the HUD columns), not every tick.
+let fitDirty = true;
+if (mobile && typeof ResizeObserver === 'function') {
+  const ro = new ResizeObserver(() => { fitDirty = true; });
+  ro.observe(stage);
+  for (const el of root.hud.querySelectorAll('.side')) ro.observe(el);
+} else fitDirty = null; // no ResizeObserver: measure every tick as before
 function fitMobile(force = false) {
   if (!mobile) return;
+  if (!force && fitDirty === false) return;
+  if (fitDirty) fitDirty = false;
   const cs = getComputedStyle(stage);
   const row = cs.flexDirection.startsWith('row');
   const gap = parseFloat(row ? cs.columnGap : cs.rowGap) || 0;
@@ -1084,6 +1112,46 @@ function endDay() {
   }
 }
 
+// --- Watchdog -------------------------------------------------------------------------------------
+/** What is holding the simulation right now ('' = it runs). */
+function blockedBy() {
+  return [paused && 'report', adOpen && 'ad', rewardOpen && 'reward', dailyOpen && 'daily', miniOpen && 'mini',
+    userPaused && 'pause', onTitle && 'title', tutorial && tutorial.blocking && 'tutorial'].filter(Boolean).join(',');
+}
+const shown = (sel) => { const el = document.querySelector(sel); return !!el && !el.hidden && el.offsetParent !== null; };
+/**
+ * If the game is held by a flag whose dialog is no longer on screen (a lost tap, an ad SDK that
+ * never answered…), the player sees a frozen office with nothing to press. Every 2 s: a flag that
+ * stayed stuck like that for two checks in a row is released, and the event is logged (diag.js).
+ */
+const stuck = {};
+function watchdog() {
+  if (document.hidden) return;
+  const native = adsAvailable();
+  const checks = {
+    reward: rewardOpen && !shown('#reward'),
+    daily: dailyOpen && !shown('#daily'),
+    mini: miniOpen && !shown('#mini') && !shown('#rival'),
+    ad: adOpen && !native && !document.querySelector('.fake-ad'),
+    pause: userPaused && !shown('#pause'),
+    report: paused && !campaignRun && root.modal.hidden && typeof act.nextDay === 'function',
+  };
+  for (const [k, bad] of Object.entries(checks)) {
+    stuck[k] = bad ? (stuck[k] || 0) + 1 : 0;
+    if (stuck[k] < 2) continue;
+    stuck[k] = 0;
+    diag.record('watchdog', `released "${k}" (day ${g.day})`);
+    if (k === 'reward') { rewardOpen = false; if (g.projects.reward) showProjectReward(); }
+    if (k === 'daily') { dailyOpen = false; currentDaily = null; dailyQueue = []; }
+    if (k === 'mini') { miniOpen = false; }
+    if (k === 'ad') { adOpen = false; audio.setMuted(g.muted); }
+    if (k === 'pause') { userPaused = false; }
+    if (k === 'report') { act.nextDay(); }
+    last = performance.now();
+  }
+}
+setInterval(watchdog, 2000);
+
 // --- Loop ------------------------------------------------------------------------------
 let last = performance.now();
 let t = 0;
@@ -1091,6 +1159,7 @@ let uiAcc = 0;
 let loopToken = 0;
 
 function frame(now) {
+  diag.frame(now - last, blockedBy());
   const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
   last = now;
   step(dt);
@@ -1224,4 +1293,4 @@ if (onTitle) {
     },
   });
 } else { music.play('office'); showProjectReward(); if (mobile) startDay(); else runDailyFlow(); }
-window.__game = { g, view, whip, act, ui, projects, rooms }; // debugging + automated play tests (console only)
+window.__game = { g, view, whip, act, ui, projects, rooms, diag, blockedBy }; // debugging + automated play tests (console only)

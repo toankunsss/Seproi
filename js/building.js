@@ -36,14 +36,23 @@ const fmtK = (n) => (n >= 1e6 ? (Math.round(n / 1e5) / 10 + 'M').replace('.0M', 
  */
 export function drawBuilding(ctx, L, g, t) {
   const hits = [];
-  drawSky(ctx, L, g, t);
   const built = g.rooms.length;
   // shell of the building (only up to the highest floor in use + the floor being offered)
   const floorsUp = Math.min(FLOORS, Math.floor(Math.min(built, BUILD.rooms.length - 1) / BUILD.perFloor) + 1);
   const shellTop = L.H - GROUND - floorsUp * (RH + SLAB);
-  rect(ctx, MX, shellTop - 4, L.W - MX * 2, L.H - GROUND - shellTop + 4, '#2a2340');
-  // scaffolding for floors not built yet
-  for (let f = floorsUp; f < FLOORS; f++) drawScaffold(ctx, L, L.H - GROUND - (f + 1) * (RH + SLAB), f);
+  // static parts come from two cached layers: the sky (behind the clouds) and the building frame
+  ctx.drawImage(layer('sky', `${L.W}x${L.H}|${skyColors(g).join()}`, L, (c) => drawSky(c, L, g)), 0, 0);
+  drawClouds(ctx, L, t);
+  ctx.drawImage(layer('frame', `${L.W}x${L.H}|${built}`, L, (c) => {
+    rect(c, MX, shellTop - 4, L.W - MX * 2, L.H - GROUND - shellTop + 4, '#2a2340');
+    for (let f = floorsUp; f < FLOORS; f++) drawScaffold(c, L, L.H - GROUND - (f + 1) * (RH + SLAB), f);
+    for (const cell of L.cells) {
+      if (Math.floor(cell.r / BUILD.perFloor) >= floorsUp) continue;
+      if (cell.r === built) hatch(c, cell.x, cell.y);
+      else if (cell.r > built) drawLocked(c, cell.x, cell.y);
+      if (cell.r % BUILD.perFloor === 0) rect(c, MX, cell.y + RH, L.W - MX * 2, SLAB, '#3a3152');
+    }
+  }), 0, 0);
   drawRoof(ctx, L, shellTop - 4, t);
   for (const c of L.cells) {
     const f = Math.floor(c.r / BUILD.perFloor);
@@ -57,31 +66,49 @@ export function drawBuilding(ctx, L, g, t) {
       drawBuildSlot(ctx, c.x, c.y, n, ready, g.money >= (n ? n.cost : Infinity), t);
       hits.push({ r: c.r, kind: 'build', x0: c.x, y0: c.y, x1: c.x + RW, y1: c.y + RH });
     } else {
-      drawLocked(ctx, c.x, c.y);
       hits.push({ r: c.r, kind: 'locked', x0: c.x, y0: c.y, x1: c.x + RW, y1: c.y + RH });
     }
-    // floor slab under each room row
-    if (c.r % BUILD.perFloor === 0) rect(ctx, MX, c.y + RH, L.W - MX * 2, SLAB, '#3a3152');
   }
   drawStreet(ctx, L, g, t);
   return hits;
 }
 
 // --- background -------------------------------------------------------------------------------
-function drawSky(ctx, L, g, t) {
+const layers = {};
+/** Offscreen layer `name`, redrawn by `draw` only when `key` changes. */
+function layer(name, key, L, draw) {
+  let l = layers[name];
+  if (!l) l = layers[name] = { c: document.createElement('canvas'), key: '' };
+  if (l.key !== key) {
+    l.c.width = L.W; l.c.height = L.H;
+    const x = l.c.getContext('2d');
+    x.clearRect(0, 0, L.W, L.H);
+    draw(x);
+    l.key = key;
+  }
+  return l.c;
+}
+
+function skyColors(g) {
   const dayFrac = Math.min(1, g.dayTime / dayLen(g));
-  const sky = dayFrac < 0.7 ? ['#4f93d8', '#6fb0ea'] : dayFrac < 0.88 ? ['#d88a4f', '#e8a65a'] : ['#7a4a78', '#d2694e'];
+  return dayFrac < 0.7 ? ['#4f93d8', '#6fb0ea'] : dayFrac < 0.88 ? ['#d88a4f', '#e8a65a'] : ['#7a4a78', '#d2694e'];
+}
+
+function drawSky(ctx, L, g) {
+  const sky = skyColors(g);
   rect(ctx, 0, 0, L.W, L.H, sky[1]);
   rect(ctx, 0, 0, L.W, Math.round(L.H * 0.45), sky[0]);
-  // clouds drift
-  for (let i = 0; i < 4; i++) {
-    const x = Math.round(((t * (2 + i) + hash(i * 9) * 300) % (L.W + 40)) - 20), y = 6 + Math.round(hash(i * 5 + 1) * 40);
-    rect(ctx, x, y, 14, 3, 'rgba(255,255,255,0.75)'); rect(ctx, x + 3, y - 2, 7, 2, 'rgba(255,255,255,0.75)');
-  }
   // far skyline on both sides
   for (let x = 0; x < L.W; x += 9) {
     const h = 20 + Math.round(hash(x + 77) * 50);
     rect(ctx, x, L.H - GROUND - h, 8, h, 'rgba(60,50,100,0.35)');
+  }
+}
+
+function drawClouds(ctx, L, t) {
+  for (let i = 0; i < 4; i++) {
+    const x = Math.round(((t * (2 + i) + hash(i * 9) * 300) % (L.W + 40)) - 20), y = 6 + Math.round(hash(i * 5 + 1) * 40);
+    rect(ctx, x, y, 14, 3, 'rgba(255,255,255,0.75)'); rect(ctx, x + 3, y - 2, 7, 2, 'rgba(255,255,255,0.75)');
   }
 }
 
@@ -217,9 +244,13 @@ function drawMiniDesk(ctx, x, y, e, t) {
   }
 }
 
-function drawBuildSlot(ctx, x, y, n, ready, afford, t) {
+/** Diagonal hatching of the empty plot (static: drawn into the cached frame layer). */
+function hatch(ctx, x, y) {
   rect(ctx, x, y, RW, RH, '#1d1826');
   for (let i = -RH; i < RW; i += 10) for (let k = 0; k < RH; k++) { const xx = x + i + k; if (xx >= x && xx < x + RW && (k % 2 === 0)) px(ctx, xx, y + k, 'rgba(201,119,74,0.18)'); }
+}
+
+function drawBuildSlot(ctx, x, y, n, ready, afford, t) {
   const pulse = ready && Math.floor(t * 2) % 2;
   frame(ctx, x, y, RW, RH, ready ? (pulse ? '#ffd34d' : '#c8862a') : '#4a4068', 1);
   const cx = x + Math.round(RW / 2);

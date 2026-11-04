@@ -880,4 +880,10 @@ export default {
   // automatic ads
   "Văn phòng không quảng cáo": "広告なしオフィス",
   "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "日と日の間の自動広告を永久にオフ。報酬広告は好きなときに見られます。",
+  // diagnostics
+  "Hỗ trợ": "サポート",
+  "Hiện FPS": "FPSを表示",
+  "Ẩn FPS": "FPSを隠す",
+  "Gửi báo lỗi": "バグを報告",
+  "Đã chép báo lỗi, hãy dán vào tin nhắn": "レポートをコピーしました。メッセージに貼り付けてください",
 };

@@ -880,4 +880,10 @@ export default {
   // automatic ads
   "Văn phòng không quảng cáo": "광고 없는 사무실",
   "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "하루가 끝날 때 나오는 자동 광고를 영구히 끕니다. 보상형 광고는 원할 때 계속 볼 수 있어요.",
+  // diagnostics
+  "Hỗ trợ": "지원",
+  "Hiện FPS": "FPS 표시",
+  "Ẩn FPS": "FPS 숨기기",
+  "Gửi báo lỗi": "버그 신고",
+  "Đã chép báo lỗi, hãy dán vào tin nhắn": "보고서를 복사했어요. 메시지에 붙여넣으세요",
 };

@@ -55,7 +55,9 @@ function grid(capacity, cols) {
  *   hand  — assistant's hand (where its auto-whip starts), or null
  */
 export function drawPortraitOffice(ctx, L, g, t, whip) {
-  drawFloor(ctx, L, g);
+  // Everything that doesn't move (floor, rug, wall, windows, plants, cubicle partitions) is drawn
+  // once into a cached layer and blitted each frame; only the live parts are redrawn.
+  ctx.drawImage(background(L, g), 0, 0);
   const hand = drawWall(ctx, L, g, t, whip);
   const hits = [], slots = [];
   L.cells.forEach((c, i) => {
@@ -91,6 +93,41 @@ function drawVisitorWalk(ctx, L, v, t) {
 
 // --- Floor & wall -----------------------------------------------------------------------------
 
+const skyOf = (g) => { const f = Math.min(1, g.dayTime / dayLen(g)); return f < 0.7 ? '#5aa7e8' : f < 0.88 ? '#e8a65a' : '#d2694e'; };
+let bg = null, bgKey = '';
+/** Static layer, rebuilt only when the room, its furniture, the sky colour or the seating changes. */
+function background(L, g) {
+  const roles = L.cells.map((_, i) => (g.staff[i] ? g.staff[i].role : i < L.capacity ? '+' : '-')).join('');
+  const key = `${L.W}x${L.H}|${L.cols}|${g.decor.includes('rug')}|${skyOf(g)}|${roles}`;
+  if (bg && key === bgKey) return bg;
+  if (!bg) bg = document.createElement('canvas');
+  bg.width = L.W; bg.height = L.H;
+  const c = bg.getContext('2d');
+  c.clearRect(0, 0, L.W, L.H);
+  drawFloor(c, L, g);
+  drawWallStatic(c, L, skyOf(g));
+  L.cells.forEach((cell, i) => {
+    if (g.staff[i]) drawPartition(c, cell.x, cell.y, ROLE_PANEL[g.staff[i].role] || '#4a4560');
+    else if (i < L.capacity) drawPartition(c, cell.x, cell.y, '#4a4560');
+  });
+  bgKey = key;
+  return bg;
+}
+
+function drawWallStatic(ctx, L, sky) {
+  const W = L.W;
+  rect(ctx, 0, 0, W, WALL_H, '#574d7d');
+  rect(ctx, 0, 0, W, 3, '#221c35');
+  rect(ctx, 0, WALL_H - 14, W, 12, '#463b67');
+  rect(ctx, 0, WALL_H - 14, W, 1, '#766aa3');
+  rect(ctx, 0, WALL_H - 2, W, 2, '#2a2340');
+  const n = W > 140 ? 4 : 2;
+  const spots = n === 4 ? [0.12, 0.3, 0.7, 0.88] : [0.2, 0.8];
+  for (const f of spots) drawWindow(ctx, Math.round(W * f) - 11, 7, sky);
+  plant(ctx, 6, WALL_H - 1);
+  plant(ctx, W - 7, WALL_H - 1);
+}
+
 function drawFloor(ctx, L, g) {
   for (let y = WALL_H; y < L.H; y += 8) for (let x = 0; x < L.W; x += 8) {
     rect(ctx, x, y, 8, 8, ((x + y) / 8) % 2 ? '#3f3a5c' : '#46406a');
@@ -105,26 +142,14 @@ function drawFloor(ctx, L, g) {
 }
 
 function drawWall(ctx, L, g, t, whip) {
+  // wall, windows (sky follows the working day) and plants are in the cached background layer
   const W = L.W, dayFrac = Math.min(1, g.dayTime / dayLen(g));
-  rect(ctx, 0, 0, W, WALL_H, '#574d7d');
-  rect(ctx, 0, 0, W, 3, '#221c35');
-  rect(ctx, 0, WALL_H - 14, W, 12, '#463b67');
-  rect(ctx, 0, WALL_H - 14, W, 1, '#766aa3');
-  rect(ctx, 0, WALL_H - 2, W, 2, '#2a2340');
-
-  // Windows: sky follows the working day (morning blue → late-afternoon orange).
-  const sky = dayFrac < 0.7 ? '#5aa7e8' : dayFrac < 0.88 ? '#e8a65a' : '#d2694e';
-  const n = W > 140 ? 4 : 2;
   const cx = Math.round(W / 2);
-  const spots = n === 4 ? [0.12, 0.3, 0.7, 0.88] : [0.2, 0.8];
-  for (const f of spots) drawWindow(ctx, Math.round(W * f) - 11, 7, sky);
   drawClock(ctx, cx, 13, dayFrac);
 
   // Things standing against the wall, packed from both ends.
   const base = WALL_H - 1;
   let xl = 13, xr = W - 13;
-  plant(ctx, 6, base);
-  plant(ctx, W - 7, base);
   const decor = g.decor || [];
   const pos = {};
   if (g.coffeeLevel >= 0) { drawCoffee(ctx, xl, base, g.coffeeLevel, g.coffeeCd <= 0, t); xl += 18; }
@@ -219,8 +244,7 @@ function drawSofa(ctx, cx, base) {
 
 /** Partition + desk + monitor (screen facing us) + employee seen from behind. Returns head pos. */
 function drawCubicle(ctx, x, y, e, t) {
-  const panel = ROLE_PANEL[e.role] || '#4a4560';
-  drawPartition(ctx, x, y, panel);
+  // partition: in the cached background layer
   // monitor (behind the desk), red frame while the employee slacks
   const slacking = e.state === 'slack';
   const urgent = slacking && e.t > e.dur * 0.5;
@@ -266,7 +290,7 @@ function drawChair(ctx, x, y) {
 }
 
 function drawEmptyDesk(ctx, x, y, t) {
-  drawPartition(ctx, x, y, '#4a4560');
+  // partition: in the cached background layer
   rect(ctx, x + 24, y + 4, 22, 16, '#1a1822');
   rect(ctx, x + 25, y + 5, 20, 14, '#3a3848');
   rect(ctx, x + 27, y + 7, 16, 10, '#15131c');
