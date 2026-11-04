@@ -280,7 +280,16 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 }
 .mobile .stat { padding: 4px 8px; gap: 0 6px; }
 .mobile .stat b { font-size: 22px; }
-.mobile .stat.money { grid-area: money; flex-wrap: wrap; align-items: baseline; }
+/* money line never wraps: a long amount (190K+, millions) or a long +rate/s used to drop the rate
+   onto a second line, making the header taller and pushing the office down */
+.mobile .stat.money { grid-area: money; flex-wrap: nowrap; align-items: baseline; min-width: 0; overflow: hidden; }
+.mobile .stat.money b { white-space: nowrap; flex: none; }
+.mobile .stat.money small { white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mobile .stat.money.long { gap: 0 4px; }
+.mobile .stat.money.long b { font-size: 22px; }
+.mobile .stat.money.long small { font-size: 15px; }
+.mobile .stat b, .mobile .stat small, .mobile .stat span { white-space: nowrap; }
+.mobile .side.info > * { min-width: 0; }
 .mobile .stat.money .coin { align-self: center; width: 16px; height: 16px; }
 .mobile .stat.money b { font-size: 30px; }
 .mobile .stat.money small { font-size: 19px; }

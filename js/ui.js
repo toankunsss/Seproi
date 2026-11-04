@@ -182,6 +182,15 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       const rate = g.staff.reduce((s, e) => s + incomeOf(g, e), 0);
       set(K.money, fmt(g.money) + ' đ');
       set(K.rate, `+${fmt(rate)}/s`);
+      // long amounts get a slightly smaller font so money + rate always stay on one line
+      if (mobile) {
+        const box = K.money.parentElement, sig = K.money.textContent + K.rate.textContent;
+        if (box.dataset.fit !== sig) { // measure only when the text changed
+          box.dataset.fit = sig;
+          box.classList.remove('long');
+          if (K.rate.scrollWidth > K.rate.clientWidth + 1 || box.scrollWidth > box.clientWidth + 1) box.classList.add('long');
+        }
+      }
       const kpi = Math.round(g.kpi * 100);
       set(K.kpi, kpi + '%');
       K.kpiBar.style.width = kpi + '%';
