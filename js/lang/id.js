@@ -877,4 +877,7 @@ export default {
   "Có 4 phòng trong toà nhà": "Punya 4 ruang di gedung",
   "Cao ốc Whip Boss": "Menara Whip Boss",
   "Xây kín cả 6 phòng": "Bangun semua 6 ruang",
+  // automatic ads
+  "Văn phòng không quảng cáo": "Kantor Tanpa Iklan",
+  "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "Matikan iklan otomatis di antara hari selamanya. Iklan berhadiah tetap bisa ditonton kapan pun kamu mau.",
 };

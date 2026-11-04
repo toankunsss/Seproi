@@ -14,6 +14,7 @@ import {
   shade, renderScreen, drawEmployee, drawAssistant, drawOfficeDecor, drawSteam, drawVisitor, drawCat, drawDog,
 } from './sprites.js';
 import { TUNING, VISITS, dayLen } from './config.js';
+import { renderScreenHD } from './monitor.js';
 
 export const CELL = { w: 50, h: 60 };
 const WALL_H = 50;          // back wall height (floor starts below it)
@@ -21,20 +22,19 @@ const MX = 4, GX = 6, GY = 4, TOP = 2, BOTTOM = 4;
 const ROLE_PANEL = { dev: '#4a5a9a', acc: '#3f7a5a', des: '#8a4a78' };
 
 /**
- * Grid for an office with `capacity` desks, sized for the space (cw x ch, CSS px) it gets:
- * 2 columns for the starter office (4 desks), 3 columns once it grows (6 desks), and 3 or 4
- * columns for the full office (8 desks) — whichever draws bigger on this screen. The spare
- * 9th cell of a 3x3 grid is a lounge corner.
+ * Grid for an office with `capacity` desks: 2 columns for the starter office (4 desks),
+ * 3 columns once it grows (6 desks), and for the full office (8 desks) 3 columns on phones
+ * (the spare 9th cell of the 3x3 grid is a lounge corner) or 4 on squarer tablet screens.
  */
 export function portraitLayout(capacity, cw = 400, ch = 600) {
-  const options = capacity <= 4 ? [2] : capacity <= 6 ? [3] : [3, 4];
-  let best = null;
-  for (const cols of options) {
-    const L = grid(capacity, cols);
-    L.fit = Math.min(cw / L.W, ch / L.H);
-    if (!best || L.fit > best.fit + 0.05) best = L;
-  }
-  return best;
+  // The column count depends only on the room size and the screen's shape, never on how much
+  // space the HUD happens to leave this frame: otherwise a banner appearing (inspector, hint…)
+  // could flip a full room between 3 and 4 columns in the middle of play.
+  const wide = typeof innerWidth === 'number' && innerHeight > 0 && innerWidth / innerHeight > 0.8;
+  const cols = capacity <= 4 ? 2 : capacity <= 6 ? 3 : wide ? 4 : 3;
+  const L = grid(capacity, cols);
+  L.fit = Math.min(cw / L.W, ch / L.H);
+  return L;
 }
 
 function grid(capacity, cols) {
@@ -226,8 +226,8 @@ function drawCubicle(ctx, x, y, e, t) {
   const urgent = slacking && e.t > e.dur * 0.5;
   if (slacking && (!urgent || Math.floor(t * 6) % 2)) rect(ctx, x + 23, y + 3, 24, 18, '#ff2d3d');
   rect(ctx, x + 24, y + 4, 22, 16, '#1a1822');
-  rect(ctx, x + 25, y + 5, 20, 14, '#3a3848');
-  ctx.drawImage(renderScreen(e, t), x + 27, y + 7);
+  ctx.drawImage(renderScreenHD(e, t), x + 25, y + 5); // detailed 20x14 screen (monitor.js)
+  px(ctx, x + 44, y + 19, slacking ? '#ff4a4a' : '#5cff7a'); // power LED
   rect(ctx, x + 33, y + 20, 4, 2, '#2c2a36');
   drawDesk(ctx, x, y, e.id);
   // keyboard: keys flicker while typing

@@ -449,6 +449,13 @@ export function drawEmployee(ctx, x, y, e, t) {
     return { x: x - 1, y: y - 27 };
   }
 
+  const slackKind = e.state === 'slack' ? e.slack : null;
+  if (slackKind === 'game') { // handheld console: only its grips stick out on both sides
+    rect(ctx, bx - 10, by - 15, 5, 4, '#1d1826'); rect(ctx, bx + 5, by - 15, 5, 4, '#1d1826');
+    rect(ctx, bx - 9, by - 14, 4, 2, '#5a5a6e'); rect(ctx, bx + 5, by - 14, 4, 2, '#5a5a6e');
+    px(ctx, bx - 8, by - 14, '#ffffff'); px(ctx, bx + 7, by - 14, '#e0404a'); px(ctx, bx + 6, by - 13, '#46b37a');
+  }
+
   // torso
   rect(ctx, bx - 5, by - 17, 10, 9, shirt);
   rect(ctx, bx - 5, by - 17, 1, 9, shirtD);
@@ -456,7 +463,18 @@ export function drawEmployee(ctx, x, y, e, t) {
   rect(ctx, bx - 4, by - 17, 8, 1, shade(shirt, 0.2));
 
   // arms
-  if (armsUp) {
+  const pump = slackKind === 'crypto' && Math.floor(phase * 0.8) % 3 === 0; // "TO THE MOON!"
+  const munch = slackKind === 'snack' && Math.floor(phase * 1.6) % 2 === 0;
+  if (slackKind === 'game') {
+    rect(ctx, bx - 7, by - 16, 2, 4, shirtD); rect(ctx, bx + 5, by - 16, 2, 4, shirtD);
+    rect(ctx, bx - 8, by - 13 - handA, 2, 2, skin); rect(ctx, bx + 6, by - 13 - handB, 2, 2, skin);
+  } else if (pump) {
+    rect(ctx, bx - 7, by - 16, 2, 5, shirtD); rect(ctx, bx - 8, by - 12, 2, 2, skin);
+    rect(ctx, bx + 5, by - 24, 2, 8, shirtD); rect(ctx, bx + 5, by - 27, 3, 3, skin); px(ctx, bx + 7, by - 27, shade(skin, -0.2));
+  } else if (munch) {
+    rect(ctx, bx - 7, by - 16, 2, 5, shirtD); rect(ctx, bx - 8, by - 12, 2, 2, skin);
+    rect(ctx, bx + 5, by - 21, 2, 5, shirtD); rect(ctx, bx + 4, by - 23, 2, 2, skin);
+  } else if (armsUp) {
     rect(ctx, bx - 7, by - 23, 2, 7, shirtD); rect(ctx, bx + 5, by - 23, 2, 7, shirtD);
     rect(ctx, bx - 7, by - 25, 2, 2, skin); rect(ctx, bx + 5, by - 25, 2, 2, skin);
   } else {
@@ -506,12 +524,39 @@ export function drawEmployee(ctx, x, y, e, t) {
   if (L.style !== 'long') rect(ctx, hX + 2, hY + 7, 4, 1, skin);
 
   // props
-  if (e.state === 'slack' && e.slack === 'toptop') {
-    const pxl = bx - 10, pyl = by - 24;
-    rect(ctx, pxl, pyl, 4, 6, '#15151c');
+  if (slackKind === 'toptop') { // phone held up to the face, screen glow on the hair
+    const pxl = bx - 11, pyl = by - 26;
+    rect(ctx, pxl, pyl, 5, 8, '#15151c');
     const c1 = Math.floor(phase * 3) % 2 ? '#ff3d7f' : '#2de2e6';
-    rect(ctx, pxl + 1, pyl + 1, 2, 4, c1);
-    rect(ctx, pxl + 3, pyl + 3, 2, 2, skin);
+    rect(ctx, pxl + 1, pyl + 1, 3, 5, c1);
+    px(ctx, pxl + 2, pyl + 7, '#3a3a46');
+    rect(ctx, pxl + 4, pyl + 4, 2, 2, skin);
+    px(ctx, hX, hY + 2, shade(c1, 0.2)); px(ctx, hX, hY + 3, shade(c1, -0.1));
+  }
+  if (slackKind === 'call') { // phone at the ear + sound waves
+    rect(ctx, hX + 8, hY + 3, 2, 3, skin);
+    rect(ctx, hX + 9, hY + 1, 2, 6, '#15151c'); px(ctx, hX + 10, hY + 2, '#3d6fd6');
+    if (Math.floor(phase * 4) % 2) { px(ctx, hX + 12, hY + 2, '#ffffff'); px(ctx, hX + 13, hY + 4, '#ffffff'); px(ctx, hX + 12, hY + 6, '#ffffff'); }
+  }
+  if (slackKind === 'meeting') { // headset: band, ear cups, mic
+    rect(ctx, hX - 1, hY - 1, 10, 1, '#2a2836');
+    rect(ctx, hX - 2, hY + 2, 2, 4, '#2a2836'); rect(ctx, hX + 8, hY + 2, 2, 4, '#2a2836');
+    px(ctx, hX + 10, hY + 6, '#2a2836'); px(ctx, hX + 11, hY + 7, Math.floor(phase * 3) % 2 ? '#5cff7a' : '#2a2836');
+  }
+  if (slackKind === 'sleep') { // blanket over the shoulders + snot bubble
+    rect(ctx, bx - 6, by - 18, 12, 5, '#6a8ad6');
+    for (let i = 0; i < 12; i += 3) px(ctx, bx - 6 + i, by - 17, '#9ab4f0');
+    rect(ctx, bx - 6, by - 14, 12, 1, '#4a6ab6');
+    const r = Math.floor(phase * 1.2) % 4;
+    if (r) { rect(ctx, hX + 9, hY + 4 - r, r + 1, r + 1, 'rgba(190,230,255,0.75)'); px(ctx, hX + 9, hY + 4 - r, '#ffffff'); }
+  }
+  if (slackKind === 'snack') { // bag of chips, crumbs
+    const sx = bx + (munch ? 6 : 7), sy = by - (munch ? 26 : 16);
+    rect(ctx, sx, sy, 5, 6, '#e0802a'); rect(ctx, sx, sy, 5, 1, '#c86010'); rect(ctx, sx + 1, sy + 2, 3, 2, '#ffcb3d'); px(ctx, sx + 2, sy + 2, '#e0302a');
+    if (munch) { px(ctx, sx - 2, sy + 7 + (Math.floor(phase * 8) % 3), '#f4c060'); px(ctx, sx, sy + 9 - (Math.floor(phase * 6) % 2), '#f4c060'); }
+  }
+  if (pump && Math.floor(phase * 6) % 2) { // sparkle over the fist
+    px(ctx, bx + 6, by - 30, '#ffd34d'); px(ctx, bx + 9, by - 28, '#ffd34d'); px(ctx, bx + 3, by - 29, '#26a69a');
   }
   if (e.state === 'strike') {
     rect(ctx, bx - 1, by - 38, 1, 14, '#7a5230');
@@ -522,50 +567,64 @@ export function drawEmployee(ctx, x, y, e, t) {
   return { x: hX + 4, y: hY };
 }
 
-/** Speech bubble with an activity icon, hung above an employee's head. */
+/** Speech bubble with an activity icon (13x9), hung above an employee's head. */
 export function drawBubble(ctx, x, y, kind, t, urgent) {
-  const bx = Math.round(x - 7), by = Math.round(y - 16 - (Math.floor(t * 3) % 2));
+  const bx = Math.round(x - 8), by = Math.round(y - 19 - (Math.floor(t * 3) % 2));
   const border = urgent && Math.floor(t * 6) % 2 ? '#ff2d3d' : '#1d1826';
-  rect(ctx, bx, by, 15, 11, border);
-  rect(ctx, bx + 1, by + 1, 13, 9, '#ffffff');
-  rect(ctx, bx + 5, by + 11, 3, 1, border);
-  px(ctx, bx + 6, by + 12, border);
-  rect(ctx, bx + 6, by + 10, 1, 1, '#ffffff');
-  const ix = bx + 2, iy = by + 2;
+  rect(ctx, bx + 1, by, 15, 13, border); rect(ctx, bx, by + 1, 17, 11, border);
+  rect(ctx, bx + 1, by + 1, 15, 11, '#ffffff');
+  rect(ctx, bx + 1, by + 10, 15, 2, '#e4e0ee');                 // shading
+  rect(ctx, bx + 6, by + 13, 3, 1, border); px(ctx, bx + 7, by + 14, border);
+  rect(ctx, bx + 7, by + 12, 1, 1, '#e4e0ee');
+  const ix = bx + 2, iy = by + 2, f = Math.floor(t * 4) % 2;
   switch (kind) {
-    case 'game':
-      rect(ctx, ix + 1, iy + 2, 9, 4, '#5a5a6e'); rect(ctx, ix, iy + 3, 11, 3, '#5a5a6e');
-      px(ctx, ix + 2, iy + 3, '#fff'); rect(ctx, ix + 1, iy + 4, 3, 1, '#fff'); px(ctx, ix + 2, iy + 5, '#fff');
-      px(ctx, ix + 8, iy + 3, '#e0404a'); px(ctx, ix + 7, iy + 4, '#46b37a');
+    case 'game': // gamepad: d-pad + two buttons
+      rect(ctx, ix + 1, iy + 2, 11, 5, '#3a3a4c'); rect(ctx, ix, iy + 3, 13, 4, '#3a3a4c'); rect(ctx, ix + 1, iy + 7, 3, 1, '#3a3a4c'); rect(ctx, ix + 9, iy + 7, 3, 1, '#3a3a4c');
+      rect(ctx, ix + 2, iy + 4, 3, 1, '#ffffff'); rect(ctx, ix + 3, iy + 3, 1, 3, '#ffffff');
+      px(ctx, ix + 10, iy + 3, f ? '#ff5a5a' : '#e0404a'); px(ctx, ix + 9, iy + 5, '#46b37a'); px(ctx, ix + 11, iy + 5, '#3a8ee6');
       break;
-    case 'toptop':
-      rect(ctx, ix + 3, iy, 5, 7, '#15151c');
-      rect(ctx, ix + 4, iy + 1, 3, 4, Math.floor(t * 4) % 2 ? '#ff3d7f' : '#2de2e6');
-      px(ctx, ix + 9, iy + 1 - (Math.floor(t * 4) % 2), '#ff3d7f');
+    case 'toptop': // phone with a video + flying notes and hearts
+      rect(ctx, ix + 3, iy, 6, 9, '#15151c');
+      rect(ctx, ix + 4, iy + 1, 4, 6, f ? '#ff3d7f' : '#2de2e6'); px(ctx, ix + 5, iy + 3, '#ffffff');
+      px(ctx, ix + 5, iy + 8, '#5a5a6e');
+      px(ctx, ix + 11, iy + 2 - f, '#ff3d7f'); px(ctx, ix + 12, iy + 2 - f, '#ff3d7f'); px(ctx, ix + 11, iy + 3 - f, '#ff3d7f');
+      rect(ctx, ix, iy + 4 + f, 1, 3, '#2de2e6'); px(ctx, ix + 1, iy + 4 + f, '#2de2e6');
       break;
-    case 'sleep':
-      glyphs(ctx, 'Z', ix + 1, iy + 1, '#3a6bd6');
-      glyphs(ctx, 'z', ix + 6, iy + 2, '#7a9be8');
+    case 'sleep': // moon + Zz
+      rect(ctx, ix, iy + 1, 4, 6, '#ffd34d'); rect(ctx, ix + 2, iy + 1, 2, 4, '#ffffff'); px(ctx, ix + 1, iy, '#ffd34d'); px(ctx, ix + 1, iy + 7, '#ffd34d');
+      glyphs(ctx, 'Z', ix + 5, iy + 3 - f, '#3a6bd6');
+      glyphs(ctx, 'z', ix + 9, iy + 1, '#7a9be8');
       break;
-    case 'snack':
-      rect(ctx, ix + 2, iy, 7, 7, '#e0802a'); rect(ctx, ix + 3, iy + 1, 5, 5, '#ffcb3d'); px(ctx, ix + 5, iy + 3, '#e0302a');
-      px(ctx, ix + 10, iy + 5 - (Math.floor(t * 4) % 2), '#ffcb3d');
+    case 'snack': // chips bag + crumbs
+      rect(ctx, ix + 3, iy, 7, 9, '#e0802a'); rect(ctx, ix + 3, iy, 7, 1, '#c86010'); rect(ctx, ix + 3, iy + 8, 7, 1, '#c86010');
+      rect(ctx, ix + 4, iy + 2, 5, 4, '#ffcb3d'); rect(ctx, ix + 5, iy + 3, 3, 2, '#e0302a');
+      px(ctx, ix + 11, iy + 5 - f, '#f4c060'); px(ctx, ix + 12, iy + 7, '#f4c060'); px(ctx, ix + 1, iy + 6 + f, '#f4c060');
       break;
-    case 'call':
-      rect(ctx, ix + 1, iy + 1, 3, 2, '#2a2836'); rect(ctx, ix + 7, iy + 1, 3, 2, '#2a2836'); rect(ctx, ix + 2, iy + 2, 7, 3, '#2a2836'); rect(ctx, ix + 4, iy + 5, 3, 2, '#2a2836');
-      if (Math.floor(t * 6) % 2) { px(ctx, ix + 10, iy, '#e0404a'); px(ctx, ix, iy, '#e0404a'); }
+    case 'call': // handset + sound waves
+      rect(ctx, ix + 1, iy + 1, 3, 3, '#2a2836'); rect(ctx, ix + 3, iy + 3, 2, 3, '#2a2836'); rect(ctx, ix + 4, iy + 5, 3, 3, '#2a2836');
+      px(ctx, ix + 2, iy + 2, '#5a5a6e');
+      if (f) { px(ctx, ix + 8, iy + 2, '#e0404a'); px(ctx, ix + 9, iy + 3, '#e0404a'); px(ctx, ix + 10, iy + 1, '#e0404a'); px(ctx, ix + 11, iy + 3, '#e0404a'); px(ctx, ix + 10, iy + 5, '#e0404a'); }
+      else { px(ctx, ix + 8, iy + 3, '#e0404a'); px(ctx, ix + 9, iy + 2, '#e0404a'); }
       break;
-    case 'meeting':
-      rect(ctx, ix + 1, iy, 9, 7, '#3d6fd6'); rect(ctx, ix + 2, iy + 2, 7, 4, '#ffffff'); rect(ctx, ix + 3, iy + 3, 2, 1, '#3d6fd6'); rect(ctx, ix + 6, iy + 4, 2, 1, '#3d6fd6');
+    case 'meeting': // calendar page with a red header and a ticked slot
+      rect(ctx, ix + 2, iy, 9, 9, '#3d6fd6'); rect(ctx, ix + 2, iy, 9, 2, '#e0404a'); px(ctx, ix + 4, iy - 1, '#1d1826'); px(ctx, ix + 8, iy - 1, '#1d1826');
+      rect(ctx, ix + 3, iy + 3, 7, 5, '#ffffff');
+      for (let i = 0; i < 3; i++) px(ctx, ix + 4 + i * 2, iy + 4, '#c8c0d8');
+      px(ctx, ix + 5, iy + 6, '#46b37a'); px(ctx, ix + 6, iy + 7, '#46b37a'); px(ctx, ix + 7, iy + 6, '#46b37a'); px(ctx, ix + 8, iy + 5, '#46b37a');
       break;
-    case 'toilet':
-      rect(ctx, ix + 1, iy, 9, 7, '#46b37a'); glyphs(ctx, 'WC', ix + 2, iy + 1, '#ffffff');
+    case 'toilet': // WC door sign with a little person
+      rect(ctx, ix, iy, 13, 9, '#46b37a'); rect(ctx, ix, iy + 8, 13, 1, '#2f8a4a');
+      glyphs(ctx, 'WC', ix + 1, iy + 2, '#ffffff');
+      rect(ctx, ix + 10, iy + 1, 1, 1, '#ffffff'); rect(ctx, ix + 9, iy + 3, 3, 3, '#ffffff'); px(ctx, ix + 9, iy + 6, '#ffffff'); px(ctx, ix + 11, iy + 6, '#ffffff');
       break;
-    case 'crypto':
-      line(ctx, ix, iy + 6, ix + 3, iy + 2, '#26a69a');
-      line(ctx, ix + 3, iy + 2, ix + 6, iy + 5, '#ef5350');
-      line(ctx, ix + 6, iy + 5, ix + 10, iy, '#26a69a');
+    case 'crypto': { // coin + chart arrow
+      const up = Math.floor(t * 0.8) % 2 === 0;
+      rect(ctx, ix + 1, iy + 1, 5, 7, '#f7931a'); rect(ctx, ix, iy + 2, 7, 5, '#f7931a'); rect(ctx, ix + 2, iy + 3, 2, 3, '#ffffff'); px(ctx, ix + 4, iy + 4, '#ffffff');
+      const c = up ? '#26a69a' : '#ef5350';
+      if (up) { line(ctx, ix + 8, iy + 8, ix + 12, iy + 2, c); px(ctx, ix + 11, iy + 2, c); px(ctx, ix + 12, iy + 3, c); }
+      else { line(ctx, ix + 8, iy + 1, ix + 12, iy + 7, c); px(ctx, ix + 11, iy + 7, c); px(ctx, ix + 12, iy + 6, c); }
       break;
+    }
   }
 }
 

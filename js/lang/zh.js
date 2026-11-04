@@ -877,4 +877,7 @@ export default {
   "Có 4 phòng trong toà nhà": "大楼里有4个房间",
   "Cao ốc Whip Boss": "Whip Boss 大厦",
   "Xây kín cả 6 phòng": "建满全部6个房间",
+  // automatic ads
+  "Văn phòng không quảng cáo": "无广告办公室",
+  "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "永久关闭每天之间的自动广告。奖励广告仍可随时观看。",
 };

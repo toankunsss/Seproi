@@ -302,6 +302,13 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
 }
 .mobile .hint:empty { visibility: hidden; animation: none; }
 @keyframes hint-pulse { 50% { opacity: 0.55; } }
+/* hint and inspector banner share one fixed-height line, so the office never jumps when they come and go */
+.mobile .statusline { position: relative; height: 26px; flex: none; }
+.mobile .statusline .hint { height: 26px; line-height: 26px; min-height: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mobile .statusline .visitbar { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 8px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 17px; }
+.mobile .statusline .visitbar[hidden] { display: none; }
+.mobile .statusline .visitbar:not([hidden]) + .hint, .mobile .statusline .hint:has(+ .visitbar:not([hidden])) { visibility: hidden; }
 .mobile .side .px-btn.coffee { width: 100%; min-height: 54px; margin: 0; font-size: 24px; touch-action: manipulation; }
 .mobile .tabbar {
   display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 6px;
@@ -372,8 +379,8 @@ html:has(body.shell.mode-mini), body.shell.mode-mini { background: transparent; 
   .mobile .whipname, .mobile .assist { font-size: 16px; }
   .mobile .combo { display: none; }
   .mobile .side.controls { gap: 6px; }
-  .mobile .hint { font-size: 17px; min-height: 0; line-height: 18px; }
-  .mobile .hint:empty { display: none; }
+  .mobile .hint { font-size: 17px; }
+  .mobile .statusline, .mobile .statusline .hint { height: 22px; line-height: 22px; }
   .mobile .side .px-btn.coffee { min-height: 42px; font-size: 20px; padding-top: 6px; padding-bottom: 7px; }
   .mobile .tabbar { padding: 4px; gap: 4px; }
   .mobile .tab { min-height: 48px; gap: 2px; font-size: 16px; padding: 4px 2px; }

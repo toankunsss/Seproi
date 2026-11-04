@@ -877,4 +877,7 @@ export default {
   "Có 4 phòng trong toà nhà": "Hab 4 Räume im Gebäude",
   "Cao ốc Whip Boss": "Whip Boss Tower",
   "Xây kín cả 6 phòng": "Bau alle 6 Räume",
+  // automatic ads
+  "Văn phòng không quảng cáo": "Werbefreies Büro",
+  "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "Schaltet die automatische Werbung zwischen den Tagen für immer ab. Werbung mit Belohnung kannst du weiterhin schauen.",
 };

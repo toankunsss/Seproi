@@ -1,5 +1,9 @@
-// Rewarded ads. The game only calls showRewarded(placement) and gives the reward when it
-// resolves to true. Providers:
+// Ads.
+//   showRewarded(placement)  — the player chooses to watch; the reward is given when it resolves true.
+//   showInterstitial()       — a full-screen ad shown by the game itself at a natural break (between
+//                              days, after a level), at most a few times a day; see main.js → maybeInterstitial
+//                              and ADS.interstitial in config.js for the pacing rules.
+// Providers:
 //   - AdMob (native app, @capacitor-community/admob): see docs/QUANG-CAO.md
 //   - simulated: a 5-second fake ad overlay, used in the browser / desktop (no AdMob there)
 //
@@ -9,10 +13,18 @@ import { native } from './platform.js';
 import { t } from './i18n.js';
 
 export const AD_UNITS = {
-  android: { rewarded: 'ca-app-pub-2932189263098274/9932749113' }, // Whip Boss · reward_main
-  // iOS: no AdMob iOS app yet → Google's public test unit (replace before an App Store release)
-  ios: { rewarded: 'ca-app-pub-3940256099942544/1712485313' },
+  android: {
+    rewarded: 'ca-app-pub-2932189263098274/9932749113', // Whip Boss · reward_main
+    // TODO: create an "Interstitial" ad unit in AdMob and put its id here. Until then Google's
+    // public test unit is used, which shows test ads and earns nothing.
+    interstitial: 'ca-app-pub-3940256099942544/1033173712',
+  },
+  // iOS: no AdMob iOS app yet → Google's public test units (replace before an App Store release)
+  ios: { rewarded: 'ca-app-pub-3940256099942544/1712485313', interstitial: 'ca-app-pub-3940256099942544/4411468910' },
 };
+const unit = (kind) => (AD_UNITS[cap().getPlatform()] || AD_UNITS.android)[kind];
+/** True when real ads can be shown (the phone app with AdMob). */
+export const adsAvailable = () => !!admob();
 
 const cap = () => window.Capacitor;
 const proxies = {};
@@ -66,12 +78,13 @@ export function initAds() {
     } catch (err) { console.warn('[ads] consent', err); }
     await AdMob.initialize({});
     prepare(AdMob);
+    prepareInter(AdMob);
   })().catch((err) => { console.warn('[ads] init', err); ready = null; });
   return ready;
 }
 
 function prepare(AdMob) {
-  const adId = (AD_UNITS[cap().getPlatform()] || AD_UNITS.android).rewarded;
+  const adId = unit('rewarded');
   prepared = AdMob.prepareRewardVideoAd({ adId, isTesting: testing });
   prepared.catch(() => { prepared = null; });
   return prepared;
@@ -105,6 +118,65 @@ async function showAdMob(AdMob) {
   prepared = null;
   prepare(AdMob); // load the next one in the background
   return result;
+}
+
+// --- Interstitial (AdMob only) ---------------------------------------------------------------
+let interPrepared = null;
+function prepareInter(AdMob) {
+  interPrepared = AdMob.prepareInterstitial({ adId: unit('interstitial'), isTesting: testing });
+  interPrepared.catch(() => { interPrepared = null; });
+  return interPrepared;
+}
+
+/**
+ * Show an interstitial now if one is loaded. Resolves when it is closed: true = shown.
+ * Never waits for a slow load: if nothing is ready the game just carries on (and one loads for next time).
+ * Outside the phone app (browser tests) `simulate` shows a 3-second stand-in.
+ */
+export async function showInterstitial({ simulate = false } = {}) {
+  const AdMob = admob();
+  if (!AdMob) return simulate ? showSimulatedInter() : false;
+  if (busy) return false;
+  await initAds();
+  const ok = interPrepared && await Promise.race([interPrepared.then(() => true, () => false), new Promise((r) => setTimeout(() => r(false), 300))]);
+  if (!ok) { if (!interPrepared) prepareInter(AdMob); return false; }
+  busy = true;
+  const handles = [];
+  try {
+    return await new Promise((resolve) => {
+      let settled = false;
+      const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+      const listen = async (event, fn) => handles.push(await AdMob.addListener(event, fn));
+      Promise.all([
+        listen('interstitialAdDismissed', () => done(true)),
+        listen('interstitialAdFailedToShow', () => done(false)),
+      ]).then(() => AdMob.showInterstitial().catch(() => done(false)));
+      setTimeout(() => done(true), 120000); // safety net: never leave the game paused forever
+    });
+  } finally {
+    handles.forEach((h) => h.remove());
+    busy = false;
+    interPrepared = null;
+    prepareInter(AdMob);
+  }
+}
+
+function showSimulatedInter() {
+  return new Promise((done) => {
+    const el = document.createElement('div');
+    el.className = 'fake-ad inter';
+    el.innerHTML = `<div class="fake-ad-box">
+      <small>${t('QUẢNG CÁO (GIẢ LẬP)')}</small>
+      <div class="fake-ad-title">Trà sữa Mây</div>
+      <p>${t('Uống là tỉnh, làm là xong deadline!')}</p>
+      <button class="px-btn" data-close disabled>3</button>
+    </div>`;
+    document.body.appendChild(el);
+    const btn = el.querySelector('[data-close]');
+    let n = 3;
+    const tick = setInterval(() => { n--; if (n > 0) btn.textContent = String(n); else { clearInterval(tick); btn.disabled = false; btn.textContent = '×'; } }, 1000);
+    btn.addEventListener('click', () => { clearInterval(tick); el.remove(); done(true); });
+  });
 }
 
 // --- Simulated ad (browser / desktop) ---------------------------------------------------------

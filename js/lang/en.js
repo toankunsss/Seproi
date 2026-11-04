@@ -877,4 +877,7 @@ export default {
   "Có 4 phòng trong toà nhà": "Have 4 rooms in the building",
   "Cao ốc Whip Boss": "Whip Boss Tower",
   "Xây kín cả 6 phòng": "Build all 6 rooms",
+  // automatic ads
+  "Văn phòng không quảng cáo": "No-Ads Office",
+  "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "Turns off the automatic ads between days for good. Rewarded ads stay available whenever you want them.",
 };

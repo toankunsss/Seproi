@@ -10,7 +10,7 @@ import { buyPremium } from './premium.js';
 import * as staffCare from './staff.js';
 import { planVisit, whipWitnessed, endVisit } from './events.js';
 import { VISITS, STAFF_TYPES } from './config.js';
-import { showRewarded, initAds, lastAdFailure } from './ads.js';
+import { showRewarded, initAds, lastAdFailure, showInterstitial, adsAvailable } from './ads.js';
 import { t as tr, setLang } from './i18n.js';
 import { createView } from './view.js';
 import { createWhip } from './whip.js';
@@ -87,7 +87,7 @@ let onTitle = mobile && params.get('title') !== '0';
 function newMorning() {
   if (g.candidatesDay !== g.day || !g.candidates.length) { refillCandidates(g); g.candidatesDay = g.day; }
   projects.refreshOffers(g);
-  if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
+  if (g.ads.day !== g.day) g.ads = { ...g.ads, day: g.day, gems: 0 };
   if (g.visitDay !== g.day) { planVisit(g); g.visitDay = g.day; } // once per day, reloads can't re-roll
   if (g.rivalDay !== g.day) { g.rivalDay = g.day; rival.planRival(g); } // rival poaching (rival.js)
   if (g.miniDay !== g.day) { // mid-day mini-game (minigames.js), from day 3
@@ -134,7 +134,7 @@ const act = {
     g.viewRoom = r;
     whip.visible = false; view.hover = null;
     ui.closePanel();
-    haptic('light'); audio.coin(1);
+    haptic('light'); audio.door();
     layout(); fitMobile(true);
   },
   overview() { act.roomGo(g.viewRoom === -1 ? Math.max(0, lastRoom) : -1); },
@@ -146,7 +146,7 @@ const act = {
   roomBuild() {
     const r = rooms.buildRoom(g);
     if (r < 0) { audio.deny(); haptic('light'); return; }
-    audio.buy(); audio.bell(); haptic('success');
+    audio.build(); haptic('success');
     toast(tr('KHAI TRƯƠNG {room}!', { room: rooms.roomName(r).toUpperCase() }), 'money');
     setTimeout(() => toast(tr('Tuyển người vào phòng mới để nhận dự án'), 'say'), 1300);
     ui.screens.close && ui.screens.close();
@@ -271,14 +271,14 @@ const act = {
     saveGame(); ui.screens.repaint();
   },
   async adGems() {
-    if (g.ads.day !== g.day) g.ads = { day: g.day, gems: 0 };
+    if (g.ads.day !== g.day) g.ads = { ...g.ads, day: g.day, gems: 0 };
     if (g.ads.gems >= ADS.gemAdsPerDay) return;
-    if (await watchAd('gems')) { g.ads.gems++; addGems(g, ADS.gemsPerAd); toast(tr('+{n} KIM CƯƠNG', { n: ADS.gemsPerAd }), 'coffee'); saveGame(); }
+    if (await watchAd('gems')) { g.ads.gems++; addGems(g, ADS.gemsPerAd); audio.gems(); toast(tr('+{n} KIM CƯƠNG', { n: ADS.gemsPerAd }), 'coffee'); saveGame(); }
     ui.screens.repaint();
   },
   achClaim(id) {
     const gems = claim(g, id);
-    if (gems) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n: gems }), 'coffee'); saveGame(); }
+    if (gems) { audio.gems(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n: gems }), 'coffee'); saveGame(); }
     ui.screens.repaint();
   },
   // --- boss inventory (inventory.js) ---
@@ -308,11 +308,11 @@ const act = {
   roar() {
     const n = skills.roar(g);
     if (!skills.rank(g, 'roar')) return;
-    audio.strike(); audio.alert(); haptic('heavy'); ui.flash('hit');
+    audio.roar(); haptic('heavy'); ui.flash('hit');
     toast(n ? tr('TIẾNG GẦM! {n} người quay lại làm việc', { n }) : tr('TIẾNG GẦM! Cả phòng hăng say'), 'money');
     saveGame();
   },
-  learnSkill(id) { if (skills.learn(g, id)) { audio.buy(); haptic('success'); saveGame(); } ui.screens.repaint(); },
+  learnSkill(id) { if (skills.learn(g, id)) { audio.skill(); haptic('success'); saveGame(); } ui.screens.repaint(); },
   // --- collections (cosmetics.js) ---
   collection(tab) { ui.closePanel(); ui.screens.collection(tab || 'skins'); },
   colTab(tab) { ui.screens.collection(tab); },
@@ -369,9 +369,9 @@ const act = {
   levelInfo(id) { ui.screens.levelInfo(id); },
   levelStart(id) { startLevel(id); },
   levelQuit() { if (campaignRun && confirm(tr('Bỏ màn này? Kết quả sẽ không được tính.'))) exitLevel(); },
-  levelRetry() { const id = campaignRun && campaignRun.id; exitLevel(false); if (id) startLevel(id); },
-  levelNext() { const id = campaignRun && campaignRun.id; exitLevel(false); const n = id && campaign.nextLevel(id); if (n && campaign.unlocked(g, n.id)) ui.screens.levelInfo(n.id); else ui.screens.levels(); },
-  levelExit() { exitLevel(); },
+  levelRetry() { const id = campaignRun && campaignRun.id; exitLevel(false); maybeInterstitial('level').finally(() => { if (id) startLevel(id); }); },
+  levelNext() { const id = campaignRun && campaignRun.id; exitLevel(false); maybeInterstitial('level').finally(() => { const n = id && campaign.nextLevel(id); if (n && campaign.unlocked(g, n.id)) ui.screens.levelInfo(n.id); else ui.screens.levels(); }); },
+  levelExit() { exitLevel(false); maybeInterstitial('level').finally(() => ui.screens.levels()); },
   // --- selling the company (prestige.js) ---
   sellScreen() { ui.screens.sell(); },
   sellCompany() {
@@ -391,12 +391,12 @@ const act = {
   loginDouble: () => finishDaily(2),
   questClaim(i) {
     const n = daily.claimQuest(g, Number(i));
-    if (n) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); saveGame(); }
+    if (n) { audio.gems(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); saveGame(); }
     ui.screens.repaint();
   },
   questBonus() {
     const n = daily.claimQuestBonus(g);
-    if (n) { audio.buy(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); saveGame(); }
+    if (n) { audio.gems(); haptic('success'); toast(tr('+{n} KIM CƯƠNG', { n }), 'coffee'); saveGame(); }
     ui.screens.repaint();
   },
   // --- project reward card ---
@@ -438,12 +438,44 @@ const act = {
     wipe().finally(() => location.reload());
   },
 };
+/**
+ * Automatic full-screen ad at a natural break (between days, after a level), paced by
+ * ADS.interstitial: a few per calendar day, minutes apart, never for brand-new players, never
+ * right after a rewarded ad, never for owners of the "no ads" 💎 perk. The game waits while it shows.
+ */
+async function maybeInterstitial(placement) {
+  const sim = params.get('inter') === 'sim'; // browser tests: show the stand-in ad
+  if (!sim && (!mobile || !adsAvailable())) return false;
+  const company = campaignRun ? campaignRun.main : g, R = ADS.interstitial, now = Date.now();
+  if (company.perks.includes('noAds') || company.day < R.fromDay || tutorial || g.mode !== 'office') return false;
+  const today = new Date(now).toDateString();
+  const a = company.ads;
+  if (a.interDate !== today) { a.interDate = today; a.inter = 0; }
+  if (a.inter >= R.perDay || now - (a.interAt || 0) < R.minGap * 1000) return false;
+  if (!sim && (now - sessionStart < R.warmup * 1000 || now - lastRewardedAt < R.afterRewarded * 1000)) return false;
+  adOpen = true;
+  audio.setMuted(true);
+  try {
+    const shown = await showInterstitial({ simulate: sim });
+    if (shown) { a.inter++; a.interAt = Date.now(); g.records.interShown = (g.records.interShown || 0) + 1; saveGame(); }
+    return shown;
+  } finally {
+    adOpen = false;
+    audio.setMuted(g.muted);
+    last = performance.now();
+    void placement;
+  }
+}
+
 const pay = (cost) => { if (g.money < cost) return false; g.money -= cost; return true; };
 const toast = (text, cls) => ui.popup(innerWidth / 2, innerHeight * 0.32, text, cls);
 
 /** Show a rewarded ad (ads.js) with the game paused; true = reward earned. */
+let lastRewardedAt = 0;
+const sessionStart = Date.now();
 async function watchAd(placement) {
   adOpen = true;
+  lastRewardedAt = Date.now();
   audio.setMuted(true);
   try {
     const ok = await showRewarded(placement);
@@ -642,7 +674,7 @@ function resolveBossHit(bx, by) {
   const at = view.toClient(bx, by - 10);
   const r = hitBoss(g);
   if (r === 'dodge') { audio.deny(); haptic('light'); ui.popup(at.x, at.y, tr('NÉ!'), 'say'); return; }
-  haptic('heavy'); audio.ouch(0.7); ui.flash('hit');
+  haptic('heavy'); audio.ouch(0.7); audio.thud(); ui.flash('hit');
   ui.popup(at.x, at.y, `−${Math.round((1 + 0.5 * g.whipLevel) * 10) / 10}`, 'wrong');
   if (r === 'win') {
     const w = winBoss(g);
@@ -659,7 +691,7 @@ function onBossChest() { announceItem(inv.addItem(g, inv.rollItem(g, 2))); gainX
 /** Boss XP (skills.js); a level-up gives a skill point. `who` = the real company. */
 function gainXp(who, n) {
   const up = skills.addXp(who, n);
-  if (up) setTimeout(() => { toast(tr('SẾP LÊN CẤP {n}! +1 điểm kỹ năng', { n: who.sk.lvl }), 'money'); audio.bell(); }, 300);
+  if (up) setTimeout(() => { toast(tr('SẾP LÊN CẤP {n}! +1 điểm kỹ năng', { n: who.sk.lvl }), 'money'); audio.levelUp(); }, 300);
 }
 
 /** A new item went into the bag: popup + toast in its rarity colour. */
@@ -668,7 +700,7 @@ function announceItem(it, at) {
   setTimeout(() => {
     ui.popup(p.x, p.y - 60, tr('RƠI ĐỒ!'), `item r${it.rarity}`);
     toast(`${tr(inv.RARITY[it.rarity].name)}: ${tr(inv.itemName(it))}`, `item r${it.rarity}`);
-    audio.buy(); haptic('success');
+    audio.drop(it.rarity); haptic('success');
   }, 500);
 }
 
@@ -1032,9 +1064,9 @@ function endDay() {
     g.today = freshDay();
     newMorning();
     for (const e of g.staff) { e.energy = 100; e.stress = Math.max(0, e.stress - 50); e.state = 'work'; e.slack = null; e.t = 0; }
-    paused = false;
     saveGame();
-    if (mobile) ui.dayBanner(g.day);
+    // a natural break: maybe an automatic ad before the new day starts
+    maybeInterstitial('nextDay').finally(() => { paused = false; last = performance.now(); if (mobile) ui.dayBanner(g.day); });
   };
   // In the taskbar bar there is no room for a report card: roll straight into the next day.
   if (g.mode === 'mini') {

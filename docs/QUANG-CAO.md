@@ -21,6 +21,26 @@ Game chỉ gọi đúng một hàm: `showRewarded(placement)` trong `js/ads.js`.
 
 Trong lúc quảng cáo hiện, game tạm dừng và tắt tiếng (`main.js → watchAd`). Đổi phần thưởng hay giới hạn thì sửa `ADS` trong `config.js` và các hàm `ad*` trong `main.js`.
 
+## Quảng cáo tự động (xen kẽ / interstitial)
+
+Từ bản 1.0.7, ngoài quảng cáo có thưởng, game tự hiện **quảng cáo toàn màn hình** ở những chỗ nghỉ tự nhiên, người chơi không phải bấm gì (`main.js → maybeInterstitial`, `ads.js → showInterstitial`):
+
+| Chỗ hiện | Khi nào |
+|---|---|
+| `nextDay` | Bấm **Ngày làm việc mới** trên báo cáo tan ca, trước khi ngày mới bắt đầu |
+| `level` | Bấm **Về công ty / Màn tiếp / Chơi lại** sau khi kết thúc một màn Chiến dịch |
+
+Nhịp hiện (`ADS.interstitial` trong `config.js`):
+- Tối đa **3 lần mỗi ngày** (theo lịch thật), cách nhau ít nhất **5 phút**.
+- Không hiện cho người mới (trước ngày 3 trong game), trong 2 phút đầu sau khi mở app, hay trong 3 phút sau khi người chơi vừa tự xem quảng cáo có thưởng.
+- Không hiện khi đang hướng dẫn lần đầu hoặc ở chế độ taskbar.
+- Nếu quảng cáo chưa tải xong thì bỏ qua, không bắt người chơi chờ.
+- Người chơi mua đặc quyền 💎 **Văn phòng không quảng cáo** (500 💎, giữ cả khi bán công ty) thì không bao giờ thấy quảng cáo tự động. Quảng cáo có thưởng vẫn dùng được.
+
+Trong lúc quảng cáo hiện, game tạm dừng và tắt tiếng. Trên trình duyệt không có quảng cáo tự động; thêm `?inter=sim` vào URL để thấy bản giả lập 3 giây khi kiểm thử.
+
+**Cần làm trên AdMob:** vào app Whip Boss → **Đơn vị quảng cáo → Thêm → Quảng cáo xen kẽ (Interstitial)**, đặt tên ví dụ `inter_main`, rồi thay mã đơn vị vào `AD_UNITS.android.interstitial` trong `js/ads.js`. Khi chưa thay, game dùng mã thử của Google (hiện quảng cáo thử, không có doanh thu).
+
 ## AdMob hoạt động thế nào (`js/ads.js`)
 
 1. Mở app → `initAds()`:

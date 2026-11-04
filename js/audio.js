@@ -133,15 +133,94 @@ export function deny() {
   tone(t, 0.15, { type: 'square', f0: 160, f1: 120, gain: 0.08 });
 }
 
+/** "Cà phê sốc": grinder buzz → pour → steam hiss → happy "ding". */
 export function coffee() {
   if (!ensure()) return;
   const t = ac.currentTime;
-  for (let i = 0; i < 8; i++) {
-    const s = t + i * 0.07 + Math.random() * 0.03;
-    tone(s, 0.06, { type: 'sine', f0: 300 + Math.random() * 500, f1: 800, gain: 0.05 });
+  tone(t, 0.32, { type: 'sawtooth', f0: 95, f1: 120, gain: 0.05, attack: 0.02 });              // grinder
+  noise(t, 0.32, { type: 'bandpass', f0: 2400, f1: 1800, q: 3, gain: 0.08, attack: 0.02 });
+  for (let i = 0; i < 9; i++) {                                                                    // pouring bubbles
+    const s2 = t + 0.32 + i * 0.055 + Math.random() * 0.02;
+    tone(s2, 0.05, { type: 'sine', f0: 260 + Math.random() * 420, f1: 700 + Math.random() * 300, gain: 0.05 });
   }
-  noise(t, 0.6, { type: 'lowpass', f0: 700, f1: 400, gain: 0.12, attack: 0.1 });
-  tone(t + 0.65, 0.3, { type: 'triangle', f0: 1318, gain: 0.07 });
+  noise(t + 0.3, 0.55, { type: 'lowpass', f0: 900, f1: 380, gain: 0.1, attack: 0.08 });
+  noise(t + 0.85, 0.45, { type: 'highpass', f0: 5000, f1: 7000, gain: 0.05, attack: 0.05 }); // steam
+  [1318, 1760].forEach((f, i) => tone(t + 1.0 + i * 0.09, 0.28, { type: 'triangle', f0: f, gain: 0.07 }));
+}
+
+/** Boss skill "Tiếng gầm": a deep growl that swells, then the whole office jolts. */
+export function roar() {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  const o = ac.createOscillator(), g = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(130, t + 0.35); o.frequency.exponentialRampToValueAtTime(55, t + 1.0);
+  lfo.frequency.value = 28; lg.gain.value = 18; lfo.connect(lg).connect(o.frequency);           // rough throat rattle
+  const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 900; flt.Q.value = 4;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.28, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.05);
+  o.connect(flt).connect(g).connect(master);
+  o.start(t); lfo.start(t); o.stop(t + 1.1); lfo.stop(t + 1.1);
+  noise(t, 0.9, { type: 'lowpass', f0: 1400, f1: 300, q: 1, gain: 0.25, attack: 0.08 });         // breath
+  tone(t + 0.02, 0.25, { type: 'sine', f0: 60, f1: 35, gain: 0.35 });                           // chest thump
+  [196, 262, 330].forEach((f, i) => tone(t + 0.9 + i * 0.06, 0.18, { type: 'square', f0: f, gain: 0.05 })); // staff snap to work
+}
+
+/** A skill point spent: rising magic arpeggio with shimmer. */
+export function skill() {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  [523, 659, 784, 988, 1319].forEach((f, i) => { tone(t + i * 0.06, 0.22, { type: 'triangle', f0: f, gain: 0.06 }); tone(t + i * 0.06, 0.12, { type: 'sine', f0: f * 2, gain: 0.025 }); });
+  noise(t + 0.25, 0.4, { type: 'highpass', f0: 6000, f1: 9000, gain: 0.04, attack: 0.05 });
+}
+
+/** Boss level up: short fanfare. */
+export function levelUp() {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  [[523, 0], [523, 0.1], [523, 0.2], [698, 0.32], [880, 0.5], [1047, 0.62]].forEach(([f, d]) => tone(t + d, d > 0.55 ? 0.45 : 0.1, { type: 'square', f0: f, gain: 0.06 }));
+  tone(t + 0.62, 0.45, { type: 'triangle', f0: 523, gain: 0.07 });
+}
+
+/** An item dropped: sparkle, longer and higher for rarer items (rarity 0..3). */
+export function drop(rarity = 0) {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  const n = 3 + rarity * 2;
+  for (let i = 0; i < n; i++) tone(t + i * 0.05, 0.14, { type: 'triangle', f0: 1046 * Math.pow(1.12, i), gain: 0.05 });
+  if (rarity >= 2) [784, 1047, 1319].forEach((f, i) => tone(t + n * 0.05 + 0.05, 0.5, { type: 'sine', f0: f, gain: 0.04 + i * 0.005 }));
+}
+
+/** Diamonds gained. */
+export function gems() {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  [1568, 2093, 2637].forEach((f, i) => tone(t + i * 0.07, 0.3, { type: 'sine', f0: f, gain: 0.05 }));
+  noise(t, 0.3, { type: 'highpass', f0: 7000, f1: 9000, gain: 0.03 });
+}
+
+/** A new room opens: hammer knocks then a little fanfare. */
+export function build() {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  [0, 0.16, 0.32].forEach((d) => { noise(t + d, 0.08, { type: 'bandpass', f0: 1800, f1: 900, q: 4, gain: 0.35 }); tone(t + d, 0.06, { type: 'square', f0: 220, f1: 140, gain: 0.06 }); });
+  [392, 523, 659, 784].forEach((f, i) => tone(t + 0.55 + i * 0.09, i === 3 ? 0.5 : 0.12, { type: 'square', f0: f, gain: 0.06 }));
+}
+
+/** Walking into another room / back to the building: door + footsteps. */
+export function door() {
+  if (!ensure()) return;
+  const t = ac.currentTime;
+  noise(t, 0.18, { type: 'bandpass', f0: 600, f1: 1200, q: 2, gain: 0.12, attack: 0.03 });
+  tone(t + 0.02, 0.08, { type: 'square', f0: 330, f1: 280, gain: 0.03 });
+  [0.2, 0.32].forEach((d) => noise(t + d, 0.04, { type: 'lowpass', f0: 500, gain: 0.15 }));
+}
+
+/** Whip landing on the weekly boss: heavy thud. */
+export function thud() {
+  if (!ensure()) return;
+  const t = ac.currentTime + 0.12;
+  tone(t, 0.18, { type: 'sine', f0: 140, f1: 50, gain: 0.3 });
+  noise(t, 0.12, { type: 'lowpass', f0: 800, f1: 200, gain: 0.3 });
 }
 
 export function strike() {

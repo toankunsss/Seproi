@@ -877,4 +877,7 @@ export default {
   "Có 4 phòng trong toà nhà": "건물에 방 4개 보유",
   "Cao ốc Whip Boss": "Whip Boss 타워",
   "Xây kín cả 6 phòng": "방 6개 모두 짓기",
+  // automatic ads
+  "Văn phòng không quảng cáo": "광고 없는 사무실",
+  "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "하루가 끝날 때 나오는 자동 광고를 영구히 끕니다. 보상형 광고는 원할 때 계속 볼 수 있어요.",
 };

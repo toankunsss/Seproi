@@ -20,6 +20,16 @@ const DRAW = {
     rect(c, 3, 9, 2, 1, '#6ff0ff'); rect(c, 19, 9, 2, 1, '#6ff0ff'); // scan beams
     px(c, 2, 8, '#6ff0ff'); px(c, 21, 8, '#6ff0ff');
   },
+  // "No ads": a little TV showing AD, crossed out by a red ban sign
+  noAds(c) {
+    rect(c, 3, 5, 18, 13, '#2a2836'); rect(c, 4, 6, 16, 11, '#7fd0ff'); rect(c, 4, 6, 16, 3, '#bfe6ff');
+    rect(c, 9, 18, 6, 2, '#2a2836'); rect(c, 7, 20, 10, 1, '#2a2836');
+    rect(c, 8, 1, 1, 4, '#2a2836'); rect(c, 15, 1, 1, 4, '#2a2836');
+    rect(c, 7, 9, 3, 5, '#1d1826'); px(c, 8, 9, '#7fd0ff'); px(c, 8, 11, '#7fd0ff'); px(c, 8, 12, '#7fd0ff'); px(c, 8, 13, '#7fd0ff');
+    rect(c, 12, 9, 2, 5, '#1d1826'); rect(c, 14, 10, 1, 3, '#1d1826');
+    for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; px(c, Math.round(12 + Math.cos(a) * 9), Math.round(11 + Math.sin(a) * 9), '#e0404a'); px(c, Math.round(12 + Math.cos(a) * 8), Math.round(11 + Math.sin(a) * 8), '#e0404a'); }
+    for (let i = -6; i <= 6; i++) { rect(c, 12 + i, 11 + i, 2, 1, '#e0404a'); }
+  },
   // Reclining massage chair with vibration lines
   massage(c) {
     rect(c, 6, 4, 6, 12, '#7b4fc4'); rect(c, 7, 5, 4, 10, '#a77ae9');      // backrest

@@ -203,6 +203,7 @@ export const PREMIUM_ITEMS = [
   { id: 'massage', kind: 'perk', gems: 200, name: 'Ghế massage', desc: 'Áp lực của nhân viên giảm nhanh gấp đôi.' },
   { id: 'secretary', kind: 'perk', gems: 450, name: 'Thư ký riêng', desc: 'Trợ lý quất kẻ lười mỗi 2 giây.', needs: 'Cần Trợ lý Lv4' },
   { id: 'diamondWhip', kind: 'perk', gems: 999, name: 'Roi Kim Cương', desc: 'Thưởng bắt quả tang 600 đ, tầm quất rộng nhất.', needs: 'Cần Roi Rồng Lửa' },
+  { id: 'noAds', kind: 'perk', gems: 500, name: 'Văn phòng không quảng cáo', desc: 'Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.' },
   { id: 'hotBonus', kind: 'boost', gems: 30, name: 'Thưởng nóng', desc: 'x2 thu nhập trong 60 giây.' },
   { id: 'espresso', kind: 'boost', gems: 25, name: 'Cà phê thượng hạng', desc: 'Cả công ty hăng say 30 giây, hết sạch áp lực.' },
   { id: 'starCv', kind: 'boost', gems: 60, name: 'Săn đầu người', desc: 'Làm mới CV, chắc chắn có 1 ứng viên ngôi sao.' },
@@ -213,6 +214,15 @@ export const PREMIUM_ITEMS = [
 export const ADS = {
   gemsPerAd: 5,     // "Xem quảng cáo +5 💎"
   gemAdsPerDay: 6,  // daily cap for the gem reward
+  // Automatic full-screen ads (interstitials) at natural breaks: after the end-of-day report and
+  // after a campaign level. Paced so they never feel spammy (main.js → maybeInterstitial).
+  interstitial: {
+    perDay: 3,          // at most this many per calendar day
+    minGap: 300,        // seconds between two interstitials
+    fromDay: 3,         // brand-new players see none for their first 2 work days
+    warmup: 120,        // …nor in the first 2 minutes after opening the app
+    afterRewarded: 180, // …nor within 3 minutes of a rewarded ad they chose to watch
+  },
 };
 
 // --- Achievements --------------------------------------------------------------------------------

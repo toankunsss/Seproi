@@ -877,4 +877,7 @@ export default {
   "Có 4 phòng trong toà nhà": "ビルに部屋が4つ",
   "Cao ốc Whip Boss": "Whip Bossタワー",
   "Xây kín cả 6 phòng": "6部屋すべて建てる",
+  // automatic ads
+  "Văn phòng không quảng cáo": "広告なしオフィス",
+  "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "日と日の間の自動広告を永久にオフ。報酬広告は好きなときに見られます。",
 };

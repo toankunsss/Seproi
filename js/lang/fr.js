@@ -877,4 +877,7 @@ export default {
   "Có 4 phòng trong toà nhà": "Avoir 4 salles dans l'immeuble",
   "Cao ốc Whip Boss": "Tour Whip Boss",
   "Xây kín cả 6 phòng": "Construire les 6 salles",
+  // automatic ads
+  "Văn phòng không quảng cáo": "Bureau sans pub",
+  "Tắt hẳn quảng cáo tự động giữa các ngày. Quảng cáo có thưởng vẫn xem được khi bạn muốn.": "Supprime pour de bon les pubs automatiques entre les journées. Les pubs avec récompense restent disponibles quand tu veux.",
 };

@@ -86,7 +86,7 @@ export function showTitle({ g, fmt, onStart, onToggleSound, onToggleMusic, onLan
       </div>
       <div class="title-langs" hidden>${langs.map((c) => `<button class="px-btn ${c === getLang() ? 'on' : ''}" data-k="pick" data-lang="${c}">${LANGS[c].name}</button>`).join('')}</div>
     </div>
-    <div class="title-foot">v1.0.6 · © Whip Boss · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Quyền riêng tư')}</a></div>`;
+    <div class="title-foot">v1.0.7 · © Whip Boss · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">${t('Quyền riêng tư')}</a></div>`;
   document.body.appendChild(el);
 
   const labels = () => {

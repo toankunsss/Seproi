@@ -81,8 +81,7 @@ const MOBILE_HUD = `
         <span class="rb-name" data-k="rbName"></span>
         <button class="px-btn rb-step" data-a="roomStep" data-arg="1" data-k="rbNext">▶</button>
       </div>
-      <div class="hint" data-k="hint"></div>
-      <div class="visitbar" data-k="visit" hidden></div>
+      <div class="statusline"><div class="hint" data-k="hint"></div><div class="visitbar" data-k="visit" hidden></div></div>
       <button class="projbar" data-a="projects"><span class="pj-name" data-k="projName"></span>
         <span class="meter"><i data-k="projBar"></i></span><span class="pj-due" data-k="projDue"></span></button>
       <div class="actrow"><button class="px-btn coffee" data-a="coffee" data-k="coffee" hidden></button><button class="px-btn roar" data-a="roar" data-k="roar" hidden></button></div>
