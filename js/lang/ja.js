@@ -481,7 +481,7 @@ export default {
   "Nhận tiền": "受け取る",
   // prestige
   "Bán công ty": "会社を売却",
-  "{n} cổ phần": "株{n}",
+  "{n} cổ phần": "{n}株",
   "cổ phần": "株",
   "Bán cho nhà đầu tư để nhận cổ phần, rồi khởi nghiệp lại mạnh hơn": "投資家に売って株を手に入れ、もっと強くなって再スタート",
   "Cổ phần đang có: {n} (+{p}% thu nhập)": "保有株：{n}（収入+{p}%）",
