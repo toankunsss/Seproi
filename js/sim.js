@@ -24,7 +24,9 @@ export function incomeOf(g, e) {
 }
 
 /** Assistant whip interval (the "Thư ký riêng" perk makes it 2s). */
-export const assistantInterval = (g) => (hasPerk(g, 'secretary') ? 2 : ASSISTANT[g.assistantLevel].interval);
+export const assistantInterval = (g, room = g.rooms ? g.rooms[0] : g) => (hasPerk(g, 'secretary') ? 2 : ASSISTANT[Math.max(0, room.assistantLevel)].interval);
+/** Equipment holder of employee e: their room (rooms.js), or g itself in old-style states. */
+const roomFor = (g, e) => (g.rooms && g.rooms[e.room || 0]) || g;
 
 export const isSlacking = (e) => e.state === 'slack';
 
@@ -38,7 +40,6 @@ export function update(g, dt, emit) {
   if (g.dayTime >= len) { g.dayTime = len; emit('dayEnd'); return; }
   const mods = g.mods || {};
 
-  const coffee = g.coffeeLevel >= 0 ? COFFEE[g.coffeeLevel] : null;
   const decay = T.stressDecay * (hasPerk(g, 'massage') ? 2 : 1);
   if (g.hotBonus > 0) g.hotBonus = Math.max(0, g.hotBonus - dt);
   let working = 0, income = 0;
@@ -59,6 +60,7 @@ export function update(g, dt, emit) {
     // motivation slowly settles back to its baseline (rewards wear off, salary raises stick)
     const base = Math.min(100, motivBaseline(e) + motivBonus(g) + (g.cos && g.cos.pet === 'cat' ? 5 : 0)), m = e.motiv ?? MOTIVATION.start, step = MOTIVATION.drift * dt;
     e.motiv = m > base ? Math.max(base, m - step) : Math.min(base, m + step);
+    const rm = roomFor(g, e), coffee = rm.coffeeLevel >= 0 ? COFFEE[rm.coffeeLevel] : null; // the room's own machine
     if (coffee) e.energy = Math.min(100, e.energy + coffee.regen * dt);
 
     switch (e.state) {
@@ -131,20 +133,21 @@ export function update(g, dt, emit) {
   // Combo decays
   if (g.combo > 0) { g.comboT -= dt; if (g.comboT <= 0) g.combo = 0; }
 
-  // Coffee cooldown
-  if (g.coffeeCd > 0) g.coffeeCd = Math.max(0, g.coffeeCd - dt);
-
-  // Assistant auto-whips a slacker on an interval
-  if (g.assistantLevel >= 0 && !assistantHides(g)) {
-    g.assistantCd -= dt;
-    if (g.assistantCd <= 0) {
-      const slackers = g.staff.filter((x) => isSlacking(x) && !(x.cv && x.cv.type === 'nephew')); // the assistant won't touch the nephew
-      if (slackers.length) {
-        const target = slackers.reduce((a, b) => (b.t > a.t ? b : a));
-        g.assistantCd = assistantInterval(g);
-        emit('assistant', target);
-      } else {
-        g.assistantCd = 0.5; // check again soon
+  // Each room has its own coffee machine and its own assistant (rooms.js)
+  for (const [ri, rm] of (g.rooms || [g]).entries()) {
+    if (rm.coffeeCd > 0) rm.coffeeCd = Math.max(0, rm.coffeeCd - dt);
+    // the assistant auto-whips a slacker of its room on an interval
+    if (rm.assistantLevel >= 0 && !assistantHides(g)) {
+      rm.assistantCd -= dt;
+      if (rm.assistantCd <= 0) {
+        const slackers = g.staff.filter((x) => (!g.rooms || (x.room || 0) === ri) && isSlacking(x) && !(x.cv && x.cv.type === 'nephew')); // the assistant won't touch the nephew
+        if (slackers.length) {
+          const target = slackers.reduce((a, b) => (b.t > a.t ? b : a));
+          rm.assistantCd = assistantInterval(g, rm);
+          emit('assistant', target);
+        } else {
+          rm.assistantCd = 0.5; // check again soon
+        }
       }
     }
   }
@@ -230,11 +233,14 @@ export function whipEmployee(g, e, { auto = false } = {}) {
   return { kind: 'wrong', reward: -Math.round(penalty) };
 }
 
-export function useCoffee(g) {
-  if (g.coffeeLevel < 0 || g.coffeeCd > 0) return false;
-  g.coffeeCd = COFFEE[g.coffeeLevel].cooldown * (1 - bonus(g, 'coffee') / 100);
+/** "Cà phê sốc" from room r's machine: wakes up that room only. */
+export function useCoffee(g, r = 0) {
+  const rm = g.rooms ? g.rooms[r] : g;
+  if (!rm || rm.coffeeLevel < 0 || rm.coffeeCd > 0) return false;
+  rm.coffeeCd = COFFEE[rm.coffeeLevel].cooldown * (1 - bonus(g, 'coffee') / 100);
   g.records.coffees++;
   for (const e of g.staff) {
+    if (g.rooms && (e.room || 0) !== r) continue;
     e.energy = Math.min(100, e.energy + 55);
     e.stress = Math.max(0, e.stress - 30);
     if (e.state === 'slack' && e.slack === 'sleep') { e.state = 'work'; e.t = 0; e.slack = null; }

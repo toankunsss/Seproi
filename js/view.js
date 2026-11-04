@@ -233,8 +233,9 @@ export function createView(canvas) {
 }
 
 export function coffeeReadyFrac(g) {
-  if (g.coffeeLevel < 0) return 0;
-  return 1 - g.coffeeCd / COFFEE[g.coffeeLevel].cooldown;
+  const rm = g.rooms ? g.rooms[Math.max(0, g.viewRoom || 0)] : g;
+  if (rm.coffeeLevel < 0) return 0;
+  return 1 - rm.coffeeCd / COFFEE[rm.coffeeLevel].cooldown;
 }
 
 export { iso, assistantPos };

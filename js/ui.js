@@ -10,7 +10,7 @@ import { DAILY, BOSS, WHIP_SKINS, BUILD } from './config.js';
 const WHIP_SKIN_INDEX = (id) => Math.max(0, WHIP_SKINS.findIndex((s) => s.id === id));
 import { createScreens, projectSummary } from './screens.js';
 import { progressOf, penaltyOf, activeList, activeOf, openOffers } from './projects.js';
-import { roomName, capOf, roomStaff, roomAlert, redRooms, nextRoom, upgradeOf, totalCap, freeRoom } from './rooms.js';
+import { roomName, capOf, roomStaff, roomAlert, redRooms, nextRoom, upgradeOf, totalCap, freeRoom, roomOf } from './rooms.js';
 import { VISITS } from './config.js';
 import { t, locale } from './i18n.js';
 import { itemArtUrl } from './item-art.js';
@@ -201,14 +201,18 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       set(K.modeBtn, g.mode === 'office' ? t('Thu nhỏ') : t('Văn phòng'));
       set(K.mute, g.muted ? '×' : '♪');
       if (mobile) { hud.classList.toggle('muted', g.muted); set(K.hint, hintText(g)); }
-      if (g.coffeeLevel >= 0) {
-        K.coffee.hidden = false;
-        const ready = g.coffeeCd <= 0;
-        K.coffee.disabled = !ready;
-        set(K.coffee, ready ? t('Cà phê sốc') : t('Cà phê {s}s', { s: Math.ceil(g.coffeeCd) }));
+      // coffee button and assistant timer: the room being viewed (each room has its own)
+      const here = g.viewRoom >= 0 ? roomOf(g) : null;
+      if (K.coffee) {
+        K.coffee.hidden = !here || here.coffeeLevel < 0;
+        if (!K.coffee.hidden) {
+          const ready = here.coffeeCd <= 0;
+          K.coffee.disabled = !ready;
+          set(K.coffee, ready ? t('Cà phê sốc') : t('Cà phê {s}s', { s: Math.ceil(here.coffeeCd) }));
+        }
       }
-      const cd = Math.max(0, Math.ceil(g.assistantCd));
-      set(K.assist, g.assistantLevel < 0 ? '' : mobile ? t('Trợ lý: {s}s', { s: cd }) : t('Trợ lý Lv{lv} · {s}s', { lv: g.assistantLevel + 1, s: cd }));
+      const cd = here ? Math.max(0, Math.ceil(here.assistantCd)) : 0;
+      set(K.assist, !here || here.assistantLevel < 0 ? '' : mobile ? t('Trợ lý: {s}s', { s: cd }) : t('Trợ lý Lv{lv} · {s}s', { lv: here.assistantLevel + 1, s: cd }));
       set(K.gems, String(g.gems));
       updateRoomBar();
       const room = Math.max(0, g.viewRoom);
@@ -576,7 +580,8 @@ export function createUI(root, g, act, { mobile = false } = {}) {
   function renderPanel() {
     // the 💎 whip is sold in the Kim cương shop, not here
     const wl = g.whipLevel, next = WHIPS[wl + 1] && !WHIPS[wl + 1].premium ? WHIPS[wl + 1] : null;
-    const cl = g.coffeeLevel, al = g.assistantLevel;
+    const rmEq = roomOf(g), cl = rmEq.coffeeLevel, al = rmEq.assistantLevel; // this room's own machine / assistant
+    const rp = g.rooms.length > 1 ? roomName(Math.max(0, g.viewRoom)) + ': ' : '';
     const n = g.staff.length, cap = totalCap(g), hire = freeRoom(g, g.viewRoom) >= 0;
     // "office" = the room being viewed (room 1 from the overview), upgraded on its own
     const room = Math.max(0, g.viewRoom), many = g.rooms.length > 1;
@@ -590,7 +595,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       nextOffice && g.money >= nextOffice.cost,
       nr && g.money >= nr.cost,
     ].map(Boolean).join(',');
-    const sig = [wl, cl, al, n, room, g.rooms.map((x) => x.level).join(''), !!officeReady, !!roomReady, affordability, g.candidates.length, g.day, monthBill(g).total].join('|');
+    const sig = [wl, cl, al, rmEq.decor.length, n, room, g.rooms.map((x) => x.level).join(''), !!officeReady, !!roomReady, affordability, g.candidates.length, g.day, monthBill(g).total].join('|');
     if (sig === lastPanelSig) {
       const money = panel.querySelector('[data-panel-money]');
       if (money) money.textContent = `${fmt(g.money)} đ`;
@@ -634,11 +639,11 @@ export function createUI(root, g, act, { mobile = false } = {}) {
         <button class="px-btn buy" data-a="staff">${t('Mở')}</button>
       </div>`,
       item('coffee',
-        cl < 0 ? t('Mua máy pha cà phê') : COFFEE[cl + 1] ? t('Máy cà phê Lv{a} → Lv{b}', { a: cl + 1, b: cl + 2 }) : t('Máy cà phê Lv{a}', { a: cl + 1 }),
+        rp + (cl < 0 ? t('Mua máy pha cà phê') : COFFEE[cl + 1] ? t('Máy cà phê Lv{a} → Lv{b}', { a: cl + 1, b: cl + 2 }) : t('Máy cà phê Lv{a}', { a: cl + 1 })),
         COFFEE[cl + 1] ? t('Nút "Cà phê sốc": +55 năng lượng, −30 áp lực, đánh thức kẻ ngủ gật. Hồi chiêu {s}s.', { s: COFFEE[cl + 1].cooldown }) : t('Espresso cấp công nghiệp.'),
         COFFEE[cl + 1] ? COFFEE[cl + 1].cost : 0, cl >= 0, !COFFEE[cl + 1], undefined, `coffee:${COFFEE[cl + 1] ? cl + 1 : cl}`),
       item('assistant',
-        al < 0 ? t('Thuê Trợ lý giám sát') : ASSISTANT[al + 1] ? t('Trợ lý Lv{a} → Lv{b}', { a: al + 1, b: al + 2 }) : t('Trợ lý Lv{a}', { a: al + 1 }),
+        rp + (al < 0 ? t('Thuê Trợ lý giám sát') : ASSISTANT[al + 1] ? t('Trợ lý Lv{a} → Lv{b}', { a: al + 1, b: al + 2 }) : t('Trợ lý Lv{a}', { a: al + 1 })),
         ASSISTANT[al + 1] ? t('Tự quất kẻ lười mỗi {s}s (nửa tiền thưởng). Chạy cả khi bạn bận.', { s: ASSISTANT[al + 1].interval }) : t('Mắt diều hâu, không bỏ sót ai.'),
         ASSISTANT[al + 1] ? ASSISTANT[al + 1].cost : 0, al >= 0, !ASSISTANT[al + 1], undefined, `assistant:${ASSISTANT[al + 1] ? al + 1 : al}`),
       `<div class="panel-foot"><button class="px-btn danger" data-a="reset">${t('Chơi lại từ đầu')}</button></div>`,
@@ -649,9 +654,10 @@ export function createUI(root, g, act, { mobile = false } = {}) {
 
   function showDecorStore() {
     modal.hidden = false;
+    const rm = roomOf(g); // furniture is bought for the room being viewed
     const rows = DECOR_ITEMS.map((item) => {
-      const owned = g.decor.includes(item.id);
-      const locked = g.officeLevel < item.level;
+      const owned = rm.decor.includes(item.id);
+      const locked = rm.level < item.level;
       const can = !owned && !locked && g.money >= item.cost;
       return `<div class="decor-row ${owned ? 'owned' : ''} ${locked ? 'locked' : ''}">
         <div class="item-art">${itemArtUrl(item.id) ? `<img src="${itemArtUrl(item.id)}" alt="">` : `<div class="decor-preview decor-${item.id}" aria-hidden="true"></div>`}${owned ? '<i>✓</i>' : ''}</div>
@@ -660,7 +666,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
       </div>`;
     }).join('');
     modal.innerHTML = `<div class="card decor-store">
-      <div class="panel-head"><div><h2>${t('Cửa hàng nội thất')}</h2><small>${t(OFFICE_LEVELS[g.officeLevel].name)} · ${t('Quỹ')} ${fmt(g.money)} đ</small></div><button class="px-btn icon" data-a="closeModal">×</button></div>
+      <div class="panel-head"><div><h2>${t('Cửa hàng nội thất')}</h2><small>${g.rooms.length > 1 ? esc(roomName(Math.max(0, g.viewRoom))) + ' · ' : ''}${t(OFFICE_LEVELS[rm.level].name)} · ${t('Quỹ')} ${fmt(g.money)} đ</small></div><button class="px-btn icon" data-a="closeModal">×</button></div>
       <div class="decor-list">${rows}</div>
     </div>`;
     act.closeModal = () => { modal.hidden = true; };

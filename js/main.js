@@ -104,7 +104,7 @@ const act = {
   mute() { g.muted = !g.muted; audio.setMuted(g.muted); },
   music() { g.musicOff = !g.musicOff; music.setEnabled(mobile && !g.musicOff); if (!g.musicOff) audio.unlock(); saveGame(); },
   coffee() {
-    if (useCoffee(g)) { audio.coffee(); haptic('success'); ui.popup(innerWidth / 2, innerHeight * 0.3, tr('CÀ PHÊ SỐC!'), 'coffee'); }
+    if (g.viewRoom >= 0 && useCoffee(g, g.viewRoom)) { audio.coffee(); haptic('success'); ui.popup(innerWidth / 2, innerHeight * 0.3, tr('CÀ PHÊ SỐC!'), 'coffee'); }
   },
   pip: () => togglePip(),
   quit() { saveGame(); shell && shell.quit(); },
@@ -112,11 +112,14 @@ const act = {
     let cost = 0, ok = false;
     const nextWhip = WHIPS[g.whipLevel + 1];
     if (kind === 'whip' && nextWhip && !nextWhip.premium) { cost = nextWhip.cost; ok = pay(cost) && (g.whipLevel++, true); }
-    if (kind === 'coffee' && COFFEE[g.coffeeLevel + 1]) { cost = COFFEE[g.coffeeLevel + 1].cost; ok = pay(cost) && (g.coffeeLevel++, g.coffeeCd = 0, true); }
-    if (kind === 'assistant' && ASSISTANT[g.assistantLevel + 1]) {
-      cost = ASSISTANT[g.assistantLevel + 1].cost;
-      ok = pay(cost) && (g.assistantLevel++, g.assistantCd = assistantInterval(g), true);
+    // coffee machine and assistant belong to the room being viewed (each room buys its own)
+    const rm = rooms.roomOf(g);
+    if (kind === 'coffee' && COFFEE[rm.coffeeLevel + 1]) { cost = COFFEE[rm.coffeeLevel + 1].cost; ok = pay(cost) && (rm.coffeeLevel++, rm.coffeeCd = 0, true); }
+    if (kind === 'assistant' && ASSISTANT[rm.assistantLevel + 1]) {
+      cost = ASSISTANT[rm.assistantLevel + 1].cost;
+      ok = pay(cost) && (rm.assistantLevel++, rm.assistantCd = assistantInterval(g, rm), true);
     }
+    if (ok) rooms.syncOffice(g);
     if (kind === 'office') { // upgrade the room being viewed (or room 1 from the overview)
       const r = Math.max(0, g.viewRoom);
       ok = rooms.upgradeRoom(g, r);
@@ -173,9 +176,11 @@ const act = {
   },
   purchaseDecor(id) {
     const item = DECOR_ITEMS.find((x) => x.id === id);
-    if (!item || g.decor.includes(id) || g.officeLevel < item.level) return false;
+    const rm = rooms.roomOf(g); // furniture goes into the room being viewed
+    if (!item || rm.decor.includes(id) || rm.level < item.level) return false;
     if (!pay(item.cost)) { audio.deny(); return false; }
-    g.decor.push(id);
+    rm.decor.push(id);
+    rooms.syncOffice(g);
     audio.buy();
     haptic('success');
     saveGame();

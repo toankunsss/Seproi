@@ -2,19 +2,29 @@
 // (BUILD.perFloor per floor). Each room has its own office level (4 / 6 / 8 desks), its own
 // staff (e.room), its own client contract (projects.js) and its own KPI and alert light.
 //
-//   g.rooms    = [{ level, project, offers, offersDay, kpi }]
+//   g.rooms    = [{ level, project, offers, offersDay, kpi,
+//                   coffeeLevel, coffeeCd, assistantLevel, assistantCd, decor[] }]
+//                each room has its OWN coffee machine, assistant and furniture: a new room is empty
 //   e.room     = index of the room an employee sits in
 //   g.viewRoom = room shown in detail; -1 = the building overview (no whipping there)
 //
-// g.officeLevel is kept as the best room level, for achievements, decor and old code paths.
+// g.officeLevel / g.coffeeLevel / g.assistantLevel are kept as the best value over all rooms and
+// g.decor as every piece of furniture owned anywhere (achievements, 💎 shop checks): syncOffice().
+// Gameplay always reads the room's own values (roomOf / roomScope).
 import { OFFICE_LEVELS, BUILD, PAYROLL, TUNING } from './config.js';
 import { t } from './i18n.js';
 
-export const freshRoom = (level = 0) => ({ level, project: null, offers: [], offersDay: 0, kpi: 1 });
+export const freshRoom = (level = 0) => ({
+  level, project: null, offers: [], offersDay: 0, kpi: 1,
+  coffeeLevel: -1, coffeeCd: 0, assistantLevel: -1, assistantCd: 0, decor: [],
+});
 
 /** Make sure g has a valid building (new games, old saves, campaign states). */
 export function ensureRooms(g) {
   const pr = g.projects || (g.projects = {});
+  // saves from before rooms had their own equipment: what the company owned goes to room 1
+  const legacy = !Array.isArray(g.rooms) || !g.rooms.length || g.rooms[0].coffeeLevel === undefined;
+  const owned = { coffeeLevel: g.coffeeLevel ?? -1, assistantLevel: g.assistantLevel ?? -1, decor: Array.isArray(g.decor) ? [...g.decor] : [] };
   if (!Array.isArray(g.rooms) || !g.rooms.length) {
     // old save: one room at the old office level, holding the old contract and offers
     const r = freshRoom(Math.max(0, Math.min(2, Number(g.officeLevel) || 0)));
@@ -24,7 +34,8 @@ export function ensureRooms(g) {
   }
   delete pr.active; delete pr.offers; delete pr.offersDay;
   if (!Array.isArray(pr.queue)) pr.queue = [];
-  g.rooms = g.rooms.slice(0, BUILD.rooms.length).map((r) => ({ ...freshRoom(), ...r, level: Math.max(0, Math.min(2, Number(r.level) || 0)), offers: Array.isArray(r.offers) ? r.offers : [] }));
+  g.rooms = g.rooms.slice(0, BUILD.rooms.length).map((r) => ({ ...freshRoom(), ...r, level: Math.max(0, Math.min(2, Number(r.level) || 0)), offers: Array.isArray(r.offers) ? r.offers : [], decor: Array.isArray(r.decor) ? r.decor : [] }));
+  if (legacy) Object.assign(g.rooms[0], owned);
   for (const e of g.staff || []) if (!(e.room >= 0 && e.room < g.rooms.length)) e.room = 0;
   // nobody sits on a desk that doesn't exist: overflow moves to rooms with space
   for (let r = 0; r < g.rooms.length; r++) {
@@ -36,8 +47,16 @@ export function ensureRooms(g) {
   return g;
 }
 
-/** g.officeLevel = best room level (achievements, decor unlocks). */
-export function syncOffice(g) { g.officeLevel = g.rooms.reduce((m, r) => Math.max(m, r.level), 0); }
+/** Company-wide summary of the rooms: best levels and every decor id owned (achievements, 💎 shop). */
+export function syncOffice(g) {
+  g.officeLevel = g.rooms.reduce((m, r) => Math.max(m, r.level), 0);
+  g.coffeeLevel = g.rooms.reduce((m, r) => Math.max(m, r.coffeeLevel ?? -1), -1);
+  g.assistantLevel = g.rooms.reduce((m, r) => Math.max(m, r.assistantLevel ?? -1), -1);
+  g.decor = [...new Set(g.rooms.flatMap((r) => r.decor || []))];
+}
+
+/** The room object for index r (the viewed room for -1 / undefined). */
+export const roomOf = (g, r = g.viewRoom) => g.rooms[Math.max(0, Math.min(g.rooms.length - 1, r ?? 0))];
 
 export const roomName = (r) => t('Phòng {n}', { n: r + 1 });
 export const floorOf = (r) => Math.floor(r / BUILD.perFloor);
@@ -138,7 +157,12 @@ export const redRooms = (g, except = -2) => g.rooms.map((_, r) => r).filter((r) 
 export function roomScope(g, r) {
   const s = Object.create(g);
   s.staff = roomStaff(g, r);
-  s.officeLevel = g.rooms[r] ? g.rooms[r].level : 0;
+  const room = g.rooms[r] || freshRoom(0);
+  s.officeLevel = room.level;
+  // this room's own equipment
+  s.coffeeLevel = room.coffeeLevel; s.coffeeCd = room.coffeeCd;
+  s.assistantLevel = room.assistantLevel; s.assistantCd = room.assistantCd;
+  s.decor = room.decor || [];
   s.visit = g.visit && (g.visit.room || 0) === r ? g.visit : null;
   return s;
 }

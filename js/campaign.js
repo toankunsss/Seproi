@@ -122,6 +122,7 @@ export function levelState(level) {
   g.whipLevel = s.whip;
   g.coffeeLevel = s.coffee;
   g.assistantLevel = s.assistant;
+  Object.assign(g.rooms[0], { coffeeLevel: s.coffee, assistantLevel: s.assistant });
   g.money = s.money || 0;
   g.day = 1 + (level.ch - 1) * 6; // a bit of day multiplier in later chapters
   g.staff = Array.from({ length: s.staff }, (_, i) => makeEmployee(i, i < 3 ? cvFromPool(i) : makeCandidate(g)));
