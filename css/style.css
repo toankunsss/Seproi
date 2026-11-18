@@ -1042,3 +1042,22 @@ body.in-level .roombar, body.in-level .rb-home, body.in-level .rb-step, body.in-
 .ach, .decor-row, .room-row, .col-item, .inv-item { contain-intrinsic-size: auto 72px; }
 .staff-card, .cv { contain-intrinsic-size: auto 300px; }
 #fpsmeter { position: fixed; z-index: 90; left: 4px; top: calc(4px + var(--sa-top, 0px)); padding: 1px 6px; font: 14px var(--font); color: #5cff7a; background: rgba(0, 0, 0, .7); pointer-events: none; }
+
+/* --- VIP subscription + diamond packs (billing.js) --- */
+.vip-card { margin: 4px 0 12px; padding: 10px 12px; background: linear-gradient(160deg, #3a2a10, #2a2340 70%); box-shadow: 0 0 0 2px var(--edge), inset 0 0 0 2px #c8862a; }
+.vip-card.active { box-shadow: 0 0 0 2px var(--edge), inset 0 0 0 2px var(--gold), 0 0 14px rgba(255, 211, 77, .35); }
+.vip-card .vip-top { display: flex; align-items: center; gap: 10px; }
+.vip-card .vip-top img { width: 48px; height: 48px; image-rendering: pixelated; }
+.vip-card .vip-top b { display: block; font-size: 24px; color: var(--gold); font-weight: normal; }
+.vip-card .vip-top small { color: var(--ink); font-size: 17px; }
+.vip-card ul { margin: 8px 0; padding-left: 20px; }
+.vip-card li { margin: 2px 0; }
+.vip-card li::marker { content: '★ '; color: var(--gold); }
+.vip-card .vip-buy { background: #c8862a; color: #1d1826; }
+.vip-card .vip-fine { margin: 6px 0 0; font-size: 14px; color: var(--muted); line-height: 1.2; }
+.item.pack .item-art { position: relative; }
+.item.pack .pack-tag { position: absolute; right: -6px; top: -6px; padding: 0 4px; font-style: normal; font-size: 13px; background: var(--red); color: #fff; box-shadow: 0 0 0 2px var(--edge); }
+.item.pack .title .gem { display: inline-block; vertical-align: -2px; }
+.px-btn.money-btn { background: #2f6a3f; min-width: 96px; }
+.mobile .avatar.vip { box-shadow: 0 0 0 2px var(--edge), inset 0 0 0 3px var(--gold), 0 0 10px rgba(255, 211, 77, .5); }
+.mobile .avatar.vip::after { content: 'VIP'; position: absolute; left: 50%; top: -2px; transform: translateX(-50%); padding: 0 4px; font-size: 13px; line-height: 15px; background: var(--gold); color: #1d1826; box-shadow: 0 0 0 2px var(--edge); }

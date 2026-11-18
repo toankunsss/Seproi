@@ -20,6 +20,23 @@ const DRAW = {
     rect(c, 3, 9, 2, 1, '#6ff0ff'); rect(c, 19, 9, 2, 1, '#6ff0ff'); // scan beams
     px(c, 2, 8, '#6ff0ff'); px(c, 21, 8, '#6ff0ff');
   },
+  // VIP crown with jewels
+  crown(c) {
+    rect(c, 3, 16, 18, 4, '#c8862a'); rect(c, 3, 16, 18, 1, '#ffe08a');
+    rect(c, 3, 8, 3, 8, '#ffd34d'); rect(c, 10, 5, 4, 11, '#ffd34d'); rect(c, 18, 8, 3, 8, '#ffd34d');
+    rect(c, 6, 11, 4, 5, '#ffd34d'); rect(c, 14, 11, 4, 5, '#ffd34d');
+    px(c, 4, 7, '#fff3a0'); px(c, 11, 4, '#fff3a0'); px(c, 12, 4, '#fff3a0'); px(c, 19, 7, '#fff3a0');
+    rect(c, 11, 10, 2, 3, '#e0404a'); rect(c, 6, 17, 2, 2, '#3a8ee6'); rect(c, 16, 17, 2, 2, '#46b37a'); rect(c, 11, 17, 2, 2, '#c792ea');
+    rect(c, 2, 20, 20, 1, '#7a4a10');
+  },
+  // A pile of diamonds: bigger with each pack (0..2)
+  gempack(c, n = 0) {
+    const gem = (x, y) => { rect(c, x + 1, y, 4, 1, '#bff6ff'); rect(c, x, y + 1, 6, 2, '#5ad8f5'); rect(c, x + 1, y + 3, 4, 1, '#2aa8d0'); rect(c, x + 2, y + 4, 2, 1, '#1a7aa8'); px(c, x + 1, y + 1, '#ffffff'); };
+    const spots = [[[9, 10]], [[5, 13], [13, 13], [9, 8]], [[2, 15], [9, 15], [16, 15], [5, 10], [13, 10], [9, 5]]][Math.max(0, Math.min(2, n))];
+    if (n >= 1) { rect(c, 2, 19, 20, 2, '#6a4a2a'); rect(c, 3, 18, 18, 1, '#8a6040'); }
+    for (const [x, y] of spots) gem(x, y);
+    if (n === 2) { px(c, 20, 3, '#ffffff'); px(c, 3, 4, '#ffffff'); }
+  },
   // "No ads": a little TV showing AD, crossed out by a red ban sign
   noAds(c) {
     rect(c, 3, 5, 18, 13, '#2a2836'); rect(c, 4, 6, 16, 11, '#7fd0ff'); rect(c, 4, 6, 16, 3, '#bfe6ff');

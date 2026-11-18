@@ -36,8 +36,10 @@ const { chromium } = require('playwright');
   await G(() => { const el = document.getElementById('reward'); if (el && !el.hidden) el.querySelector('[data-a="projCollect"]').click(); });
   await p.waitForTimeout(400);
 
-  // 2. a mini-game overlay vanishes
-  await G(() => __game.act.miniStart('mouse')); await p.waitForTimeout(400);
+  // 2a. a mini-game that IS on screen must be left alone (full-screen overlays are position:fixed)
+  await G(() => __game.act.miniStart('mouse')); await p.waitForTimeout(5000);
+  ok('Watchdog leaves a visible mini-game alone (game stays paused behind it)', await G(() => __game.blockedBy().includes('mini') && !document.getElementById('mini').hidden && !__game.diag.entries().some((e) => e.m.includes('"mini"'))));
+  // 2b. a mini-game overlay vanishes
   await G(() => { const el = document.getElementById('mini'); el.hidden = true; el.innerHTML = ''; });
   await recovers('mini');
 

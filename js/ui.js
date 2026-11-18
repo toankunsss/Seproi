@@ -14,6 +14,7 @@ import { roomName, capOf, roomStaff, roomAlert, redRooms, nextRoom, upgradeOf, t
 import { VISITS } from './config.js';
 import { t, locale } from './i18n.js';
 import { itemArtUrl } from './item-art.js';
+import { isVip } from './billing.js';
 
 export const fmt = (n) => {
   n = Math.floor(n);
@@ -178,6 +179,7 @@ export function createUI(root, g, act, { mobile = false } = {}) {
         if (r) { const txt = cd ? `${t('Tiếng gầm')} ${cd}s` : t('TIẾNG GẦM!'); if (K.roar.textContent !== txt) K.roar.textContent = txt; K.roar.disabled = cd > 0; }
       }
       if (K.lvl) set(K.lvl, `Lv${(g.sk && g.sk.lvl) || 1}`);
+      if (K.avatar) K.avatar.parentElement.classList.toggle('vip', isVip(g)); // gold frame + crown for VIP
       updateBossBar();
       const rate = g.staff.reduce((s, e) => s + incomeOf(g, e), 0);
       set(K.money, fmt(g.money) + ' đ');

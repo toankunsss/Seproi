@@ -24,6 +24,8 @@ import { cosState, albumState, hasCard, setCards, setDone, albumClaimable } from
 import { WHIP_SKINS, PETS, ALBUM, ALBUM_SETS, ALBUM_REWARD } from './config.js';
 import { incomeOf } from './sim.js';
 import * as diag from './diag.js';
+import * as billing from './billing.js';
+import { IAP } from './config.js';
 import { t, LANGS, getLang } from './i18n.js';
 
 const GEM = '<span class="gem" aria-hidden="true"></span>';
@@ -281,6 +283,27 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
   const buildSig = () => [g.rooms.length, g.rooms.map((x) => x.level + (x.project ? 'p' : '')).join(''), g.staff.length, Math.floor(g.money / 500), Math.floor((g.lifetimeEarnings || 0) / 1000), ...g.rooms.map((_, r) => roomAlert(g, r).level)].join('|');
 
   // --- 💎 shop ------------------------------------------------------------------------------
+  /** VIP subscription card + real-money diamond packs (billing.js); hidden when the store is unavailable. */
+  function storeBlock() {
+    if (!billing.available()) return '';
+    const vip = billing.isVip(g), price = billing.prices[IAP.vip.id];
+    const perks = [t('Không còn quảng cáo tự động'), t('Nút "xem quảng cáo" nhận thưởng ngay, không cần xem'), t('+{n} kim cương mỗi ngày', { n: IAP.vipDailyGems }), t('Vương miện VIP cho sếp')];
+    const card = `<div class="vip-card ${vip ? 'active' : ''}">
+        <div class="vip-top"><img src="${itemArtUrl('crown')}" alt=""><div><b>Whip Boss VIP</b><small>${vip ? t('Đang hoạt động') : price ? t('{p} / tháng', { p: price }) : t('Đang tải giá…')}</small></div></div>
+        <ul>${perks.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+        ${vip ? `<button class="px-btn wide" data-a="vipManage">${t('Quản lý gói trên Google Play')}</button>`
+          : `<button class="px-btn big wide vip-buy" data-a="vipSubscribe" ${price ? '' : 'disabled'}>${t('Đăng ký VIP')}${price ? ' · ' + esc(price) : ''}</button>`}
+        <p class="vip-fine">${t('Tự gia hạn mỗi tháng qua Google Play. Huỷ bất kỳ lúc nào trong Google Play → Thanh toán và gói đăng ký.')}</p>
+      </div>`;
+    const packs = IAP.packs.map((p, i) => `<div class="item vip pack">
+        <div class="item-art"><img src="${itemArtUrl('gempack:' + i)}" alt="">${p.tag ? `<i class="pack-tag">${p.tag}</i>` : ''}</div>
+        <div class="info"><div class="title">${GEM} ${fmt(p.gems)}</div><div class="desc">${t('Kim cương dùng mua đồ VIP, skin, thú cưng…')}</div></div>
+        <button class="px-btn buy money-btn" data-a="buyGems" data-arg="${p.id}" ${billing.prices[p.id] ? '' : 'disabled'}>${esc(billing.prices[p.id] || '…')}</button>
+      </div>`).join('');
+    return `${card}<h3>${t('Nạp kim cương')}</h3>${packs}
+      <button class="px-btn wide link" data-a="vipRestore">${t('Khôi phục giao dịch')}</button>`;
+  }
+
   function vipScreen() {
     const adsLeft = ADS.gemAdsPerDay - (g.ads.day === g.day ? g.ads.gems : 0);
     const item = (it) => {
@@ -294,6 +317,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
     };
     return `<div class="card screen vip-screen">
       ${head(t('Cửa hàng Kim cương'), t('Kim cương nhận từ thành tựu, nhiệm vụ, quà hằng ngày và quảng cáo'), `<div class="gem-balance">${GEM} <b>${g.gems}</b></div>`)}
+      ${storeBlock()}
       <button class="px-btn wide col-link" data-a="collection">${t('Bộ sưu tập: skin roi, thú cưng, album')}</button>
       <button class="px-btn ad wide" data-a="adGems" ${adsLeft > 0 ? '' : 'disabled'}>▶ ${t('Xem quảng cáo:')} +${ADS.gemsPerAd} ${GEM} <small>(${t('còn {n}/{max} lượt hôm nay', { n: Math.max(0, adsLeft), max: ADS.gemAdsPerDay })})</small></button>
       <h3>${t('Đặc quyền vĩnh viễn')}</h3>
@@ -302,7 +326,7 @@ export function createScreens({ g, act, modal, fmt, esc, mobile = false }) {
       ${PREMIUM_ITEMS.filter((x) => x.kind === 'boost').map(item).join('')}
     </div>`;
   }
-  const vipSig = () => [g.gems, g.perks.length, g.ads.gems, g.ads.day, g.whipLevel, g.assistantLevel, g.records.bestDays.length].join('|');
+  const vipSig = () => [g.gems, g.perks.length, g.ads.gems, g.ads.day, g.whipLevel, g.assistantLevel, g.records.bestDays.length, billing.isVip(g), Object.values(billing.prices).join()].join('|');
 
   // --- Achievements ----------------------------------------------------------------------
   function achScreen() {

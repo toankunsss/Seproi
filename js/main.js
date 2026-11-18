@@ -37,6 +37,7 @@ import * as campaign from './campaign.js';
 import { mobile, initPlatform, restoreBackup, haptic } from './platform.js';
 import * as rooms from './rooms.js';
 import * as diag from './diag.js';
+import * as billing from './billing.js';
 import { plugin } from './platform.js';
 
 const $ = (id) => document.getElementById(id);
@@ -370,6 +371,15 @@ const act = {
     if (r === 'shared') { g.records.shares = (g.records.shares || 0) + 1; saveGame(); }
   },
   rivalStart() { if (!miniOpen) startRival(); },
+  // --- real-money purchases (billing.js) ---
+  async vipSubscribe() { await purchase('vip'); },
+  async buyGems(id) { await purchase(id); },
+  vipManage() { billing.manage(); },
+  async vipRestore() {
+    const vip = await billing.restore(g);
+    toast(vip ? tr('Đã khôi phục: bạn đang là VIP') : tr('Không tìm thấy gói VIP đang hoạt động'), vip ? 'money' : 'say');
+    saveGame(); ui.screens.repaint();
+  },
   // --- diagnostics for testers (diag.js) ---
   fpsToggle() { diag.setMeter(!diag.meterOn()); ui.screens.repaint(); },
   async bugReport() {
@@ -470,7 +480,7 @@ async function maybeInterstitial(placement) {
   const sim = params.get('inter') === 'sim'; // browser tests: show the stand-in ad
   if (!sim && (!mobile || !adsAvailable())) return false;
   const company = campaignRun ? campaignRun.main : g, R = ADS.interstitial, now = Date.now();
-  if (company.perks.includes('noAds') || company.day < R.fromDay || tutorial || g.mode !== 'office') return false;
+  if (company.perks.includes('noAds') || billing.isVip(company) || company.day < R.fromDay || tutorial || g.mode !== 'office') return false;
   const today = new Date(now).toDateString();
   const a = company.ads;
   if (a.interDate !== today) { a.interDate = today; a.inter = 0; }
@@ -490,6 +500,24 @@ async function maybeInterstitial(placement) {
   }
 }
 
+/** Run a store purchase with the game paused (the Google Play sheet covers the screen). */
+async function purchase(kind) {
+  adOpen = true; // the simulation waits while the payment sheet is up
+  try {
+    const r = await billing.buy(g, kind);
+    if (r.ok) {
+      audio.buy(); audio.gems(); haptic('success');
+      toast(kind === 'vip' ? tr('CHÀO MỪNG SẾP VIP!') : tr('+{n} KIM CƯƠNG', { n: r.gems }), 'coffee');
+      if (kind === 'vip') { const n = billing.claimVipDaily(g); if (n) setTimeout(() => toast(tr('Quà VIP hôm nay: +{n} KIM CƯƠNG', { n }), 'coffee'), 1300); }
+      saveGame();
+    } else if (r.pending) toast(tr('Giao dịch đang chờ thanh toán, sẽ được cộng khi hoàn tất'), 'say');
+    else if (r.error) { audio.deny(); toast(tr('Chưa mua được, thử lại sau'), 'wrong'); diag.record('error', 'purchase ' + kind + ': ' + r.error); }
+  } finally {
+    adOpen = false; last = performance.now();
+    ui.screens.repaint();
+  }
+}
+
 const pay = (cost) => { if (g.money < cost) return false; g.money -= cost; return true; };
 const toast = (text, cls) => ui.popup(innerWidth / 2, innerHeight * 0.32, text, cls);
 
@@ -497,6 +525,11 @@ const toast = (text, cls) => ui.popup(innerWidth / 2, innerHeight * 0.32, text, 
 let lastRewardedAt = 0;
 const sessionStart = Date.now();
 async function watchAd(placement) {
+  if (billing.isVip(g)) { // VIP: every "watch an ad" reward is given straight away
+    g.records.vipSkips = (g.records.vipSkips || 0) + 1;
+    toast(tr('VIP: nhận thưởng ngay, không cần xem quảng cáo'), 'coffee');
+    return true;
+  }
   adOpen = true;
   lastRewardedAt = Date.now();
   audio.setMuted(true);
@@ -999,6 +1032,8 @@ function runDailyFlow() {
   pendingOffline = null;
   const day = daily.checkLogin(g, now);
   if (day) queue.push(['login', day]);
+  const vipGems = billing.claimVipDaily(g);
+  if (vipGems) setTimeout(() => { audio.gems(); toast(tr('Quà VIP hôm nay: +{n} KIM CƯƠNG', { n: vipGems }), 'coffee'); }, 900);
   saveGame();
   if (g.mode === 'mini') { // no room for cards in the taskbar strip: collect quietly
     for (const [kind, data] of queue) kind === 'offline' ? daily.collectOffline(g, data) : daily.claimLogin(g);
@@ -1118,7 +1153,9 @@ function blockedBy() {
   return [paused && 'report', adOpen && 'ad', rewardOpen && 'reward', dailyOpen && 'daily', miniOpen && 'mini',
     userPaused && 'pause', onTitle && 'title', tutorial && tutorial.blocking && 'tutorial'].filter(Boolean).join(',');
 }
-const shown = (sel) => { const el = document.querySelector(sel); return !!el && !el.hidden && el.offsetParent !== null; };
+// on screen = present, not [hidden], and laid out (getClientRects also works for position:fixed overlays,
+// whose offsetParent is always null)
+const shown = (sel) => { const el = document.querySelector(sel); return !!el && !el.hidden && el.getClientRects().length > 0; };
 /**
  * If the game is held by a flag whose dialog is no longer on screen (a lost tap, an ad SDK that
  * never answered…), the player sees a frozen office with nothing to press. Every 2 s: a flag that
@@ -1269,7 +1306,8 @@ function handleBack() {
   return false;
 }
 await initPlatform({ onBack: handleBack, onPause: goAway, onResume: comeBack });
-initAds(); // AdMob (phone app only): consent form where required, then preload a rewarded ad
+initAds(); // AdMob (phone app only)
+billing.initBilling(g, () => { ui.screens.repaint(); saveGame(); }); // Google Play Billing: prices, VIP status, missed purchases: consent form where required, then preload a rewarded ad
 
 setMode(g.mode);
 schedule();

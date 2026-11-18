@@ -23,6 +23,7 @@ export function sellCompany(g) {
   const keep = {
     gems: g.gems, perks: g.perks, claimed: g.claimed, records: g.records,
     tutorial: 99, daily: g.daily, muted: g.muted, musicOff: g.musicOff, mode: g.mode,
+    iap: g.iap, cos: g.cos, // real-money purchases / VIP, and skins & pets bought with 💎 are never lost
     shares: (g.shares || 0) + gained, sold: (g.sold || 0) + 1,
     bestRun: Math.max(g.bestRun || 0, Math.floor(g.lifetimeEarnings || 0)),
   };

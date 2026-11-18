@@ -131,7 +131,7 @@ export const GEMS_START = 10;
 
 // Privacy policy (docs/privacy.html on GitHub Pages). Google Play requires a link in the app too.
 /** App version shown on the title screen and in bug reports (keep in step with build.gradle). */
-export const VERSION = '1.0.8';
+export const VERSION = '1.0.9';
 export const PRIVACY_URL = 'https://toankunsss.github.io/Seproi/privacy.html';
 
 // --- Recruitment (CV) -----------------------------------------------------------------------
@@ -211,6 +211,20 @@ export const PREMIUM_ITEMS = [
   { id: 'starCv', kind: 'boost', gems: 60, name: 'Săn đầu người', desc: 'Làm mới CV, chắc chắn có 1 ứng viên ngôi sao.' },
   { id: 'cash', kind: 'boost', gems: 80, name: 'Rút quỹ đầu tư', desc: 'Nhận ngay một nửa doanh thu của ngày tốt nhất.' },
 ];
+
+// --- Real-money purchases (billing.js, Google Play Billing) -----------------------------------------
+// Product ids must match Play Console exactly (Kiếm tiền → Sản phẩm). Prices are set in Play
+// Console and shown in the player's currency; the game never hard-codes a price.
+export const IAP = {
+  vip: { id: 'whipboss_vip', plan: 'monthly' },  // subscription + its base plan (auto-renewing, 1 month)
+  vipDailyGems: 30,                              // VIP: 💎 every calendar day
+  graceDays: 3,                                  // VIP stays on offline this long after the last store check
+  packs: [                                       // consumable diamond packs
+    { id: 'gems_200', gems: 200 },
+    { id: 'gems_700', gems: 700, tag: '+17%' },
+    { id: 'gems_2000', gems: 2000, tag: '+33%' },
+  ],
+};
 
 // --- Rewarded ads ------------------------------------------------------------------------------
 export const ADS = {
