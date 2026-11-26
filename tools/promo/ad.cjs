@@ -22,7 +22,7 @@ const T = {
     coffee: ['Cà phê sốc!', 'Đánh thức kẻ ngủ gật'],
     roar: ['TIẾNG GẦM CỦA SẾP', 'Cả phòng quay lại làm việc'],
     boss: ['Trùm lười nhất tuần!', 'Quất hắn để mở rương'],
-    building: ['Từ 1 phòng lên cả tòa nhà', '6 phòng · 48 nhân viên'],
+    building: ['1 phòng → cả tòa nhà', '6 phòng · 48 nhân viên'],
     outro: { line: 'Bắt quả tang · Quất · Giữ KPI', play: '▶ Tải miễn phí trên Google Play', small: 'Tiếng Việt · English · +10 ngôn ngữ' },
   },
   en: {
@@ -31,7 +31,7 @@ const T = {
     coffee: ['Coffee rush!', 'Wake up the sleepers'],
     roar: ["THE BOSS'S ROAR", 'Everyone back to work'],
     boss: ['Laziest boss of the week!', 'Whip him to open the chest'],
-    building: ['From 1 room to a tower', '6 rooms · 48 staff'],
+    building: ['1 room → a whole tower', '6 rooms · 48 staff'],
     outro: { line: 'Catch · Whip · Keep the KPI', play: '▶ Free on Google Play', small: '12 languages' },
   },
 }[LANG];
@@ -52,6 +52,12 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.clock.runFor(1500);
   await page.evaluate(installOverlay);
   await page.evaluate((o) => { window.__adOutro = o; }, T.outro);
+  // ad layout: no tab bar / project bar / hint (bigger office), captions at the bottom so the top
+  // HUD (boss avatar with VIP frame, money, diamond whip) stays in view
+  await page.addStyleTag({ content: `
+    .mobile .tabbar, .mobile .projbar, .mobile .statusline, .mobile .roombar { display: none !important; }
+    .mobile #stage { padding-bottom: 104px !important; }
+    #promo .cap { top: auto !important; bottom: 0; padding: 18px 12px 16px !important; background: linear-gradient(#0c091600, #0c0916f5 28%) !important; }` });
 
   // ---- max everything --------------------------------------------------------------------------
   await page.evaluate(async () => {
@@ -230,7 +236,7 @@ async function installOverlay() {
       const k = Math.min(1, (vt - cap.start) / 250);
       capEl.style.display = 'block';
       capEl.style.opacity = k;
-      capEl.style.transform = `translateY(${(1 - k) * -30}px)`;
+      capEl.style.transform = `translateY(${(1 - k) * 30}px)`;
       const html = `<b>${cap.text}</b>${cap.sub ? `<i>${cap.sub}</i>` : ''}`;
       if (capEl.innerHTML !== html) capEl.innerHTML = html;
     } else capEl.style.display = 'none';
